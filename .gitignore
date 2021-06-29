@@ -12,6 +12,7 @@ __pycache__/
 !config
 !params
 !workflow
+!workflow/scripts
 .Python
 build/
 develop-eggs/
