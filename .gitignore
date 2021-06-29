@@ -11,6 +11,7 @@ __pycache__/
 !README.md
 !config
 !params
+!workflow
 .Python
 build/
 develop-eggs/
