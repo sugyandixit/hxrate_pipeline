@@ -7,12 +7,7 @@ __pycache__/
 *.so
 
 # Distribution / packaging
-*
-!README.md
-!config
-!params
-!workflow
-!workflow/scripts
+
 .Python
 build/
 develop-eggs/
