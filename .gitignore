@@ -8,10 +8,10 @@ __pycache__/
 
 # Distribution / packaging
 *
-!config
-!params
-!scripts
-!workfolder
+!config/
+!params/
+!scripts/
+!workfolder/
 .Python
 build/
 develop-eggs/
