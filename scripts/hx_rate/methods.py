@@ -304,7 +304,7 @@ def PoiBin(success_probabilities):
     return xi.real
 
 
-def calculate_theoretical_isotope_dist_from_sequence(sequence, num_isotopes=None):
+def theoretical_isotope_dist_from_sequence(sequence, num_isotopes=None):
     """
     calculate theoretical isotope distribtuion from a given one letter sequence of protein chain
     :param sequence: protein sequence in one letter code
