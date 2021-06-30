@@ -22,8 +22,8 @@ def get_data_from_mz_dist_file(fpath):
     return timepoints, mass_distiribution
 
 
-def calc_back_exchange_without_free_energies(sequence_length, theoretical_isotope_dist, experimental_isotope_dist,
-                                             intrinsic_rates, temperature, d2o_fraction=0.95, d2o_purity=0.95):
+def calc_back_exchange(sequence_length, theoretical_isotope_dist, experimental_isotope_dist, intrinsic_rates,
+                       temperature, d2o_fraction=0.95, d2o_purity=0.95):
     """
     calculate back exchange from the experimental isotope distribution
     :param sequence_length: length of the protein sequence
@@ -67,9 +67,11 @@ class HXDistData(object):
     ph: float
     d2o_frac: float
     d2o_purity: float
-    temp: float
+    temperature: float
     timepoints: np.ndarray
     mass_distribution_array: np.ndarray
+    nterm_seq_add: str = None
+    cter_seq_add: str = None
 
     def normalize_distribution(self):
         norm_dist = []
@@ -78,6 +80,27 @@ class HXDistData(object):
             norm_dist.append(norm_)
         norm_dist = np.asarray(norm_dist)
         return norm_dist
+
+
+@dataclass
+class HXRate(object):
+    """
+    class container to store hx rate fitting data
+    """
+    prot_name: str
+    prot_seq: str
+    ph: float
+    d2o_fraction: float
+    d2o_purity: float
+    temperature: float
+    back_exchange: float = None
+    back_exchange_list: list = None
+    intrinsic_rates: np.ndarray = None
+    basin_hopping_temp: float = None
+    basin_hopping_step_size: float = None
+    basin_hopping_num_iteration: float = None
+    basin_hopping_cost_value: float = None
+    fit_rates: np.ndarray = None
 
 
 if __name__ == '__main__':
@@ -93,12 +116,13 @@ if __name__ == '__main__':
     prot_name = sample_df['name'].values[0]
     prot_seq = sample_df['sequence'].values[0]
     tp, mdist = get_data_from_mz_dist_file(hx_dist_fpath)
+
     distdata = HXDistData(prot_name=prot_name,
                           prot_sequence=prot_seq,
                           ph=ph,
                           d2o_frac=d2o_fraction,
                           d2o_purity=d2o_purity,
-                          temp=temp,
+                          temperature=temp,
                           timepoints=tp,
                           mass_distribution_array=mdist)
 
@@ -108,11 +132,11 @@ if __name__ == '__main__':
                                               Temperature=temp,
                                               pH=ph)
 
-    back_exch = calc_back_exchange_without_free_energies(sequence_length=len(prot_seq),
-                                                         theoretical_isotope_dist=theoretical_isotope_dist_from_sequence(prot_seq),
-                                                         experimental_isotope_dist=norm_dist[-1],
-                                                         intrinsic_rates=intrinsic_rates,
-                                                         temperature=temp,
-                                                         d2o_fraction=d2o_fraction,
-                                                         d2o_purity=d2o_purity)
+    back_exch = calc_back_exchange(sequence_length=len(prot_seq),
+                                   theoretical_isotope_dist=theoretical_isotope_dist_from_sequence(prot_seq),
+                                   experimental_isotope_dist=norm_dist[-1],
+                                   intrinsic_rates=intrinsic_rates,
+                                   temperature=temp,
+                                   d2o_fraction=d2o_fraction,
+                                   d2o_purity=d2o_purity)
     print('heho')
