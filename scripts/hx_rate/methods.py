@@ -1,6 +1,9 @@
 import numpy as np
 import math
 import molmass
+from scipy.optimize import fmin_powell
+from scipy.special import expit
+from sklearn.metrics import mean_squared_error
 
 
 def calc_intrinsic_hx_rates(sequence_str, Temperature, pH, nterm_mode='NT', cterm_mode='CT'):
@@ -304,7 +307,7 @@ def PoiBin(success_probabilities):
     return xi.real
 
 
-def theoretical_isotope_dist_from_sequence(sequence, num_isotopes=None):
+def theoretical_isotope_dist(sequence, num_isotopes=None):
     """
     calculate theoretical isotope distribtuion from a given one letter sequence of protein chain
     :param sequence: protein sequence in one letter code
@@ -385,6 +388,62 @@ def isotope_dist_from_PoiBin_bkexch(sequence_length, isotope_dist, timepoint, ra
     isotope_dist_poibin_convol = np.convolve(pmf_hx_prob_fes, isotope_dist)
     isotope_dist_poibin_convol_norm = isotope_dist_poibin_convol[:num_bins]/max(isotope_dist_poibin_convol[:num_bins])
     return isotope_dist_poibin_convol_norm
+
+
+def back_exchange_(sequence_length: int,
+                            theoretical_isotope_distribution: np.ndarray,
+                            experimental_isotope_distribution: np.ndarray,
+                            intrinsic_rates: np.ndarray,
+                            temperature: float,
+                            d2o_fraction: float,
+                            d2o_purity: float) -> float:
+    """
+
+    """
+    num_bins_ = len(experimental_isotope_distribution)
+
+    opt = fmin_powell(lambda x: mean_squared_error(experimental_isotope_distribution,
+                                                   isotope_dist_from_PoiBin_bkexch(sequence_length=sequence_length,
+                                                                                   isotope_dist=theoretical_isotope_distribution,
+                                                                                   timepoint=1e9,
+                                                                                   rates=intrinsic_rates,
+                                                                                   num_bins=num_bins_,
+                                                                                   backexchange=expit(x),
+                                                                                   d2o_fraction=d2o_fraction,
+                                                                                   d2o_purity=d2o_purity,
+                                                                                   temp=temperature),
+                                                   squared=False), x0=2, disp=True)
+
+    back_exchange = 1 - expit(opt)[0]
+
+    return back_exchange
+
+
+# def hx_rate_fit_rmse(timepoints, rates, thr_isotope_dist_list, exp_isotope_dist_concat, num_bins,
+#                      backexchange_arr, d2o_fraction, d2o_purity):
+#     """
+#
+#     :param timepoints: timepoints
+#     :param rates: rates
+#     :param thr_isotope_dist_list: theoretical isotope dist list
+#     :param num_bins: number of bins
+#     :param backexchange: backexchange
+#     :return: rmse between exp isotope dist concat and concat model from PoiBin Isotope dist
+#     """
+#
+#
+#     concat_model = poibin_isotope_dist_concat(timepoints=timepoints,
+#                                               rates=rates,
+#                                               num_bins=num_bins,
+#                                               exp_isotope_dist_concat=thr_isotope_dist_list,
+#                                               backexchange_arr=backexchange_arr,
+#                                               d2o_fraction=d2o_fraction,
+#                                               d2o_purity=d2o_purity)
+#     # concat_model[np.isnan(concat_model)] = 0
+#
+#     mean_sq_error = mean_squared_error(exp_isotope_dist_concat[exp_isotope_dist_concat > 0],
+#                                        concat_model[exp_isotope_dist_concat > 0])
+#     return mean_sq_error
 
 
 if __name__ == '__main__':
