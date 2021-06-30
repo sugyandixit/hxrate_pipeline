@@ -65,7 +65,7 @@ def calculate_theoretical_isotope_dist_from_sequence(sequence, num_isotopes=None
 
 if __name__ == '__main__':
 
-    hx_dist_fpath = '/Users/smd4193/PycharmProjects/hxrate/workfolder/input_hx_dist/HEEH_rd4_0097_hx_mass_dist.csv'
+    hx_dist_fpath = '../workfolder/input_hx_dist/HEEH_rd4_0097_hx_mass_dist.csv'
     tp, mdist = get_data_from_mz_dist_file(hx_dist_fpath)
     distdata = HXDistData(prot_name='EEEEE',
                           prot_sequence='LLLLL',
