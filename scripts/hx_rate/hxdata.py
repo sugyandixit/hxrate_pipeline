@@ -12,3 +12,8 @@ def load_data_from_hdx_ms_dist_(fpath):
     time_points = np.asarray(df.columns.values[1:], dtype=float)
     mass_distribution = df.iloc[:, 1:].values.T
     return time_points, mass_distribution
+
+
+if __name__ == '__main__':
+
+    pass
