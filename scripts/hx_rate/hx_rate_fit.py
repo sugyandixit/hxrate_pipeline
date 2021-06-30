@@ -8,18 +8,6 @@ from scipy.optimize import basinhopping
 from methods import theoretical_isotope_dist, calc_intrinsic_hx_rates, back_exchange_
 
 
-def get_data_from_mz_dist_file(fpath):
-    """
-    get hdx mass distribution data
-    :param fpath: input .csv path for distribution
-    :return: timepoints, mass_distribution list
-    """
-    df = pd.read_csv(fpath)
-    timepoints = np.asarray(df.columns.values[1:], dtype=float)
-    mass_distiribution = df.iloc[:, 1:].values.T
-    return timepoints, mass_distiribution
-
-
 def calc_back_exchange(sequence: str,
                        experimental_isotope_dist: np.ndarray,
                        temperature: float,
@@ -55,6 +43,19 @@ def calc_back_exchange(sequence: str,
                                    d2o_purity=d2o_purity)
 
     return back_exchange
+
+
+def fit_rate(sequence: str,
+             time_points: np.ndarray,
+             exp_mass_distribution_array: np.ndarray,
+             d2o_fraction: float,
+             d2o_purity: float,
+             opt_iter: int,
+             opt_temp: float,
+             opt_step_size: float,
+             multi_proc: bool) -> object:
+    print('test')
+    
 
 
 # def fit_hx_rates_optimize(sequence, timepoints, thr_isotope_dist_list, exp_isotope_dist_list, num_rates, backexchange,
@@ -192,7 +193,10 @@ if __name__ == '__main__':
     sample_df = pd.read_csv(sample_csv_fpath)
     prot_name = sample_df['name'].values[0]
     prot_seq = sample_df['sequence'].values[0]
-    tp, mdist = get_data_from_mz_dist_file(hx_dist_fpath)
+
+    from hxdata import load_data_from_hdx_ms_dist_
+
+    tp, mdist = load_data_from_hdx_ms_dist_(hx_dist_fpath)
 
     distdata = HXDistData(prot_name=prot_name,
                           prot_sequence=prot_seq,
