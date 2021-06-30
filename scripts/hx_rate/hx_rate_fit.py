@@ -55,7 +55,6 @@ def fit_rate(sequence: str,
              opt_step_size: float,
              multi_proc: bool) -> object:
     print('test')
-    
 
 
 # def fit_hx_rates_optimize(sequence, timepoints, thr_isotope_dist_list, exp_isotope_dist_list, num_rates, backexchange,
