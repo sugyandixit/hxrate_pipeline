@@ -1,7 +1,7 @@
 import numpy as np
 import math
 
-def calculate_intrinsic_exchange_rates_suggie(sequence_str, Temperature, pH, nterm_mode='NT', cterm_mode='CT'):
+def calc_intrinsic_hx_rates(sequence_str, Temperature, pH, nterm_mode='NT', cterm_mode='CT'):
     """
     calculates the intrinsic h exchange rates based on the amino acid sequence for a polypeptide chain
     # calculate the instrinsic exchange rate
@@ -261,6 +261,11 @@ def calculate_intrinsic_exchange_rates_suggie(sequence_str, Temperature, pH, nte
 
 
     IntrinsicEnchangeRates = np.array(IntrinsicEnchangeRates)
-    IntrinsicEnchangeRates_min = np.array(IntrinsicEnchangeRates_min)
+    # IntrinsicEnchangeRates_min = np.array(IntrinsicEnchangeRates_min)
 
     return IntrinsicEnchangeRates
+
+
+if __name__ == '__main__':
+
+    pass
