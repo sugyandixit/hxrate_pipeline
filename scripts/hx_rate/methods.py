@@ -316,6 +316,28 @@ def PoiBin(success_probabilities):
     return xi.real
 
 
+def gen_temp_rates(sequence: str, rate_value: float = 1e2) -> np.ndarray:
+    """
+    generate template rates
+    :param sequence: protein sequence
+    :param rate_value: temporary rate value
+    :return: an array of rates with first two residues and proline residues assigned to 0.0
+    """
+    rates = np.array([rate_value]*len(sequence), dtype=float)
+
+    # set the rates for the first two residues as 0
+    rates[:2] = 0
+
+    # set the rate for proline to be 0
+    if 'P' in sequence:
+        amino_acid_list = [x for x in sequence]
+        for ind, amino_acid in enumerate(amino_acid_list):
+            if amino_acid == 'P':
+                rates[ind] = 0
+
+    return rates
+
+
 def theoretical_isotope_dist(sequence, num_isotopes=None):
     """
     calculate theoretical isotope distribtuion from a given one letter sequence of protein chain
