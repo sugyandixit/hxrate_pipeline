@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import math
 import molmass
@@ -5,6 +6,8 @@ from scipy.optimize import fmin_powell
 from scipy.special import expit
 from sklearn.metrics import mean_squared_error
 
+# global variables
+r_constant = 0.0019872036
 
 def calc_intrinsic_hx_rates(sequence_str: str,
                             temperature: float,
@@ -332,97 +335,85 @@ def theoretical_isotope_dist(sequence, num_isotopes=None):
     return isotope_dist
 
 
-def cal_hx_prob_with_backexchange(timepoints, rate_constant, inv_backexchange, d2o_purity, d2o_fraction):
+def calc_hx_prob(timepoint: float,
+                 rate_constant: np.ndarray,
+                 inv_back_exchange: float,
+                 d2o_purity: float,
+                 d2o_fraction: float) -> np.ndarray:
     """
-    calculate the exchange probability for each time point given the rate constant, backexchange, and d20 purity and
-    fraction
-    :param timepoints: array of time points (seconds)
-    :param rate_constant: array of rate constants or a single rate
-    :param backexchange: backexchange rate
-    :param d2o_purity: purity of d2o
-    :param d2o_fraction:
-    :return: exchange probabilities
+    calculate the exchange probability for each residue at the timepoint given the rate constant, backexchange, d2o purity and fraction
+    :param timepoint: timepoint in seconds
+    :param rate_constant: array of rate_constant
+    :param inv_back_exchange: 1 - backexchange value
+    :param d2o_purity: d2o purity
+    :param d2o_fraction: d2o fraction
+    :return: array of probabilities
     """
-    prob = (1.0 - np.exp(-rate_constant * timepoints)) * (d2o_fraction * d2o_purity * inv_backexchange)
+    prob = (1.0 - np.exp(-rate_constant * timepoint)) * (d2o_fraction * d2o_purity * inv_back_exchange)
     return prob
 
 
-def hx_rates_probability_distribution_with_fes(timepoints, rates, inv_backexchange, d2o_fraction, d2o_purity,
-                                               fes, temp):
+def hx_rates_probability_distribution(timepoint: float,
+                                      rates: np.ndarray,
+                                      inv_backexchange: float,
+                                      d2o_fraction: float,
+                                      d2o_purity: float,
+                                      free_energy_values: np.ndarray = None,
+                                      temperature: np.ndarray = None) -> np.ndarray:
     """
+    :param timepoint: hdx timepoint in seconds
+    :param rates: hdx rates numpy array
+    :param inv_backexchange: 1 - backexchange
+    :param d2o_purity: d2o purity
+    :param d2o_fraction: d2o fraction
+    :param free_energy_values: free energy values if given can be used for hx probability distributions
+    :param temperature: temperature in kelvin
+    """
+    fractions = np.array([1 for x in rates])
+    if free_energy_values is not None:
+        if temperature is None:
+            raise ValueError('You need to specify temperature (K) in order to use free energy values')
+        else:
+            fractions = np.exp(-free_energy_values / (r_constant * temperature)) / (1.0 + np.exp(-free_energy_values / (r_constant * temperature)))
 
-    :param timepoints:
-    :param rates:
-    :param backexchange:
-    :param d2o_fraction:
-    :param d2o_purity:
-    :param blank_fes:
-    :return:
-    """
-    r_constant = 0.0019872036
-    fractions = np.exp(-fes / (r_constant * temp)) / (1.0 + np.exp(-fes / (r_constant * temp)))
-    hx_probabs = cal_hx_prob_with_backexchange(timepoints=timepoints,
-                                               rate_constant=rates*fractions,
-                                               inv_backexchange=inv_backexchange,
-                                               d2o_purity=d2o_purity,
-                                               d2o_fraction=d2o_fraction)
+    rate_constant_values = rates * fractions
+
+    hx_probabs = calc_hx_prob(timepoint=timepoint,
+                              rate_constant=rate_constant_values,
+                              inv_back_exchange=inv_backexchange,
+                              d2o_purity=d2o_purity,
+                              d2o_fraction=d2o_fraction)
+
     pmf_hx_probabs = PoiBin(hx_probabs)
     return pmf_hx_probabs
 
 
-def isotope_dist_from_PoiBin_bkexch(sequence_length, isotope_dist, timepoint, rates, num_bins, inv_backexchange,
-                                    d2o_fraction, d2o_purity, temp):
-    """
-    returns the convolved isotopic distribution from the pfm of hx rates probabilities
-    :param isotope_dist: isotope distribution
-    :param timepoints: time points array in seconds
-    :param rates: measured rates array
-    :param num_bins: number of bins
-    :param backexchange: back exchange rate as above
-    :param d2o_fraction: fraction of d2o
-    :param d2o_purity: purity of d2o
-    :return: isotope distribution
-    """
-    fes = np.zeros(sequence_length)
-    pmf_hx_prob_fes = hx_rates_probability_distribution_with_fes(timepoints=timepoint,
-                                                                 rates=rates,
-                                                                 inv_backexchange=inv_backexchange,
-                                                                 d2o_fraction=d2o_fraction,
-                                                                 d2o_purity=d2o_purity,
-                                                                 fes=fes,
-                                                                 temp=temp)
-    isotope_dist_poibin_convol = np.convolve(pmf_hx_prob_fes, isotope_dist)
-    isotope_dist_poibin_convol_norm = isotope_dist_poibin_convol[:num_bins]/max(isotope_dist_poibin_convol[:num_bins])
-    return isotope_dist_poibin_convol_norm
-
-
-def back_exchange_(sequence_length: int,
-                            theoretical_isotope_distribution: np.ndarray,
-                            experimental_isotope_distribution: np.ndarray,
-                            intrinsic_rates: np.ndarray,
-                            temperature: float,
-                            d2o_fraction: float,
-                            d2o_purity: float) -> float:
+def isotope_dist_from_PoiBin(sequence: str,
+                             timepoint: float,
+                             inv_backexchange: float,
+                             rates: np.ndarray,
+                             d2o_fraction: float,
+                             d2o_purity: float,
+                             num_bins: float,
+                             free_energy_values: np.ndarray = None,
+                             temperature: np.ndarray = None) -> np.ndarray:
     """
 
     """
-    num_bins_ = len(experimental_isotope_distribution)
 
-    opt = fmin_powell(lambda x: mean_squared_error(experimental_isotope_distribution,
-                                                   isotope_dist_from_PoiBin_bkexch(sequence_length=sequence_length,
-                                                                                   isotope_dist=theoretical_isotope_distribution,
-                                                                                   timepoint=1e9,
-                                                                                   rates=intrinsic_rates,
-                                                                                   num_bins=num_bins_,
-                                                                                   inv_backexchange=expit(x),
-                                                                                   d2o_fraction=d2o_fraction,
-                                                                                   d2o_purity=d2o_purity,
-                                                                                   temp=temperature),
-                                                   squared=False), x0=2, disp=True)
+    pmf_hx_probs = hx_rates_probability_distribution(timepoint=timepoint,
+                                                     rates=rates,
+                                                     inv_backexchange=inv_backexchange,
+                                                     d2o_fraction=d2o_fraction,
+                                                     d2o_purity=d2o_purity,
+                                                     free_energy_values=free_energy_values,
+                                                     temperature=temperature)
 
-    back_exchange = 1 - expit(opt)[0]
+    seq_isotope_dist = theoretical_isotope_dist(sequence=sequence, num_isotopes=num_bins)
 
-    return back_exchange
+    isotope_dist_poibin = np.convolve(pmf_hx_probs, seq_isotope_dist)[:num_bins]
+    isotope_dist_poibin_norm = isotope_dist_poibin/max(isotope_dist_poibin)
+    return isotope_dist_poibin_norm
 
 
 if __name__ == '__main__':
