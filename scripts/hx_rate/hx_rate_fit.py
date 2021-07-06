@@ -12,8 +12,8 @@ def calc_back_exchange(sequence: str,
                        experimental_isotope_dist: np.ndarray,
                        temperature: float,
                        ph: float,
-                       d2o_fraction: float = 0.95,
-                       d2o_purity: float = 0.95) -> float:
+                       d2o_fraction: float,
+                       d2o_purity: float) -> float:
     """
     calculate back exchange from the experimental isotope distribution
     :param sequence: length of the protein sequence
@@ -29,7 +29,7 @@ def calc_back_exchange(sequence: str,
     thr_isotope_dist = theoretical_isotope_dist(sequence=sequence)
 
     intrinsic_rates = calc_intrinsic_hx_rates(sequence_str=sequence,
-                                              Temperature=temperature,
+                                              temperature=temperature,
                                               pH=ph)
 
     intrinsic_rates[:2] = 0
@@ -45,58 +45,84 @@ def calc_back_exchange(sequence: str,
     return back_exchange
 
 
-def fit_rate(sequence: str,
-             time_points: np.ndarray,
-             exp_mass_distribution_array: np.ndarray,
-             d2o_fraction: float,
-             d2o_purity: float,
-             opt_iter: int,
-             opt_temp: float,
-             opt_step_size: float,
-             multi_proc: bool) -> object:
-    print('test')
-
-
-# def fit_hx_rates_optimize(sequence, timepoints, thr_isotope_dist_list, exp_isotope_dist_list, num_rates, backexchange,
-#                           d2o_fraction=0.95, d2o_purity=0.95, num_bins=None, n_iter=250, temp=0.00003, step_size=0.02,
-#                           multi_fit_mode=False):
-#     """
-#     calculate the hx rates using the time points and the list of experimental isotope distribution
-#     :param timepoints: timepoints
-#     :param exp_isotope_dist_list: list of experimental isotope distributions
-#     :param backexchange: backexchange rate
-#     :return: fitted hx rates
-#     """
+# def fit_rate(sequence: str,
+#              time_points: np.ndarray,
+#              norm_mass_distribution_array: np.ndarray,
+#              temperature: float,
+#              ph: float,
+#              d2o_fraction: float,
+#              d2o_purity: float,
+#              opt_iter: int,
+#              opt_temp: float,
+#              opt_step_size: float,
+#              multi_proc: bool = True,
+#              rate_init_list: list = None) -> object:
 #
-#     backexchange_arr = np.array([backexchange for x in timepoints])
-#     if len(backexchange_arr) != len(timepoints):
-#         backexchange_arr = np.reshape(backexchange_arr, (len(timepoints),))
+#     # initialize HXRate object to collect data
+#     hx_rate = HXRate(prot_seq=sequence,
+#                      ph=ph,
+#                      d2o_fraction=d2o_fraction,
+#                      d2o_purity=d2o_purity,
+#                      temperature=temperature)
 #
-#     exp_isotope_dist_concat = np.concatenate(exp_isotope_dist_list)
+#     # calculate back exchange first
 #
-#     init_rate_set = 0
+#     hx_rate.back_exchange = calc_back_exchange(sequence=sequence,
+#                                                experimental_isotope_dist=norm_mass_distribution_array[-1],
+#                                                temperature=temperature,
+#                                                ph=ph,
+#                                                d2o_fraction=d2o_fraction,
+#                                                d2o_purity=d2o_purity)
 #
-#     if multi_fit_mode:
+#     # populate backexchange in an array with length equals number of time points
+#     hx_rate.back_exchange_array = np.array([hx_rate.back_exchange for x in time_points])
+#     if len(hx_rate.back_exchange_array) != len(time_points):
+#         hx_rate.back_exchange_array = np.reshape(hx_rate.back_exchange_array, (len(time_points),))
 #
-#         init_rates_list = [np.array([-2 for x in range(num_rates)]),
-#                            np.array([-5 for x in range(num_rates)]),
-#                            np.linspace(-7, 0, num_rates),
-#                            np.linspace(-7, -2, num_rates),
-#                            np.linspace(-8, -4, num_rates),
-#                            np.linspace(1, -12, num_rates)]
+#     inv_back_exchange_array = np.subtract(1, hx_rate.back_exchange_array)
 #
-#         prev_fun = 10
+#     # concatenate exp mass distribution
+#     exp_isotope_dist_concat = np.concatenate(norm_mass_distribution_array)
 #
-#         for ind, init_rate in enumerate(init_rates_list):
+#     # calculate intrinsic rates
+#     intrinsic_rates = calc_intrinsic_hx_rates(sequence_str=sequence,
+#                                               Temperature=temperature,
+#                                               pH=ph)
 #
-#             print('multi_fit_rate_set: ' + str(ind+1))
+#     # assign the first two residue rates 0
+#     intrinsic_rates[:2] = 0
 #
-#             opt_ = basinhopping(lambda rates: hx_rate_fit_rmse(timepoints=timepoints,
+#     # get the number of rates that have non zero intrinsic rates
+#     len_rates = len([x for x in intrinsic_rates if x != 0])
+#
+#     # get init rate list as initial guesses for rate fit optimization
+#     if rate_init_list is not None:
+#         init_rates_list = rate_init_list
+#     else:
+#         init_rates_list = [np.array([-2 for x in range(len_rates)]),
+#                            np.array([-5 for x in range(len_rates)]),
+#                            np.linspace(-7, 0, len_rates),
+#                            np.linspace(-7, -2, len_rates),
+#                            np.linspace(-8, -4, len_rates),
+#                            np.linspace(1, -12, len_rates)]
+#
+#     # set an initial optimization cost value
+#     opt_cost = 10
+#
+#     if multi_proc:
+#
+#         print('put multi processing code here')
+#
+#     else:
+#
+#         for init_rate in init_rates_list:
+#
+#             opt_ = basinhopping(lambda rates: hx_rate_fit_rmse(timepoints=time_points,
 #                                                                rates=rates,
 #                                                                thr_isotope_dist_list=thr_isotope_dist_list,
 #                                                                exp_isotope_dist_concat=exp_isotope_dist_concat,
 #                                                                num_bins=num_bins,
-#                                                                backexchange_arr=backexchange_arr,
+#                                                                backexchange_arr=inv_back_exchange_array,
 #                                                                d2o_purity=d2o_purity,
 #                                                                d2o_fraction=d2o_fraction),
 #                                 x0=init_rate,
@@ -105,32 +131,12 @@ def fit_rate(sequence: str,
 #                                 stepsize=step_size,
 #                                 minimizer_kwargs={'options': {'maxiter': 1}})
 #
-#             new_fun = opt_.fun
-#
-#             if new_fun < prev_fun:
+#             new_opt_cost = opt_.fun
+#             if new_opt_cost < opt_cost:
 #                 opt = opt_
-#                 init_rate_set = ind
+#             opt_cost = new_opt_cost
 #
-#             prev_fun = new_fun
-#
-#     else:
-#         # init_rates = np.linspace(-8, -4, num_rates)
-#         init_rates = np.linspace(-4, -2, num_rates)
-#         opt = basinhopping(lambda rates: hx_rate_fit_rmse(timepoints=timepoints,
-#                                                           rates=rates,
-#                                                           thr_isotope_dist_list=thr_isotope_dist_list,
-#                                                           exp_isotope_dist_concat=exp_isotope_dist_concat,
-#                                                           num_bins=num_bins,
-#                                                           backexchange_arr=backexchange_arr,
-#                                                           d2o_purity=d2o_purity,
-#                                                           d2o_fraction=d2o_fraction),
-#                            x0=init_rates,
-#                            niter=n_iter,
-#                            T=temp,
-#                            stepsize=step_size,
-#                            minimizer_kwargs={'options': {'maxiter': 1}})
-#
-#     return opt, init_rate_set
+#     return hx_rate
 
 
 @dataclass
@@ -164,14 +170,15 @@ class HXRate(object):
     """
     class container to store hx rate fitting data
     """
-    prot_name: str
+
     prot_seq: str
     ph: float
     d2o_fraction: float
     d2o_purity: float
     temperature: float
+    prot_name: str = None
     back_exchange: float = None
-    back_exchange_list: list = None
+    back_exchange_array: np.ndarray = None
     intrinsic_rates: np.ndarray = None
     basin_hopping_temp: float = None
     basin_hopping_step_size: float = None
