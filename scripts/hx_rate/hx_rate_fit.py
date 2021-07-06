@@ -4,45 +4,73 @@
 import numpy as np
 import pandas as pd
 from dataclasses import dataclass
-from scipy.optimize import basinhopping
-from methods import theoretical_isotope_dist, calc_intrinsic_hx_rates, back_exchange_
+from sklearn.metrics import mean_squared_error
+from scipy.special import expit
+from scipy.optimize import basinhopping, fmin_powell
+from methods import isotope_dist_from_PoiBin
 
 
 def calc_back_exchange(sequence: str,
                        experimental_isotope_dist: np.ndarray,
-                       temperature: float,
-                       ph: float,
                        d2o_fraction: float,
-                       d2o_purity: float) -> float:
+                       d2o_purity: float,
+                       timepoint: float = 1e9) -> object:
     """
     calculate back exchange from the experimental isotope distribution
-    :param sequence: length of the protein sequence
-    :param experimental_isotope_dist: experimental isotope distribution to use for calculating backexchange
+    :param sequence: protein sequence
+    :param experimental_isotope_dist: experimental isotope distribution to be used for backexchange calculation
     :param d2o_fraction: d2o fraction
     :param d2o_purity: d2o purity
-    :param temperature: temperature in kelvin
-    :param ph: pH value
-    :return: back_exchange value
+    :param timepoint: hdx timepoint in seconds. default to 1e9 for full deuteration
+    :return: backexchange data object
     """
 
-    sequence_length = len(sequence)
-    thr_isotope_dist = theoretical_isotope_dist(sequence=sequence)
+    # set high rates for calculating back exchange
+    rates = np.array([1e2]*len(sequence), dtype=float)
 
-    intrinsic_rates = calc_intrinsic_hx_rates(sequence_str=sequence,
-                                              temperature=temperature,
-                                              pH=ph)
+    # set the rates for the first two residues as 0
+    rates[:2] = 0
 
-    intrinsic_rates[:2] = 0
+    # set the rate for proline to be 0
+    if 'P' in sequence:
+        amino_acid_list = [x for x in sequence]
+        for ind, amino_acid in enumerate(amino_acid_list):
+            if amino_acid == 'P':
+                rates[ind] = 0
 
-    back_exchange = back_exchange_(sequence_length=sequence_length,
-                                   theoretical_isotope_distribution=thr_isotope_dist,
-                                   experimental_isotope_distribution=experimental_isotope_dist,
-                                   intrinsic_rates=intrinsic_rates,
-                                   temperature=temperature,
-                                   d2o_fraction=d2o_fraction,
-                                   d2o_purity=d2o_purity)
+    num_bins = len(experimental_isotope_dist)
 
-    return back_exchange
+    opt = fmin_powell(lambda x: mean_squared_error(experimental_isotope_dist,
+                                                   isotope_dist_from_PoiBin(sequence=sequence,
+                                                                            timepoint=timepoint,
+                                                                            inv_backexchange=expit(x),
+                                                                            rates=rates,
+                                                                            d2o_fraction=d2o_fraction,
+                                                                            d2o_purity=d2o_purity,
+                                                                            num_bins=num_bins),
+                                                   squared=False),
+                      x0=2,
+                      disp=True)
+
+    back_exchange = 1 - expit(opt)[0]
+
+    thr_iso_dist_full_deut = isotope_dist_from_PoiBin(sequence=sequence,
+                                                      timepoint=timepoint,
+                                                      inv_backexchange=1 - back_exchange,
+                                                      rates=rates,
+                                                      d2o_fraction=d2o_fraction,
+                                                      d2o_purity=d2o_purity,
+                                                      num_bins=num_bins)
+
+    fit_rmse = mean_squared_error(y_true=experimental_isotope_dist,
+                                  y_pred=thr_iso_dist_full_deut,
+                                  squared=False)
+
+    backexchange_obj = BackExchange(backexchange_value=back_exchange,
+                                    fit_rmse=fit_rmse,
+                                    theoretical_isotope_dist=thr_iso_dist_full_deut)
+
+    return backexchange_obj
 
 
 # def fit_rate(sequence: str,
@@ -187,6 +215,17 @@ class HXRate(object):
     fit_rates: np.ndarray = None
 
 
+@dataclass
+class BackExchange(object):
+    """
+    class container to store backexchange data
+    """
+    backexchange_value: float = None
+    fit_rmse: float = None
+    theoretical_isotope_dist: np.ndarray = None
+    backexchange_array: np.ndarray = None
+
+
 if __name__ == '__main__':
 
     temp_ = 298
@@ -194,14 +233,8 @@ if __name__ == '__main__':
     d2o_fraction_ = 0.95
     d2o_purity_ = 0.95
 
-    hx_dist_fpath = '../../workfolder/input_hx_dist/HEEH_rd4_0097_hx_mass_dist.csv'
-    sample_csv_fpath = '../../workfolder/sample.csv'
-    sample_df = pd.read_csv(sample_csv_fpath)
-    prot_name = sample_df['name'].values[0]
-    prot_seq = sample_df['sequence'].values[0]
-
     import hxdata
-    tp, mdist = hxdata.load_sample_data()
+    prot_name, prot_seq, tp, mdist = hxdata.load_sample_data()
 
     distdata = HXDistData(prot_name=prot_name,
                           prot_sequence=prot_seq,
@@ -214,8 +247,9 @@ if __name__ == '__main__':
 
     norm_dist_ = distdata.normalize_distribution()
 
-    # back_exch = calc_back_exchange(sequence=,
-    #                                experimental_isotope_dist=,
-    #                                temperature=,
-    #                                ph=,
-    #                                )
+    back_exch_2 = calc_back_exchange(sequence=prot_seq,
+                                     experimental_isotope_dist=norm_dist_[-1],
+                                     d2o_fraction=d2o_fraction_,
+                                     d2o_purity=d2o_purity_)
+
+    print('heho')
