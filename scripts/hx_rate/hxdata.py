@@ -14,6 +14,15 @@ def load_data_from_hdx_ms_dist_(fpath):
     return time_points, mass_distribution
 
 
+def load_sample_data():
+    """
+    gets the sample data from the workfoler/input_hx_dist/ folder
+    """
+    csv_fpath = '../../workfolder/input_hx_dist/HEEH_rd4_0097_hx_mass_dist.csv'
+    timepoints, mass_distribution = load_data_from_hdx_ms_dist_(csv_fpath)
+    return timepoints, mass_distribution
+
+
 if __name__ == '__main__':
 
     pass

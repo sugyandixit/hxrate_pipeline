@@ -200,9 +200,8 @@ if __name__ == '__main__':
     prot_name = sample_df['name'].values[0]
     prot_seq = sample_df['sequence'].values[0]
 
-    from hxdata import load_data_from_hdx_ms_dist_
-
-    tp, mdist = load_data_from_hdx_ms_dist_(hx_dist_fpath)
+    import hxdata
+    tp, mdist = hxdata.load_sample_data()
 
     distdata = HXDistData(prot_name=prot_name,
                           prot_sequence=prot_seq,
@@ -214,3 +213,9 @@ if __name__ == '__main__':
                           mass_distribution_array=mdist)
 
     norm_dist_ = distdata.normalize_distribution()
+
+    # back_exch = calc_back_exchange(sequence=,
+    #                                experimental_isotope_dist=,
+    #                                temperature=,
+    #                                ph=,
+    #                                )
