@@ -285,7 +285,7 @@ def PoiBin(success_probabilities):
     """
     poisson binomial probability distribution function
     :param success_probabilities:
-    :return:
+    :return: probabiliy distribution
     """
     number_trials = success_probabilities.size
 
@@ -361,14 +361,17 @@ def hx_rates_probability_distribution(timepoint: float,
                                       free_energy_values: np.ndarray = None,
                                       temperature: np.ndarray = None) -> np.ndarray:
     """
+    generate rate of hx probabilities for all residues
     :param timepoint: hdx timepoint in seconds
-    :param rates: hdx rates numpy array
+    :param rates: rates
     :param inv_backexchange: 1 - backexchange
+    :param d2o_fraction: d2o fractyion
     :param d2o_purity: d2o purity
-    :param d2o_fraction: d2o fraction
-    :param free_energy_values: free energy values if given can be used for hx probability distributions
-    :param temperature: temperature in kelvin
+    :param free_energy_values: free energy values
+    :param temperature: temperature
+    :return: hx probablities of all resdiues given the hdx rates
     """
+
     fractions = np.array([1 for x in rates])
     if free_energy_values is not None:
         if temperature is None:
@@ -398,7 +401,17 @@ def isotope_dist_from_PoiBin(sequence: str,
                              free_energy_values: np.ndarray = None,
                              temperature: np.ndarray = None) -> np.ndarray:
     """
-
+    generate theoretical isotope distribution based on hdx rates, timepoint, and other conditions
+    :param sequence: protein sequence str
+    :param timepoint: timepoint in seconds
+    :param inv_backexchange: 1 - backexchange
+    :param rates: hdx rates
+    :param d2o_fraction: d2o fraction
+    :param d2o_purity: d2o purity
+    :param num_bins: number of bins to include for isotope distribution
+    :param free_energy_values: free energy values to be used for calculating isotope distribution
+    :param temperature: temperature to be used when free energy is not None
+    :return: isotope distribution normalized
     """
 
     pmf_hx_probs = hx_rates_probability_distribution(timepoint=timepoint,
@@ -413,6 +426,7 @@ def isotope_dist_from_PoiBin(sequence: str,
 
     isotope_dist_poibin = np.convolve(pmf_hx_probs, seq_isotope_dist)[:num_bins]
     isotope_dist_poibin_norm = isotope_dist_poibin/max(isotope_dist_poibin)
+
     return isotope_dist_poibin_norm
 
 

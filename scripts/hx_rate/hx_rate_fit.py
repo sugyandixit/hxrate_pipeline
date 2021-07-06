@@ -247,9 +247,7 @@ if __name__ == '__main__':
 
     norm_dist_ = distdata.normalize_distribution()
 
-    back_exch_2 = calc_back_exchange(sequence=prot_seq,
-                                     experimental_isotope_dist=norm_dist_[-1],
-                                     d2o_fraction=d2o_fraction_,
-                                     d2o_purity=d2o_purity_)
-
-    print('heho')
+    back_exch = calc_back_exchange(sequence=prot_seq,
+                                   experimental_isotope_dist=norm_dist_[-1],
+                                   d2o_fraction=d2o_fraction_,
+                                   d2o_purity=d2o_purity_)
