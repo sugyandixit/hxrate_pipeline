@@ -6,15 +6,21 @@ from scipy.special import expit
 from sklearn.metrics import mean_squared_error
 
 
-def calc_intrinsic_hx_rates(sequence_str, Temperature, pH, nterm_mode='NT', cterm_mode='CT'):
+def calc_intrinsic_hx_rates(sequence_str: str,
+                            temperature: float,
+                            ph: float,
+                            nterm_mode: str = 'NT',
+                            cterm_mode: str = 'CT'):
     """
     calculates the intrinsic h exchange rates based on the amino acid sequence for a polypeptide chain
     # calculate the instrinsic exchange rate
     # taken directly from https://gitlab.com/mcpe/psx/blob/master/Code/IntrinsicExchange.py
     # changed the raw values based on the paper J. Am. Soc. Mass Spectrom. (2018) 29;1936-1939
-    :param sequence: sequence of the protein (needs to include additional nterm and cterm residues as well)
-    :param temp: temperature
+    :param sequence_str: sequence of the protein (needs to include additional nterm and cterm residues as well)
+    :param temperature: temperature
     :param ph: ph
+    :param nterm_mode:
+    :param cterm_mode:
     :return: list of intrinsic exchange rates for each residue
     """
 
@@ -31,8 +37,8 @@ def calc_intrinsic_hx_rates(sequence_str, Temperature, pH, nterm_mode='NT', cter
     R = 1.987
     # gabe has the temp correction factor with 278
     # the excel sheet from the englander lab also has 278.0
-    TemperatureCorrection = (1.0/Temperature - 1.0/278.0) / R
-    Temperature_Corr_2 = (1.0/Temperature - 1.0/293.0) / R
+    TemperatureCorrection = (1.0/temperature - 1.0/278.0) / R
+    Temperature_Corr_2 = (1.0/temperature - 1.0/293.0) / R
     # TemperatureCorrection = (1.0 / Temperature - 1.0 / 293.0) / R  # disregarding this temperature correction formula
 
     # Activation energies (in cal/mol)
@@ -135,44 +141,44 @@ def calc_intrinsic_hx_rates(sequence_str, Temperature, pH, nterm_mode='NT', cter
     MilneBase["?"] = (0.00, 0.00)
 
     LambdaProtonatedAcidAsp = math.log10(
-        10.0 ** (MilneAcid['D+'][0] - pH) / (10.0 ** -pKAsp + 10.0 ** -pH) + 10.0 ** (MilneAcid['D0'][0] - pKAsp) / (
-                10.0 ** -pKAsp + 10.0 ** -pH))
+        10.0 ** (MilneAcid['D+'][0] - ph) / (10.0 ** -pKAsp + 10.0 ** -ph) + 10.0 ** (MilneAcid['D0'][0] - pKAsp) / (
+                10.0 ** -pKAsp + 10.0 ** -ph))
     LambdaProtonatedAcidGlu = math.log10(
-        10.0 ** (MilneAcid['E+'][0] - pH) / (10.0 ** -pKGlu + 10.0 ** -pH) + 10.0 ** (MilneAcid['E0'][0] - pKGlu) / (
-                10.0 ** -pKGlu + 10.0 ** -pH))
+        10.0 ** (MilneAcid['E+'][0] - ph) / (10.0 ** -pKGlu + 10.0 ** -ph) + 10.0 ** (MilneAcid['E0'][0] - pKGlu) / (
+                10.0 ** -pKGlu + 10.0 ** -ph))
     LambdaProtonatedAcidHis = math.log10(
-        10.0 ** (MilneAcid['H+'][0] - pH) / (10.0 ** -pKHis + 10.0 ** -pH) + 10.0 ** (MilneAcid['H0'][0] - pKHis) / (
-                10.0 ** -pKHis + 10.0 ** -pH))
+        10.0 ** (MilneAcid['H+'][0] - ph) / (10.0 ** -pKHis + 10.0 ** -ph) + 10.0 ** (MilneAcid['H0'][0] - pKHis) / (
+                10.0 ** -pKHis + 10.0 ** -ph))
 
     RhoProtonatedAcidAsp = math.log10(
-        10.0 ** (MilneAcid['D+'][1] - pH) / (10.0 ** -pKAsp + 10.0 ** -pH) + 10.0 ** (MilneAcid['D0'][1] - pKAsp) / (
-                10.0 ** -pKAsp + 10.0 ** -pH))
+        10.0 ** (MilneAcid['D+'][1] - ph) / (10.0 ** -pKAsp + 10.0 ** -ph) + 10.0 ** (MilneAcid['D0'][1] - pKAsp) / (
+                10.0 ** -pKAsp + 10.0 ** -ph))
     RhoProtonatedAcidGlu = math.log10(
-        10.0 ** (MilneAcid['E+'][1] - pH) / (10.0 ** -pKGlu + 10.0 ** -pH) + 10.0 ** (MilneAcid['E0'][1] - pKGlu) / (
-                10.0 ** -pKGlu + 10.0 ** -pH))
+        10.0 ** (MilneAcid['E+'][1] - ph) / (10.0 ** -pKGlu + 10.0 ** -ph) + 10.0 ** (MilneAcid['E0'][1] - pKGlu) / (
+                10.0 ** -pKGlu + 10.0 ** -ph))
     RhoProtonatedAcidHis = math.log10(
-        10.0 ** (MilneAcid['H+'][1] - pH) / (10.0 ** -pKHis + 10.0 ** -pH) + 10.0 ** (MilneAcid['H0'][1] - pKHis) / (
-                10.0 ** -pKHis + 10.0 ** -pH))
+        10.0 ** (MilneAcid['H+'][1] - ph) / (10.0 ** -pKHis + 10.0 ** -ph) + 10.0 ** (MilneAcid['H0'][1] - pKHis) / (
+                10.0 ** -pKHis + 10.0 ** -ph))
 
     LambdaProtonatedBaseAsp = math.log10(
-        10.0 ** (MilneBase['D+'][0] - pH) / (10.0 ** -pKAsp + 10.0 ** -pH) + 10.0 ** (MilneBase['D0'][0] - pKAsp) / (
-                10.0 ** -pKAsp + 10.0 ** -pH))
+        10.0 ** (MilneBase['D+'][0] - ph) / (10.0 ** -pKAsp + 10.0 ** -ph) + 10.0 ** (MilneBase['D0'][0] - pKAsp) / (
+                10.0 ** -pKAsp + 10.0 ** -ph))
     LambdaProtonatedBaseGlu = math.log10(
-        10.0 ** (MilneBase['E+'][0] - pH) / (10.0 ** -pKGlu + 10.0 ** -pH) + 10.0 ** (MilneBase['E0'][0] - pKGlu) / (
-                10.0 ** -pKGlu + 10.0 ** -pH))
+        10.0 ** (MilneBase['E+'][0] - ph) / (10.0 ** -pKGlu + 10.0 ** -ph) + 10.0 ** (MilneBase['E0'][0] - pKGlu) / (
+                10.0 ** -pKGlu + 10.0 ** -ph))
     LambdaProtonatedBaseHis = math.log10(
-        10.0 ** (MilneBase['H+'][0] - pH) / (10.0 ** -pKHis + 10.0 ** -pH) + 10.0 ** (MilneBase['H0'][0] - pKHis) / (
-                10.0 ** -pKHis + 10.0 ** -pH))
+        10.0 ** (MilneBase['H+'][0] - ph) / (10.0 ** -pKHis + 10.0 ** -ph) + 10.0 ** (MilneBase['H0'][0] - pKHis) / (
+                10.0 ** -pKHis + 10.0 ** -ph))
 
     RhoProtonatedBaseAsp = math.log10(
-        10.0 ** (MilneBase['D+'][1] - pH) / (10.0 ** -pKAsp + 10.0 ** -pH) + 10.0 ** (MilneBase['D0'][1] - pKAsp) / (
-                10.0 ** -pKAsp + 10.0 ** -pH))
+        10.0 ** (MilneBase['D+'][1] - ph) / (10.0 ** -pKAsp + 10.0 ** -ph) + 10.0 ** (MilneBase['D0'][1] - pKAsp) / (
+                10.0 ** -pKAsp + 10.0 ** -ph))
     RhoProtonatedBaseGlu = math.log10(
-        10.0 ** (MilneBase['E+'][1] - pH) / (10.0 ** -pKGlu + 10.0 ** -pH) + 10.0 ** (MilneBase['E0'][1] - pKGlu) / (
-                10.0 ** -pKGlu + 10.0 ** -pH))
+        10.0 ** (MilneBase['E+'][1] - ph) / (10.0 ** -pKGlu + 10.0 ** -ph) + 10.0 ** (MilneBase['E0'][1] - pKGlu) / (
+                10.0 ** -pKGlu + 10.0 ** -ph))
     RhoProtonatedBaseHis = math.log10(
-        10.0 ** (MilneBase['H+'][1] - pH) / (10.0 ** -pKHis + 10.0 ** -pH) + 10.0 ** (MilneBase['H0'][1] - pKHis) / (
-                10.0 ** -pKHis + 10.0 ** -pH))
+        10.0 ** (MilneBase['H+'][1] - ph) / (10.0 ** -pKHis + 10.0 ** -ph) + 10.0 ** (MilneBase['H0'][1] - pKHis) / (
+                10.0 ** -pKHis + 10.0 ** -ph))
 
     MilneAcid["D"] = (LambdaProtonatedAcidAsp, RhoProtonatedAcidAsp)
     MilneAcid["E"] = (LambdaProtonatedAcidGlu, RhoProtonatedAcidGlu)
@@ -184,8 +190,8 @@ def calc_intrinsic_hx_rates(sequence_str, Temperature, pH, nterm_mode='NT', cter
 
     # Termini
     RhoAcidNTerm = -1.32
-    LambdaAcidCTerm = math.log10(10.0 ** (0.05 - pH) / (10.0 ** -pKGlu + 10.0 ** -pH) + 10.0 ** (0.96 - pKGlu) / (
-            10.0 ** -pKGlu + 10.0 ** -pH))
+    LambdaAcidCTerm = math.log10(10.0 ** (0.05 - ph) / (10.0 ** -pKGlu + 10.0 ** -ph) + 10.0 ** (0.96 - pKGlu) / (
+            10.0 ** -pKGlu + 10.0 ** -ph))
 
     RhoBaseNTerm = 1.62
     LambdaBaseCTerm = -1.80
@@ -208,8 +214,8 @@ def calc_intrinsic_hx_rates(sequence_str, Temperature, pH, nterm_mode='NT', cter
     MilneBase["Ac"] = (None, -0.20)
 
     # Ion concentrations
-    DIonConc = 10.0 ** -pH
-    ODIonConc = 10.0 ** (pH - pKD)
+    DIonConc = 10.0 ** -ph
+    ODIonConc = 10.0 ** (ph - pKD)
 
     # Loop over the chain starting with 0 for initial residue
     IntrinsicEnchangeRates = [0.0]
@@ -326,7 +332,7 @@ def theoretical_isotope_dist(sequence, num_isotopes=None):
     return isotope_dist
 
 
-def cal_hx_prob_with_backexchange(timepoints, rate_constant, backexchange, d2o_purity, d2o_fraction):
+def cal_hx_prob_with_backexchange(timepoints, rate_constant, inv_backexchange, d2o_purity, d2o_fraction):
     """
     calculate the exchange probability for each time point given the rate constant, backexchange, and d20 purity and
     fraction
@@ -337,11 +343,11 @@ def cal_hx_prob_with_backexchange(timepoints, rate_constant, backexchange, d2o_p
     :param d2o_fraction:
     :return: exchange probabilities
     """
-    prob = (1.0 - np.exp(-rate_constant * timepoints)) * (d2o_fraction * d2o_purity * backexchange)
+    prob = (1.0 - np.exp(-rate_constant * timepoints)) * (d2o_fraction * d2o_purity * inv_backexchange)
     return prob
 
 
-def hx_rates_probability_distribution_with_fes(timepoints, rates, backexchange, d2o_fraction, d2o_purity,
+def hx_rates_probability_distribution_with_fes(timepoints, rates, inv_backexchange, d2o_fraction, d2o_purity,
                                                fes, temp):
     """
 
@@ -357,14 +363,14 @@ def hx_rates_probability_distribution_with_fes(timepoints, rates, backexchange, 
     fractions = np.exp(-fes / (r_constant * temp)) / (1.0 + np.exp(-fes / (r_constant * temp)))
     hx_probabs = cal_hx_prob_with_backexchange(timepoints=timepoints,
                                                rate_constant=rates*fractions,
-                                               backexchange=backexchange,
+                                               inv_backexchange=inv_backexchange,
                                                d2o_purity=d2o_purity,
                                                d2o_fraction=d2o_fraction)
     pmf_hx_probabs = PoiBin(hx_probabs)
     return pmf_hx_probabs
 
 
-def isotope_dist_from_PoiBin_bkexch(sequence_length, isotope_dist, timepoint, rates, num_bins, backexchange,
+def isotope_dist_from_PoiBin_bkexch(sequence_length, isotope_dist, timepoint, rates, num_bins, inv_backexchange,
                                     d2o_fraction, d2o_purity, temp):
     """
     returns the convolved isotopic distribution from the pfm of hx rates probabilities
@@ -380,7 +386,7 @@ def isotope_dist_from_PoiBin_bkexch(sequence_length, isotope_dist, timepoint, ra
     fes = np.zeros(sequence_length)
     pmf_hx_prob_fes = hx_rates_probability_distribution_with_fes(timepoints=timepoint,
                                                                  rates=rates,
-                                                                 backexchange=backexchange,
+                                                                 inv_backexchange=inv_backexchange,
                                                                  d2o_fraction=d2o_fraction,
                                                                  d2o_purity=d2o_purity,
                                                                  fes=fes,
@@ -408,7 +414,7 @@ def back_exchange_(sequence_length: int,
                                                                                    timepoint=1e9,
                                                                                    rates=intrinsic_rates,
                                                                                    num_bins=num_bins_,
-                                                                                   backexchange=expit(x),
+                                                                                   inv_backexchange=expit(x),
                                                                                    d2o_fraction=d2o_fraction,
                                                                                    d2o_purity=d2o_purity,
                                                                                    temp=temperature),
@@ -417,33 +423,6 @@ def back_exchange_(sequence_length: int,
     back_exchange = 1 - expit(opt)[0]
 
     return back_exchange
-
-
-# def hx_rate_fit_rmse(timepoints, rates, thr_isotope_dist_list, exp_isotope_dist_concat, num_bins,
-#                      backexchange_arr, d2o_fraction, d2o_purity):
-#     """
-#
-#     :param timepoints: timepoints
-#     :param rates: rates
-#     :param thr_isotope_dist_list: theoretical isotope dist list
-#     :param num_bins: number of bins
-#     :param backexchange: backexchange
-#     :return: rmse between exp isotope dist concat and concat model from PoiBin Isotope dist
-#     """
-#
-#
-#     concat_model = poibin_isotope_dist_concat(timepoints=timepoints,
-#                                               rates=rates,
-#                                               num_bins=num_bins,
-#                                               exp_isotope_dist_concat=thr_isotope_dist_list,
-#                                               backexchange_arr=backexchange_arr,
-#                                               d2o_fraction=d2o_fraction,
-#                                               d2o_purity=d2o_purity)
-#     # concat_model[np.isnan(concat_model)] = 0
-#
-#     mean_sq_error = mean_squared_error(exp_isotope_dist_concat[exp_isotope_dist_concat > 0],
-#                                        concat_model[exp_isotope_dist_concat > 0])
-#     return mean_sq_error
 
 
 if __name__ == '__main__':
