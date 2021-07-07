@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import pickle
 
 
 def load_data_from_hdx_ms_dist_(fpath):
@@ -26,6 +27,50 @@ def load_sample_data():
     hx_ms_dist_fpath = sample_df['hx_dist_fpath'].values[0]
     timepoints, mass_distribution = load_data_from_hdx_ms_dist_(hx_ms_dist_fpath)
     return prot_name, prot_seq, timepoints, mass_distribution
+
+
+def write_pickle_object(obj, filepath):
+    """
+    write an object to a pickle file
+    :param obj: object
+    :param filepath: pickle file path
+    :return: None
+    """
+    with open(filepath, 'wb') as outfile:
+        pickle.dump(obj, outfile)
+
+
+def write_hx_rate_output(hx_rates, output_path):
+    """
+
+    :param hx_rates:
+    :param output_path:
+    :return: None
+    """
+
+    header = 'ind,hx_rate\n'
+    data_string = ''
+
+    for ind, hx_rate in enumerate(hx_rates):
+        data_string += '{},{}\n'.format(ind, hx_rate)
+
+    with open(output_path, 'w') as outfile:
+        outfile.write(header + data_string)
+        outfile.close()
+
+
+def write_isotope_dist_timepoints(timepoints, isotope_dist_array, output_path):
+
+    timepoint_str = ','.join([str(x) for x in timepoints])
+    header = 'ind,' + timepoint_str + '\n'
+    data_string = ''
+    for ind, arr in enumerate(isotope_dist_array.T):
+        arr_str = ','.join([str(x) for x in arr])
+        data_string += '{},{}\n'.format(ind, arr_str)
+
+    with open(output_path, 'w') as outfile:
+        outfile.write(header + data_string)
+        outfile.close()
 
 
 if __name__ == '__main__':
