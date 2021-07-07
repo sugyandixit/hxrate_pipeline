@@ -280,7 +280,6 @@ def calc_intrinsic_hx_rates(sequence_str: str,
     return IntrinsicEnchangeRates
 
 
-
 def PoiBin(success_probabilities):
     """
     poisson binomial probability distribution function
@@ -336,6 +335,15 @@ def gen_temp_rates(sequence: str, rate_value: float = 1e2) -> np.ndarray:
                 rates[ind] = 0
 
     return rates
+
+
+def normalize_mass_distribution_array(mass_dist_array):
+    norm_dist = []
+    for dist in mass_dist_array:
+        norm_ = dist/max(dist)
+        norm_dist.append(norm_)
+    norm_dist = np.asarray(norm_dist)
+    return norm_dist
 
 
 def theoretical_isotope_dist(sequence, num_isotopes=None):
@@ -493,7 +501,7 @@ def gen_theoretical_isotope_dist_for_all_timepoints(sequence: str,
     return out_array
 
 
-def rmse_exp_thr_isotope_dist_all_timepoints(exp_isotope_dist_array: np.ndarray,
+def mse_exp_thr_isotope_dist_all_timepoints(exp_isotope_dist_array: np.ndarray,
                                              sequence: str,
                                              timepoints: np.ndarray,
                                              inv_backexchange_array: np.ndarray,
@@ -537,9 +545,9 @@ def rmse_exp_thr_isotope_dist_all_timepoints(exp_isotope_dist_array: np.ndarray,
     nan_ind = np.isnan(thr_isotope_dist_concat_comp)
     thr_isotope_dist_concat_comp[nan_ind] = 0
 
-    rmse = mean_squared_error(exp_isotope_dist_concat_comp, thr_isotope_dist_concat_comp, squared=False)
+    mse = mean_squared_error(exp_isotope_dist_concat_comp, thr_isotope_dist_concat_comp)
 
-    return rmse
+    return mse
 
 
 if __name__ == '__main__':
