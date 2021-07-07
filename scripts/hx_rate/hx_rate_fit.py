@@ -234,6 +234,7 @@ def fit_rate_from_to_file(sequence: str,
                           hx_rate_plot_path: str = None,
                           hx_isotope_dist_plot_path: str = None,
                           return_flag: bool = False) -> object:
+    # todo: add param descriptions for the function here
 
     # get the mass distribution data at each hdx timepoint
     timepoints, mass_dist = load_data_from_hdx_ms_dist_(hx_ms_dist_fpath)
