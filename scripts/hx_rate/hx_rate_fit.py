@@ -6,7 +6,35 @@ from dataclasses import dataclass
 from sklearn.metrics import mean_squared_error
 from scipy.special import expit
 from scipy.optimize import basinhopping, fmin_powell
-from methods import isotope_dist_from_PoiBin, gen_temp_rates, rmse_exp_thr_isotope_dist_all_timepoints
+from methods import isotope_dist_from_PoiBin, gen_temp_rates, mse_exp_thr_isotope_dist_all_timepoints, \
+    gen_theoretical_isotope_dist_for_all_timepoints, normalize_mass_distribution_array
+from hxdata import load_data_from_hdx_ms_dist_, write_pickle_object, write_hx_rate_output, write_isotope_dist_timepoints
+
+
+@dataclass
+class HXRate(object):
+    """
+    class container to store hx rate fitting data
+    """
+    back_exchange: object = None
+    optimization_cost: float = None
+    optimization_func_evals: int = None
+    optimization_init_rate_guess: np.ndarray = None
+    hx_rates: np.ndarray = None
+    thr_isotope_dist_array: np.ndarray = None
+    fit_mse_each_timepoint: np.ndarray = None
+    total_fit_mse: float = None
+
+
+@dataclass
+class BackExchange(object):
+    """
+    class container to store backexchange data
+    """
+    backexchange_value: float = None
+    fit_rmse: float = None
+    theoretical_isotope_dist: np.ndarray = None
+    backexchange_array: np.ndarray = None
 
 
 def calc_back_exchange(sequence: str,
@@ -68,9 +96,9 @@ def fit_rate(sequence: str,
              norm_mass_distribution_array: np.ndarray,
              d2o_fraction: float,
              d2o_purity: float,
-             opt_iter: int,
-             opt_temp: float,
-             opt_step_size: float,
+             opt_iter: int = 20,
+             opt_temp: float = 0.00003,
+             opt_step_size: float = 0.02,
              multi_proc: bool = True,
              rate_init_list: list = None,
              free_energy_values: np.ndarray = None,
@@ -122,6 +150,10 @@ def fit_rate(sequence: str,
 
     # set an initial optimization cost value
     opt_cost = 10
+    init_rate_final_ind = -1
+
+    # create a list to store the opt object
+    store_opt_object = [0]
 
     if multi_proc:
 
@@ -131,7 +163,7 @@ def fit_rate(sequence: str,
 
         for ind, init_rate in enumerate(init_rates_list):
 
-            opt_ = basinhopping(lambda rates: rmse_exp_thr_isotope_dist_all_timepoints(exp_isotope_dist_array=norm_mass_distribution_array,
+            opt_ = basinhopping(lambda rates: mse_exp_thr_isotope_dist_all_timepoints(exp_isotope_dist_array=norm_mass_distribution_array,
                                                                                         sequence=sequence,
                                                                                         timepoints=time_points,
                                                                                         rates=rates,
@@ -142,113 +174,153 @@ def fit_rate(sequence: str,
                                                                                         free_energy_values=free_energy_values,
                                                                                         temperature=temperature),
                                 x0=np.exp(init_rate),
-                                niter=20,
-                                T=0.00003,
-                                stepsize=0.02,
+                                niter=opt_iter,
+                                T=opt_temp,
+                                stepsize=opt_step_size,
                                 minimizer_kwargs={'options': {'maxiter': 1}},
                                 disp=True)
 
-            print('heho')
-            print(ind)
-            print(opt_.x)
+            new_opt_cost = opt_.fun
+            if new_opt_cost < opt_cost:
+                init_rate_final_ind = ind
+                store_opt_object[0] = opt_
+            opt_cost = new_opt_cost
 
-            # opt_ = basinhopping(lambda rates: hx_rate_fit_rmse(timepoints=time_points,
-            #                                                    rates=rates,
-            #                                                    thr_isotope_dist_list=thr_isotope_dist_list,
-            #                                                    exp_isotope_dist_concat=exp_isotope_dist_concat,
-            #                                                    num_bins=num_bins,
-            #                                                    backexchange_arr=inv_back_exchange_array,
-            #                                                    d2o_purity=d2o_purity,
-            #                                                    d2o_fraction=d2o_fraction),
-            #                     x0=init_rate,
-            #                     niter=n_iter,
-            #                     T=temp,
-            #                     stepsize=step_size,
-            #                     minimizer_kwargs={'options': {'maxiter': 1}})
-            #
-            # new_opt_cost = opt_.fun
-            # if new_opt_cost < opt_cost:
-            #     opt = opt_
-            # opt_cost = new_opt_cost
+    opt_object = store_opt_object[0]
+    hxrate.optimization_cost = opt_object.fun
+    hxrate.optimization_func_evals = opt_object.nfev
+    hxrate.optimization_init_rate_guess = init_rates_list[init_rate_final_ind]
+    hxrate.hx_rates = opt_object.x
 
-    return opt_cost
+    # generate theoretical isotope distribution array
+    hxrate.thr_isotope_dist_array = gen_theoretical_isotope_dist_for_all_timepoints(sequence=sequence,
+                                                                                     timepoints=time_points,
+                                                                                     rates=hxrate.hx_rates,
+                                                                                     inv_backexchange_array=inv_back_exchange_array,
+                                                                                     d2o_fraction=d2o_fraction,
+                                                                                     d2o_purity=d2o_purity,
+                                                                                     num_bins=num_bins_,
+                                                                                     free_energy_values=free_energy_values,
+                                                                                     temperature=temperature)
 
+    # compute the fit mse for each distribution
+    hxrate.fit_mse_each_timepoint = np.zeros(len(time_points))
+    for ind, (exp_dist, thr_dist) in enumerate(zip(norm_mass_distribution_array, hxrate.thr_isotope_dist_array)):
+        hxrate.fit_mse_each_timepoint[ind] = mean_squared_error(exp_dist, thr_dist)
 
-@dataclass
-class HXDistData(object):
-    """
-    data container object to store data for HX rate fitting
-    """
-    prot_name: str
-    prot_sequence: str
-    d2o_frac: float
-    d2o_purity: float
-    timepoints: np.ndarray
-    mass_distribution_array: np.ndarray
-    nterm_seq_add: str = None
-    cter_seq_add: str = None
-    ph: float = None
-    temperature: float = None
+    # compute the total fit mse distribution
+    exp_isotope_dist_concat = np.concatenate(norm_mass_distribution_array)
+    thr_isotope_dist_concat = np.concatenate(hxrate.thr_isotope_dist_array)
+    exp_isotope_dist_concat_comp = exp_isotope_dist_concat[exp_isotope_dist_concat > 0]
+    thr_isotope_dist_concat_comp = thr_isotope_dist_concat[exp_isotope_dist_concat > 0]
+    hxrate.total_fit_mse = mean_squared_error(exp_isotope_dist_concat_comp, thr_isotope_dist_concat_comp)
 
-    def normalize_distribution(self) -> np.ndarray:
-        norm_dist = []
-        for dist in self.mass_distribution_array:
-            norm_ = dist/max(dist)
-            norm_dist.append(norm_)
-        norm_dist = np.asarray(norm_dist)
-        return norm_dist
+    return hxrate
 
 
-@dataclass
-class HXRate(object):
-    """
-    class container to store hx rate fitting data
-    """
-    back_exchange: object = None
-    fit_rates: np.ndarray = None
-    fit_thr_isotope_dist: np.ndarray = None
-    fit_rmse_each_timepoint: np.ndarray = None
-    total_fit_rmse: float = None
+def fit_rate_from_to_file(sequence: str,
+                          hx_ms_dist_fpath: str,
+                          d2o_fraction: float,
+                          d2o_purity: float,
+                          opt_iter: int,
+                          opt_temp: float,
+                          opt_step_size: float,
+                          multi_proc: bool = False,
+                          free_energy_values: np.ndarray = None,
+                          temperature: float = None,
+                          hx_rate_output_path: str = None,
+                          hx_rate_csv_output_path: str = None,
+                          hx_isotope_dist_output_path: str = None,
+                          hx_rate_plot_path: str = None,
+                          hx_isotope_dist_plot_path: str = None,
+                          return_flag: bool = False) -> object:
 
+    # get the mass distribution data at each hdx timepoint
+    timepoints, mass_dist = load_data_from_hdx_ms_dist_(hx_ms_dist_fpath)
 
-@dataclass
-class BackExchange(object):
-    """
-    class container to store backexchange data
-    """
-    backexchange_value: float = None
-    fit_rmse: float = None
-    theoretical_isotope_dist: np.ndarray = None
-    backexchange_array: np.ndarray = None
+    # normalize the mass distribution
+    norm_dist = normalize_mass_distribution_array(mass_dist_array=mass_dist)
+
+    # fit rate
+    hxrate_object = fit_rate(sequence=sequence,
+                      time_points=timepoints,
+                      norm_mass_distribution_array=norm_dist,
+                      d2o_fraction=d2o_fraction,
+                      d2o_purity=d2o_purity,
+                      opt_iter=opt_iter,
+                      opt_temp=opt_temp,
+                      opt_step_size=opt_step_size,
+                      multi_proc=multi_proc,
+                      free_energy_values=free_energy_values,
+                      temperature=temperature)
+
+    # write hxrate as a cpickle file
+    if hx_rate_output_path is not None:
+        hxrate_vars = vars(hxrate_object)
+        write_pickle_object(hxrate_vars, hx_rate_output_path)
+
+    # write hxrate as a csv file
+    if hx_rate_csv_output_path is not None:
+        write_hx_rate_output(hxrate_object.hx_rates, hx_rate_csv_output_path)
+
+    # write hxrate distributions as a csv file
+    if hx_isotope_dist_output_path is not None:
+        write_isotope_dist_timepoints(timepoints=timepoints,
+                                      isotope_dist_array=hxrate_object.thr_isotope_dist_array,
+                                      output_path=hx_isotope_dist_output_path)
+
+    # plot hxrate as .pdf file
+    # todo: add method here
+
+    # plot hxrate dist as .pdf file
+    # todo: add method here
+
+    if return_flag:
+        return hxrate_object
 
 
 if __name__ == '__main__':
 
-    temp_ = 298
-    ph_ = 5.9
     d2o_fraction_ = 0.95
     d2o_purity_ = 0.95
+    opt_iter_ = 50
+    opt_temp_ = 0.00003
+    opt_step_size_ = 0.02
+    multi_proc_ = False
 
-    import hxdata
-    prot_name, prot_seq, tp, mdist = hxdata.load_sample_data()
+    import pandas as pd
 
-    distdata = HXDistData(prot_name=prot_name,
-                          prot_sequence=prot_seq,
-                          ph=ph_,
-                          d2o_frac=d2o_fraction_,
+    sample_fpath = '../../workfolder/sample.csv'
+    sample_df = pd.read_csv(sample_fpath)
+    prot_name = sample_df['name'].values[0]
+    prot_seq = sample_df['sequence'].values[0]
+    hx_ms_dist_fpath = sample_df['hx_dist_fpath'].values[0]
+
+    fit_rate_from_to_file(sequence=prot_seq,
+                          hx_ms_dist_fpath=hx_ms_dist_fpath,
                           d2o_purity=d2o_purity_,
-                          temperature=temp_,
-                          timepoints=tp,
-                          mass_distribution_array=mdist)
+                          d2o_fraction=d2o_fraction_,
+                          opt_iter=opt_iter_,
+                          opt_temp=opt_temp_,
+                          opt_step_size=opt_step_size_,
+                          multi_proc=multi_proc_,
+                          free_energy_values=None,
+                          temperature=None,
+                          hx_rate_output_path='../../hxrate_out.pickle',
+                          hx_rate_csv_output_path='../../test_rates.csv',
+                          hx_isotope_dist_output_path='../../hxrate_isotope_dist.csv')
 
-    norm_dist_ = distdata.normalize_distribution()
-
-    fit_rate(sequence=prot_seq,
-             time_points=tp,
-             norm_mass_distribution_array=norm_dist_,
-             d2o_fraction=d2o_fraction_,
-             d2o_purity=d2o_purity_,
-             opt_iter=100,
-             opt_temp=100,
-             opt_step_size=100,
-             multi_proc=False)
+    # import hxdata
+    # prot_name, prot_seq, tp, mdist = hxdata.load_sample_data()
+    #
+    # norm_dist_ = normalize_mass_distribution_array(mdist)
+    #
+    # fit_rate(sequence=prot_seq,
+    #          time_points=tp,
+    #          norm_mass_distribution_array=norm_dist_,
+    #          d2o_fraction=d2o_fraction_,
+    #          d2o_purity=d2o_purity_,
+    #          opt_iter=2,
+    #          opt_temp=0.00003,
+    #          opt_step_size=0.02,
+    #          multi_proc=False)
