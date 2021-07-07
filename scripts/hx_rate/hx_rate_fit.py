@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from sklearn.metrics import mean_squared_error
 from scipy.special import expit
 from scipy.optimize import basinhopping, fmin_powell
-from methods import isotope_dist_from_PoiBin, gen_temp_rates, calc_intrinsic_hx_rates
+from methods import isotope_dist_from_PoiBin, gen_temp_rates, rmse_exp_thr_isotope_dist_all_timepoints
 
 
 def calc_back_exchange(sequence: str,
@@ -80,13 +80,6 @@ def fit_rate(sequence: str,
     # initialize hxrate data object
     hxrate = HXRate()
 
-    intrinsic_rates = calc_intrinsic_hx_rates(sequence_str=sequence,
-                                              temperature=298,
-                                              ph=5.9)
-    intrinsic_rates[:2] = 0
-
-    print('heho')
-
     # calculate back exchange first
     back_exchange = calc_back_exchange(sequence=sequence,
                                        experimental_isotope_dist=norm_mass_distribution_array[-1],
@@ -103,11 +96,7 @@ def fit_rate(sequence: str,
     # store backexchange object in hxrate object
     hxrate.back_exchange = back_exchange
 
-
     inv_back_exchange_array = np.subtract(1, back_exchange.backexchange_array)
-
-    # concatenate exp mass distribution
-    exp_isotope_dist_concat = np.concatenate(norm_mass_distribution_array)
 
     # generate a temporary rates to determine what residues can't exchange
     temp_rates = gen_temp_rates(sequence=sequence, rate_value=1)
@@ -117,6 +106,8 @@ def fit_rate(sequence: str,
 
     # calculate the number of residues that can exchange
     num_rates = len(temp_rates) - len(zero_indices)
+
+    num_bins_ = len(norm_mass_distribution_array[0])
 
     # get init rate list as initial guesses for rate fit optimization
     if rate_init_list is not None:
@@ -132,34 +123,55 @@ def fit_rate(sequence: str,
     # set an initial optimization cost value
     opt_cost = 10
 
-    # if multi_proc:
-    #
-    #     print('put multi processing code here')
-    #
-    # else:
-    #
-    #     for init_rate in init_rates_list:
-    #
-    #         opt_ = basinhopping(lambda rates: hx_rate_fit_rmse(timepoints=time_points,
-    #                                                            rates=rates,
-    #                                                            thr_isotope_dist_list=thr_isotope_dist_list,
-    #                                                            exp_isotope_dist_concat=exp_isotope_dist_concat,
-    #                                                            num_bins=num_bins,
-    #                                                            backexchange_arr=inv_back_exchange_array,
-    #                                                            d2o_purity=d2o_purity,
-    #                                                            d2o_fraction=d2o_fraction),
-    #                             x0=init_rate,
-    #                             niter=n_iter,
-    #                             T=temp,
-    #                             stepsize=step_size,
-    #                             minimizer_kwargs={'options': {'maxiter': 1}})
-    #
-    #         new_opt_cost = opt_.fun
-    #         if new_opt_cost < opt_cost:
-    #             opt = opt_
-    #         opt_cost = new_opt_cost
-    #
-    # return hx_rate
+    if multi_proc:
+
+        print('put multi processing code here')
+
+    else:
+
+        for ind, init_rate in enumerate(init_rates_list):
+
+            opt_ = basinhopping(lambda rates: rmse_exp_thr_isotope_dist_all_timepoints(exp_isotope_dist_array=norm_mass_distribution_array,
+                                                                                        sequence=sequence,
+                                                                                        timepoints=time_points,
+                                                                                        rates=rates,
+                                                                                        inv_backexchange_array=inv_back_exchange_array,
+                                                                                        d2o_fraction=d2o_fraction,
+                                                                                        d2o_purity=d2o_purity,
+                                                                                        num_bins=num_bins_,
+                                                                                        free_energy_values=free_energy_values,
+                                                                                        temperature=temperature),
+                                x0=np.exp(init_rate),
+                                niter=20,
+                                T=0.00003,
+                                stepsize=0.02,
+                                minimizer_kwargs={'options': {'maxiter': 1}},
+                                disp=True)
+
+            print('heho')
+            print(ind)
+            print(opt_.x)
+
+            # opt_ = basinhopping(lambda rates: hx_rate_fit_rmse(timepoints=time_points,
+            #                                                    rates=rates,
+            #                                                    thr_isotope_dist_list=thr_isotope_dist_list,
+            #                                                    exp_isotope_dist_concat=exp_isotope_dist_concat,
+            #                                                    num_bins=num_bins,
+            #                                                    backexchange_arr=inv_back_exchange_array,
+            #                                                    d2o_purity=d2o_purity,
+            #                                                    d2o_fraction=d2o_fraction),
+            #                     x0=init_rate,
+            #                     niter=n_iter,
+            #                     T=temp,
+            #                     stepsize=step_size,
+            #                     minimizer_kwargs={'options': {'maxiter': 1}})
+            #
+            # new_opt_cost = opt_.fun
+            # if new_opt_cost < opt_cost:
+            #     opt = opt_
+            # opt_cost = new_opt_cost
+
+    return opt_cost
 
 
 @dataclass
@@ -167,7 +179,6 @@ class HXDistData(object):
     """
     data container object to store data for HX rate fitting
     """
-
     prot_name: str
     prot_sequence: str
     d2o_frac: float
@@ -193,7 +204,6 @@ class HXRate(object):
     """
     class container to store hx rate fitting data
     """
-
     back_exchange: object = None
     fit_rates: np.ndarray = None
     fit_thr_isotope_dist: np.ndarray = None
@@ -240,4 +250,5 @@ if __name__ == '__main__':
              d2o_purity=d2o_purity_,
              opt_iter=100,
              opt_temp=100,
-             opt_step_size=100)
+             opt_step_size=100,
+             multi_proc=False)

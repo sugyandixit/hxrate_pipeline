@@ -381,7 +381,7 @@ def hx_rates_probability_distribution(timepoint: float,
                                       d2o_fraction: float,
                                       d2o_purity: float,
                                       free_energy_values: np.ndarray = None,
-                                      temperature: np.ndarray = None) -> np.ndarray:
+                                      temperature: float = None) -> np.ndarray:
     """
     generate rate of hx probabilities for all residues
     :param timepoint: hdx timepoint in seconds
@@ -421,7 +421,7 @@ def isotope_dist_from_PoiBin(sequence: str,
                              d2o_purity: float,
                              num_bins: float,
                              free_energy_values: np.ndarray = None,
-                             temperature: np.ndarray = None) -> np.ndarray:
+                             temperature: float = None) -> np.ndarray:
     """
     generate theoretical isotope distribution based on hdx rates, timepoint, and other conditions
     :param sequence: protein sequence str
@@ -450,6 +450,96 @@ def isotope_dist_from_PoiBin(sequence: str,
     isotope_dist_poibin_norm = isotope_dist_poibin/max(isotope_dist_poibin)
 
     return isotope_dist_poibin_norm
+
+
+def gen_theoretical_isotope_dist_for_all_timepoints(sequence: str,
+                                                    timepoints: np.ndarray,
+                                                    rates: np.ndarray,
+                                                    inv_backexchange_array: np.ndarray,
+                                                    d2o_fraction: float,
+                                                    d2o_purity: float,
+                                                    num_bins: int,
+                                                    free_energy_values: np.ndarray = None,
+                                                    temperature: float = None) -> np.ndarray:
+    """
+
+    :param sequence: protein sequence
+    :param timepoints: array of hdx timepoints
+    :param rates: rates
+    :param inv_backexchange_array: inv backexchange array with length equals to length of timepoints
+    :param d2o_fraction: d2o fraction
+    :param d2o_purity: d2o purity
+    :param num_bins: number of bins for isotope distribution
+    :param free_energy_values: free energy values array (optional)
+    :param temperature: temperature in Kelvin (optional)
+    :return: array of theoretical isotope distributions for each timepoint
+    """
+
+    out_array = np.zeros((len(timepoints), num_bins))
+
+    for ind, (tp, inv_backexch) in enumerate(zip(timepoints, inv_backexchange_array)):
+
+        isotope_dist = isotope_dist_from_PoiBin(sequence=sequence,
+                                                timepoint=tp,
+                                                inv_backexchange=inv_backexch,
+                                                rates=rates,
+                                                d2o_fraction=d2o_fraction,
+                                                d2o_purity=d2o_purity,
+                                                num_bins=num_bins,
+                                                free_energy_values=free_energy_values,
+                                                temperature=temperature)
+        out_array[ind] = isotope_dist
+
+    return out_array
+
+
+def rmse_exp_thr_isotope_dist_all_timepoints(exp_isotope_dist_array: np.ndarray,
+                                             sequence: str,
+                                             timepoints: np.ndarray,
+                                             inv_backexchange_array: np.ndarray,
+                                             rates: np.ndarray,
+                                             d2o_fraction: float,
+                                             d2o_purity: float,
+                                             num_bins: int,
+                                             free_energy_values: np.ndarray = None,
+                                             temperature: float = None) -> float:
+    """
+
+    :param exp_isotope_dist_array:
+    :param sequence:
+    :param timepoints:
+    :param inv_backexchange_array:
+    :param rates:
+    :param d2o_fraction:
+    :param d2o_purity:
+    :param num_bins:
+    :param free_energy_values:
+    :param temperature:
+    :return:
+    """
+
+    theoretical_isotope_dist_all_timepoints = gen_theoretical_isotope_dist_for_all_timepoints(sequence=sequence,
+                                                                                              timepoints=timepoints,
+                                                                                              rates=rates,
+                                                                                              inv_backexchange_array=inv_backexchange_array,
+                                                                                              d2o_fraction=d2o_fraction,
+                                                                                              d2o_purity=d2o_purity,
+                                                                                              num_bins=num_bins,
+                                                                                              free_energy_values=free_energy_values,
+                                                                                              temperature=temperature)
+
+    exp_isotope_dist_concat = np.concatenate(exp_isotope_dist_array)
+    thr_isotope_dist_concat = np.concatenate(theoretical_isotope_dist_all_timepoints)
+
+    exp_isotope_dist_concat_comp = exp_isotope_dist_concat[exp_isotope_dist_concat > 0]
+    thr_isotope_dist_concat_comp = thr_isotope_dist_concat[exp_isotope_dist_concat > 0]
+
+    nan_ind = np.isnan(thr_isotope_dist_concat_comp)
+    thr_isotope_dist_concat_comp[nan_ind] = 0
+
+    rmse = mean_squared_error(exp_isotope_dist_concat_comp, thr_isotope_dist_concat_comp, squared=False)
+
+    return rmse
 
 
 if __name__ == '__main__':
