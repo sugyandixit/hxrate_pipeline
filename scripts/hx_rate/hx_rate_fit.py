@@ -297,6 +297,8 @@ if __name__ == '__main__':
     prot_seq = sample_df['sequence'].values[0]
     hx_ms_dist_fpath = sample_df['hx_dist_fpath'].values[0]
 
+    output_dirpath = '../../workfolder/output_hxrate/'
+
     fit_rate_from_to_file(sequence=prot_seq,
                           hx_ms_dist_fpath=hx_ms_dist_fpath,
                           d2o_purity=d2o_purity_,
@@ -307,7 +309,6 @@ if __name__ == '__main__':
                           multi_proc=multi_proc_,
                           free_energy_values=None,
                           temperature=None,
-                          hx_rate_output_path='../../hxrate_out.pickle',
-                          hx_rate_csv_output_path='../../test_rates.csv',
-                          hx_isotope_dist_output_path='../../hxrate_isotope_dist.csv')
-
+                          hx_rate_output_path=output_dirpath + 'hx_rate_object.pickle',
+                          hx_rate_csv_output_path=output_dirpath + 'test_rates.csv',
+                          hx_isotope_dist_output_path=output_dirpath + 'hxrate_isotope_dist.csv')
