@@ -96,7 +96,7 @@ def fit_rate(sequence: str,
              norm_mass_distribution_array: np.ndarray,
              d2o_fraction: float,
              d2o_purity: float,
-             opt_iter: int = 20,
+             opt_iter: int = 500,
              opt_temp: float = 0.00003,
              opt_step_size: float = 0.02,
              multi_proc: bool = True,
@@ -284,7 +284,7 @@ if __name__ == '__main__':
 
     d2o_fraction_ = 0.95
     d2o_purity_ = 0.95
-    opt_iter_ = 50
+    opt_iter_ = 500
     opt_temp_ = 0.00003
     opt_step_size_ = 0.02
     multi_proc_ = False
@@ -311,17 +311,3 @@ if __name__ == '__main__':
                           hx_rate_csv_output_path='../../test_rates.csv',
                           hx_isotope_dist_output_path='../../hxrate_isotope_dist.csv')
 
-    # import hxdata
-    # prot_name, prot_seq, tp, mdist = hxdata.load_sample_data()
-    #
-    # norm_dist_ = normalize_mass_distribution_array(mdist)
-    #
-    # fit_rate(sequence=prot_seq,
-    #          time_points=tp,
-    #          norm_mass_distribution_array=norm_dist_,
-    #          d2o_fraction=d2o_fraction_,
-    #          d2o_purity=d2o_purity_,
-    #          opt_iter=2,
-    #          opt_temp=0.00003,
-    #          opt_step_size=0.02,
-    #          multi_proc=False)
