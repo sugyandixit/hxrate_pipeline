@@ -6,10 +6,11 @@ import numpy as np
 from dataclasses import dataclass
 from sklearn.metrics import mean_squared_error
 from scipy.special import expit
-from scipy.optimize import basinhopping, fmin_powell
+from scipy.optimize import fmin_powell
 from methods import isotope_dist_from_PoiBin, gen_temp_rates, gen_theoretical_isotope_dist_for_all_timepoints, \
     normalize_mass_distribution_array, hx_rate_fitting_optimization
 from hxdata import load_data_from_hdx_ms_dist_, write_pickle_object, write_hx_rate_output, write_isotope_dist_timepoints
+import time
 
 
 @dataclass
@@ -154,6 +155,7 @@ def fit_rate(sequence: str,
     store_opt_object = [0]
 
     if multi_proc:
+        st_time = time.time()
 
         pool = mp.Pool(processes=number_of_cores)
 
@@ -188,7 +190,13 @@ def fit_rate(sequence: str,
         store_opt_object[0] = opt_object_list[min_fun_ind]
         init_rate_used = tuple_results_list[min_fun_ind][1]
 
+        finish_time = time.time()
+
+        time_took = finish_time - st_time
+
     else:
+
+        st_time = time.time()
 
         opt_cost = 10
         init_rate_final_ind = -1
@@ -216,6 +224,9 @@ def fit_rate(sequence: str,
             opt_cost = new_opt_cost
 
         init_rate_used = init_rates_list[init_rate_final_ind]
+
+        finish_time = time.time()
+        time_took = finish_time - st_time
 
     opt_object = store_opt_object[0]
     hxrate.optimization_cost = opt_object.fun
@@ -247,6 +258,8 @@ def fit_rate(sequence: str,
     thr_isotope_dist_concat_comp = thr_isotope_dist_concat[exp_isotope_dist_concat > 0]
     hxrate.total_fit_rmse = mean_squared_error(exp_isotope_dist_concat_comp, thr_isotope_dist_concat_comp,
                                                squared=False)
+
+    print('time took for hx rate fitting optimization: ', time_took)
 
     return hxrate
 

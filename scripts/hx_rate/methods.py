@@ -4,6 +4,7 @@ import math
 import molmass
 from scipy.optimize import basinhopping
 from sklearn.metrics import mean_squared_error
+from numba import jit
 
 # global variables
 r_constant = 0.0019872036
@@ -336,12 +337,12 @@ def gen_temp_rates(sequence: str, rate_value: float = 1e2) -> np.ndarray:
     return rates
 
 
-def normalize_mass_distribution_array(mass_dist_array):
-    norm_dist = []
-    for dist in mass_dist_array:
+@jit(parallel=True)
+def normalize_mass_distribution_array(mass_dist_array: np.ndarray) -> np.ndarray:
+    norm_dist = np.zeros(np.shape(mass_dist_array))
+    for ind, dist in enumerate(mass_dist_array):
         norm_ = dist/max(dist)
-        norm_dist.append(norm_)
-    norm_dist = np.asarray(norm_dist)
+        norm_dist[ind] = norm_
     return norm_dist
 
 
@@ -364,6 +365,7 @@ def theoretical_isotope_dist(sequence, num_isotopes=None):
     return isotope_dist
 
 
+@jit(nopython=True)
 def calc_hx_prob(timepoint: float,
                  rate_constant: np.ndarray,
                  inv_back_exchange: float,
@@ -382,6 +384,7 @@ def calc_hx_prob(timepoint: float,
     return prob
 
 
+@jit(nopython=True)
 def hx_rates_probability_distribution(timepoint: float,
                                       rates: np.ndarray,
                                       inv_backexchange: float,
@@ -416,8 +419,7 @@ def hx_rates_probability_distribution(timepoint: float,
                               d2o_purity=d2o_purity,
                               d2o_fraction=d2o_fraction)
 
-    pmf_hx_probabs = PoiBin(hx_probabs)
-    return pmf_hx_probabs
+    return hx_probabs
 
 
 def isotope_dist_from_PoiBin(sequence: str,
@@ -443,13 +445,15 @@ def isotope_dist_from_PoiBin(sequence: str,
     :return: isotope distribution normalized
     """
 
-    pmf_hx_probs = hx_rates_probability_distribution(timepoint=timepoint,
+    hx_probs = hx_rates_probability_distribution(timepoint=timepoint,
                                                      rates=rates,
                                                      inv_backexchange=inv_backexchange,
                                                      d2o_fraction=d2o_fraction,
                                                      d2o_purity=d2o_purity,
                                                      free_energy_values=free_energy_values,
                                                      temperature=temperature)
+
+    pmf_hx_probs = PoiBin(hx_probs)
 
     seq_isotope_dist = theoretical_isotope_dist(sequence=sequence, num_isotopes=num_bins)
 
@@ -459,6 +463,7 @@ def isotope_dist_from_PoiBin(sequence: str,
     return isotope_dist_poibin_norm
 
 
+@jit(parallel=True)
 def gen_theoretical_isotope_dist_for_all_timepoints(sequence: str,
                                                     timepoints: np.ndarray,
                                                     rates: np.ndarray,
@@ -500,6 +505,7 @@ def gen_theoretical_isotope_dist_for_all_timepoints(sequence: str,
     return out_array
 
 
+@jit(parallel=True)
 def mse_exp_thr_isotope_dist_all_timepoints(exp_isotope_dist_array: np.ndarray,
                                              sequence: str,
                                              timepoints: np.ndarray,
@@ -578,6 +584,7 @@ def hx_rate_fitting_optimization(init_rate_guess: np.ndarray,
     :param opt_iter: # of basinhopping optimization iterations
     :param opt_temp: optimization temperature
     :param opt_step_size: optimization step size
+    :param return_tuple: bool. if True returns a tuple of (opt_, init_rate_guess), else returns only opt_
     :return: optimization object
     """
 
