@@ -204,6 +204,8 @@ def fit_rate(sequence: str,
              temperature: float = None,
              backexchange_value: float = None) -> object:
 
+    # todo: add param descritpions
+
     # initialize hxrate data object
     hxrate = HXRate()
 
@@ -435,7 +437,7 @@ if __name__ == '__main__':
 
     d2o_fraction_ = 0.95
     d2o_purity_ = 0.95
-    opt_iter_ = 50
+    opt_iter_ = 30
     opt_temp_ = 0.00003
     opt_step_size_ = 0.02
     multi_proc_ = True
