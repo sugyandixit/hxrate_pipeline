@@ -2,8 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 import molmass
-from scipy.optimize import fmin_powell
-from scipy.special import expit
+from scipy.optimize import basinhopping
 from sklearn.metrics import mean_squared_error
 
 # global variables
@@ -528,7 +527,7 @@ def mse_exp_thr_isotope_dist_all_timepoints(exp_isotope_dist_array: np.ndarray,
 
     theoretical_isotope_dist_all_timepoints = gen_theoretical_isotope_dist_for_all_timepoints(sequence=sequence,
                                                                                               timepoints=timepoints,
-                                                                                              rates=rates,
+                                                                                              rates=np.exp(rates),
                                                                                               inv_backexchange_array=inv_backexchange_array,
                                                                                               d2o_fraction=d2o_fraction,
                                                                                               d2o_purity=d2o_purity,
@@ -545,9 +544,65 @@ def mse_exp_thr_isotope_dist_all_timepoints(exp_isotope_dist_array: np.ndarray,
     nan_ind = np.isnan(thr_isotope_dist_concat_comp)
     thr_isotope_dist_concat_comp[nan_ind] = 0
 
-    mse = mean_squared_error(exp_isotope_dist_concat_comp, thr_isotope_dist_concat_comp)
+    rmse = mean_squared_error(exp_isotope_dist_concat_comp, thr_isotope_dist_concat_comp, squared=False)
 
-    return mse
+    return rmse
+
+
+def hx_rate_fitting_optimization(init_rate_guess: np.ndarray,
+                                 exp_isotope_dist_array: np.ndarray,
+                                 sequence: str,
+                                 timepoints: np.ndarray,
+                                 inv_backexchange_array: np.ndarray,
+                                 d2o_fraction: float,
+                                 d2o_purity: float,
+                                 num_bins: int,
+                                 free_energy_values: np.ndarray,
+                                 temperature: float,
+                                 opt_iter: int,
+                                 opt_temp: float,
+                                 opt_step_size: float,
+                                 multi_proc_queue: object = None) -> object:
+    """
+    rate fitting otimization routine
+    :param exp_isotope_dist_array: experimental isotope distribution array
+    :param sequence: protein sequence
+    :param timepoints: timepoints array
+    :param inv_backexchange_array: inverse backexchange array
+    :param d2o_fraction: d2o fraction
+    :param d2o_purity: d2o purity
+    :param num_bins: number of bins to include for theoretical isotope distribution
+    :param free_energy_values: free energy values
+    :param temperature: temperature in K
+    :param init_rate_guess: initial rate guess array
+    :param opt_iter: # of basinhopping optimization iterations
+    :param opt_temp: optimization temperature
+    :param opt_step_size: optimization step size
+    :param multi_proc_queue: multiprocessing queue object used for multiprocessing
+    :return: optimization object
+    """
+
+    opt_ = basinhopping(lambda rates: mse_exp_thr_isotope_dist_all_timepoints(exp_isotope_dist_array=exp_isotope_dist_array,
+                                                                              sequence=sequence,
+                                                                              timepoints=timepoints,
+                                                                              rates=rates,
+                                                                              inv_backexchange_array=inv_backexchange_array,
+                                                                              d2o_fraction=d2o_fraction,
+                                                                              d2o_purity=d2o_purity,
+                                                                              num_bins=num_bins,
+                                                                              free_energy_values=free_energy_values,
+                                                                              temperature=temperature),
+                        x0=init_rate_guess,
+                        niter=opt_iter,
+                        T=opt_temp,
+                        stepsize=opt_step_size,
+                        minimizer_kwargs={'options': {'maxiter': 1}},
+                        disp=True)
+
+    if multi_proc_queue is not None:
+        multi_proc_queue.put((opt_, init_rate_guess))
+    else:
+        return opt_
 
 
 if __name__ == '__main__':
