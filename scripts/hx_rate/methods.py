@@ -562,7 +562,7 @@ def hx_rate_fitting_optimization(init_rate_guess: np.ndarray,
                                  opt_iter: int,
                                  opt_temp: float,
                                  opt_step_size: float,
-                                 multi_proc_queue: object = None) -> object:
+                                 return_tuple: bool = False) -> object:
     """
     rate fitting otimization routine
     :param exp_isotope_dist_array: experimental isotope distribution array
@@ -578,7 +578,6 @@ def hx_rate_fitting_optimization(init_rate_guess: np.ndarray,
     :param opt_iter: # of basinhopping optimization iterations
     :param opt_temp: optimization temperature
     :param opt_step_size: optimization step size
-    :param multi_proc_queue: multiprocessing queue object used for multiprocessing
     :return: optimization object
     """
 
@@ -599,8 +598,8 @@ def hx_rate_fitting_optimization(init_rate_guess: np.ndarray,
                         minimizer_kwargs={'options': {'maxiter': 1}},
                         disp=True)
 
-    if multi_proc_queue is not None:
-        multi_proc_queue.put((opt_, init_rate_guess))
+    if return_tuple:
+        return opt_, init_rate_guess
     else:
         return opt_
 

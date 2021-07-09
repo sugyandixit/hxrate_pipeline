@@ -1,7 +1,7 @@
 # hx_rate_fitting code
 # authors: Gabe Rocklin and Suggie
 
-from multiprocessing import Process, Queue, Pool
+import multiprocessing as mp
 import numpy as np
 from dataclasses import dataclass
 from sklearn.metrics import mean_squared_error
@@ -23,8 +23,8 @@ class HXRate(object):
     optimization_init_rate_guess: np.ndarray = None
     hx_rates: np.ndarray = None
     thr_isotope_dist_array: np.ndarray = None
-    fit_mse_each_timepoint: np.ndarray = None
-    total_fit_mse: float = None
+    fit_rmse_each_timepoint: np.ndarray = None
+    total_fit_rmse: float = None
 
 
 @dataclass
@@ -101,6 +101,7 @@ def fit_rate(sequence: str,
              opt_temp: float = 0.00003,
              opt_step_size: float = 0.02,
              multi_proc: bool = True,
+             number_of_cores: int = 6,
              rate_init_list: list = None,
              free_energy_values: np.ndarray = None,
              temperature: float = None,
@@ -154,74 +155,38 @@ def fit_rate(sequence: str,
 
     if multi_proc:
 
-        # opt_args = {'exp_isotope_dist_array': norm_mass_distribution_array,
-        #             'sequence': sequence,
-        #             'timepoints': time_points,
-        #             'inv_backexchange_array': inv_back_exchange_array,
-        #             'd2o_fraction': d2o_fraction,
-        #             'd2o_purity': d2o_purity,
-        #             'num_bins': num_bins_,
-        #             'free_energy_values': free_energy_values,
-        #             'temperature': temperature,
-        #             'init_rate_guess': init_rate,
-        #             'opt_iter': opt_iter,
-        #             'opt_temp': opt_temp,
-        #             'opt_step_size': opt_step_size,
-        #             'multi_proc_queue': qout}
+        pool = mp.Pool(processes=number_of_cores)
 
-        qout = Queue()
+        results = []
 
-        processes = [Process(target=hx_rate_fitting_optimization,
-                             kwargs={'exp_isotope_dist_array': norm_mass_distribution_array,
-                                     'sequence': sequence,
-                                     'timepoints': time_points,
-                                     'inv_backexchange_array': inv_back_exchange_array,
-                                     'd2o_fraction': d2o_fraction,
-                                     'd2o_purity': d2o_purity,
-                                     'num_bins': num_bins_,
-                                     'free_energy_values': free_energy_values,
-                                     'temperature': temperature,
-                                     'init_rate_guess': init_rate,
-                                     'opt_iter': opt_iter,
-                                     'opt_temp': opt_temp,
-                                     'opt_step_size': opt_step_size,
-                                     'multi_proc_queue': qout}) for init_rate in init_rates_list]
+        for init_rate in init_rates_list:
 
-        for ind, procs in enumerate(processes):
-            print('Proc Start %i' % ind)
-            procs.start()
+            kwds_pool = {'init_rate_guess': init_rate,
+                         'exp_isotope_dist_array': norm_mass_distribution_array,
+                         'sequence': sequence,
+                         'timepoints': time_points,
+                         'inv_backexchange_array': inv_back_exchange_array,
+                         'd2o_fraction': d2o_fraction,
+                         'd2o_purity': d2o_purity,
+                         'num_bins': num_bins_,
+                         'free_energy_values': free_energy_values,
+                         'temperature': temperature,
+                         'opt_iter': opt_iter,
+                         'opt_temp': opt_temp,
+                         'opt_step_size': opt_step_size,
+                         'return_tuple': True}
 
-        for ind, procs in enumerate(processes):
-            print('Proc Join %i' % ind)
-            procs.join()
+            pool_result = pool.apply_async(hx_rate_fitting_optimization, kwds=kwds_pool)
+            results.append(pool_result)
 
-        for ind, procs in enumerate(processes):
-            print('Proc Terminate %i' % ind)
-            procs.terminate()
+        pool.close()
 
-        # pool = Pool(len(init_rates_list))
-        # procs = pool.apply_async(hx_rate_fitting_optimization, (init_rates_list,), kwds={'exp_isotope_dist_array': norm_mass_distribution_array,
-        #                                                'sequence': sequence,
-        #                                                'timepoints': time_points,
-        #                                                'inv_backexchange_array': inv_back_exchange_array,
-        #                                                'd2o_fraction': d2o_fraction,
-        #                                                'd2o_purity': d2o_purity,
-        #                                                'num_bins': num_bins_,
-        #                                                'free_energy_values': free_energy_values,
-        #                                                'temperature': temperature,
-        #                                                'opt_iter': opt_iter,
-        #                                                'opt_temp': opt_temp,
-        #                                                'opt_step_size': opt_step_size})
-        #
-        # results = procs.get()
-        # print('heho')
-
-        results = [qout.get() for _ in processes]
-        opt_obj_list = [t[0] for t in results]
-        opt_obj_fun_list = np.array([x.fun for x in opt_obj_list])
+        tuple_results_list = [p.get() for p in results]
+        opt_object_list = [tup[0] for tup in tuple_results_list]
+        opt_obj_fun_list = np.array([x.fun for x in opt_object_list])
         min_fun_ind = np.argmin(opt_obj_fun_list)
-        store_opt_object[0] = opt_obj_list[min_fun_ind]
-        init_rate_used = results[min_fun_ind][1]
+        store_opt_object[0] = opt_object_list[min_fun_ind]
+        init_rate_used = tuple_results_list[min_fun_ind][1]
 
     else:
 
@@ -260,26 +225,28 @@ def fit_rate(sequence: str,
 
     # generate theoretical isotope distribution array
     hxrate.thr_isotope_dist_array = gen_theoretical_isotope_dist_for_all_timepoints(sequence=sequence,
-                                                                                     timepoints=time_points,
-                                                                                     rates=hxrate.hx_rates,
-                                                                                     inv_backexchange_array=inv_back_exchange_array,
-                                                                                     d2o_fraction=d2o_fraction,
-                                                                                     d2o_purity=d2o_purity,
-                                                                                     num_bins=num_bins_,
-                                                                                     free_energy_values=free_energy_values,
-                                                                                     temperature=temperature)
+                                                                                    timepoints=time_points,
+                                                                                    rates=np.exp(hxrate.hx_rates),
+                                                                                    inv_backexchange_array=inv_back_exchange_array,
+                                                                                    d2o_fraction=d2o_fraction,
+                                                                                    d2o_purity=d2o_purity,
+                                                                                    num_bins=num_bins_,
+                                                                                    free_energy_values=free_energy_values,
+                                                                                    temperature=temperature)
 
     # compute the fit mse for each distribution
     hxrate.fit_mse_each_timepoint = np.zeros(len(time_points))
     for ind, (exp_dist, thr_dist) in enumerate(zip(norm_mass_distribution_array, hxrate.thr_isotope_dist_array)):
-        hxrate.fit_mse_each_timepoint[ind] = mean_squared_error(exp_dist, thr_dist)
+        hxrate.fit_rmse_each_timepoint[ind] = mean_squared_error(exp_dist[exp_dist > 0], thr_dist[exp_dist > 0],
+                                                                 squared=False)
 
     # compute the total fit mse distribution
     exp_isotope_dist_concat = np.concatenate(norm_mass_distribution_array)
     thr_isotope_dist_concat = np.concatenate(hxrate.thr_isotope_dist_array)
     exp_isotope_dist_concat_comp = exp_isotope_dist_concat[exp_isotope_dist_concat > 0]
     thr_isotope_dist_concat_comp = thr_isotope_dist_concat[exp_isotope_dist_concat > 0]
-    hxrate.total_fit_mse = mean_squared_error(exp_isotope_dist_concat_comp, thr_isotope_dist_concat_comp)
+    hxrate.total_fit_rmse = mean_squared_error(exp_isotope_dist_concat_comp, thr_isotope_dist_concat_comp,
+                                               squared=False)
 
     return hxrate
 
@@ -310,16 +277,16 @@ def fit_rate_from_to_file(sequence: str,
 
     # fit rate
     hxrate_object = fit_rate(sequence=sequence,
-                      time_points=timepoints,
-                      norm_mass_distribution_array=norm_dist,
-                      d2o_fraction=d2o_fraction,
-                      d2o_purity=d2o_purity,
-                      opt_iter=opt_iter,
-                      opt_temp=opt_temp,
-                      opt_step_size=opt_step_size,
-                      multi_proc=multi_proc,
-                      free_energy_values=free_energy_values,
-                      temperature=temperature)
+                             time_points=timepoints,
+                             norm_mass_distribution_array=norm_dist,
+                             d2o_fraction=d2o_fraction,
+                             d2o_purity=d2o_purity,
+                             opt_iter=opt_iter,
+                             opt_temp=opt_temp,
+                             opt_step_size=opt_step_size,
+                             multi_proc=multi_proc,
+                             free_energy_values=free_energy_values,
+                             temperature=temperature)
 
     # write hxrate as a cpickle file
     if hx_rate_output_path is not None:
@@ -350,7 +317,7 @@ if __name__ == '__main__':
 
     d2o_fraction_ = 0.95
     d2o_purity_ = 0.95
-    opt_iter_ = 1
+    opt_iter_ = 50
     opt_temp_ = 0.00003
     opt_step_size_ = 0.02
     multi_proc_ = True
