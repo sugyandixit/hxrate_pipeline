@@ -4,7 +4,7 @@ import math
 import molmass
 from scipy.optimize import basinhopping
 from sklearn.metrics import mean_squared_error
-from numba import jit
+# from numba import jit
 
 # global variables
 r_constant = 0.0019872036
@@ -337,7 +337,7 @@ def gen_temp_rates(sequence: str, rate_value: float = 1e2) -> np.ndarray:
     return rates
 
 
-@jit(parallel=True)
+# @jit(parallel=True)
 def normalize_mass_distribution_array(mass_dist_array: np.ndarray) -> np.ndarray:
     norm_dist = np.zeros(np.shape(mass_dist_array))
     for ind, dist in enumerate(mass_dist_array):
@@ -365,7 +365,7 @@ def theoretical_isotope_dist(sequence, num_isotopes=None):
     return isotope_dist
 
 
-@jit(nopython=True)
+# @jit(nopython=True)
 def calc_hx_prob(timepoint: float,
                  rate_constant: np.ndarray,
                  inv_back_exchange: float,
@@ -384,7 +384,7 @@ def calc_hx_prob(timepoint: float,
     return prob
 
 
-@jit(nopython=True)
+# @jit(nopython=True)
 def hx_rates_probability_distribution(timepoint: float,
                                       rates: np.ndarray,
                                       inv_backexchange: float,
@@ -463,7 +463,7 @@ def isotope_dist_from_PoiBin(sequence: str,
     return isotope_dist_poibin_norm
 
 
-@jit(parallel=True)
+# @jit(parallel=True)
 def gen_theoretical_isotope_dist_for_all_timepoints(sequence: str,
                                                     timepoints: np.ndarray,
                                                     rates: np.ndarray,
@@ -505,7 +505,24 @@ def gen_theoretical_isotope_dist_for_all_timepoints(sequence: str,
     return out_array
 
 
-@jit(parallel=True)
+def compute_rmse_exp_thr_iso_dist(exp_isotope_dist: np.ndarray,
+                                  thr_isotope_dist: np.ndarray,
+                                  squared: bool = False):
+    """
+    compute the mean squared error between exp and thr isotope distribution only with values of exp_dist that are higher
+    than 0
+    :param exp_isotope_dist:
+    :param thr_isotope_dist:
+    :return:
+    """
+    exp_isotope_dist_comp = exp_isotope_dist[exp_isotope_dist > 0]
+    thr_isotope_dist_comp = thr_isotope_dist[exp_isotope_dist > 0]
+    rmse = mean_squared_error(exp_isotope_dist_comp, thr_isotope_dist_comp, squared=squared)
+    return rmse
+
+
+
+# @jit(parallel=True)
 def mse_exp_thr_isotope_dist_all_timepoints(exp_isotope_dist_array: np.ndarray,
                                              sequence: str,
                                              timepoints: np.ndarray,
@@ -543,14 +560,9 @@ def mse_exp_thr_isotope_dist_all_timepoints(exp_isotope_dist_array: np.ndarray,
 
     exp_isotope_dist_concat = np.concatenate(exp_isotope_dist_array)
     thr_isotope_dist_concat = np.concatenate(theoretical_isotope_dist_all_timepoints)
+    thr_isotope_dist_concat[np.isnan(thr_isotope_dist_concat)] = 0
 
-    exp_isotope_dist_concat_comp = exp_isotope_dist_concat[exp_isotope_dist_concat > 0]
-    thr_isotope_dist_concat_comp = thr_isotope_dist_concat[exp_isotope_dist_concat > 0]
-
-    nan_ind = np.isnan(thr_isotope_dist_concat_comp)
-    thr_isotope_dist_concat_comp[nan_ind] = 0
-
-    rmse = mean_squared_error(exp_isotope_dist_concat_comp, thr_isotope_dist_concat_comp, squared=False)
+    rmse = compute_rmse_exp_thr_iso_dist(exp_isotope_dist_concat, thr_isotope_dist_concat, squared=False)
 
     return rmse
 
