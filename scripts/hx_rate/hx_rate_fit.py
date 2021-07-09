@@ -4,7 +4,6 @@
 import multiprocessing as mp
 import numpy as np
 from dataclasses import dataclass
-from sklearn.metrics import mean_squared_error
 from scipy.special import expit
 from scipy.optimize import fmin_powell
 import matplotlib.pyplot as plt
