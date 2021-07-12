@@ -57,14 +57,14 @@ def plot_exp_thr_dist(exp_dist_array: np.ndarray,
     :return:
     """
 
-    num_columns = 3
-    num_rows = 0
+    num_columns = 0
+    num_rows = 5
 
     for num in range(len(exp_dist_array)):
-        if num % num_columns == 0:
-            num_rows += 1
+        if num % num_rows == 0:
+            num_columns += 1
 
-    fig = plt.figure(figsize=(15, num_rows * 2.0))
+    fig = plt.figure(figsize=(num_columns * 3, num_rows * 3.0))
     gs = gridspec.GridSpec(ncols=num_columns, nrows=num_rows, figure=fig)
 
     n_rows = 0
@@ -88,16 +88,17 @@ def plot_exp_thr_dist(exp_dist_array: np.ndarray,
         ax.spines['left'].set_visible(False)
         plt.xticks(range(0, len(exp_dist) + 5, 5))
         ax.set_xticklabels(range(0, len(exp_dist) + 5, 5), fontsize=8)
+        plt.xlabel('Added mass units')
         plt.grid(axis='x', alpha=0.25)
         ax.tick_params(length=3, pad=3)
         plt.legend(loc='best', fontsize='small')
         plt.title('timepoint %i' % timepoint)
 
-        if (n_cols+1) % num_columns == 0:
-            n_rows += 1
-            n_cols = 0
-        else:
+        if (n_rows+1) % num_rows == 0:
             n_cols += 1
+            n_rows = 0
+        else:
+            n_rows += 1
 
     if total_rmse is None:
         exp_isotope_dist_concat = np.concatenate(exp_dist_array)
@@ -127,8 +128,8 @@ def plot_hx_rates(hx_rates: np.ndarray,
     plt.xticks(range(0, len(hx_rates) + 2, 2))
     ax.set_xticklabels(range(0, len(hx_rates) + 2, 2), fontsize=8)
     plt.grid(axis='x', alpha=0.25)
-    plt.xlabel('Residues (Ranked from most to least protected)')
-    plt.ylabel('Rate')
+    plt.xlabel('Residues (Ranked from slowest to fastest exchanging)')
+    plt.ylabel('Rate (lnk k [1/s])')
     plt.subplots_adjust(hspace=0.5, wspace=0.1, top=0.95)
     plt.savefig(output_path)
     plt.close()
