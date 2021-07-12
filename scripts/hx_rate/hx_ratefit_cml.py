@@ -12,15 +12,15 @@ def gen_parser_arguments():
     :return:parser
     """
     parser = argparse.ArgumentParser(prog='HX_RATE_FIT', description='Run HX rate fitting algorithm')
-    parser.add_argument('-i', '--i_hxdist', help='hx mass distribution input file .csv', required=True,
+    parser.add_argument('-i', '--i_hxdist', help='hx mass distribution input file .csv',
                         default='../../workfolder/input_hx_dist/HEEH_rd4_0097_hx_mass_dist.csv')
-    parser.add_argument('-s', '--sequence', help='protein sequence one letter amino acid', required=True,
+    parser.add_argument('-s', '--sequence', help='protein sequence one letter amino acid',
                         default='HMTQVHVDGVTYTFSNPEEAKKFADEMAKRKGGTWEIKDGHIHVE')
-    parser.add_argument('-n', '--prot_name', help='protein name', required=True, default='HEEH_rd4_0097')
-    parser.add_argument('-p', '--i_params', help='params YAML file .yml file', required=True,
+    parser.add_argument('-n', '--prot_name', help='protein name', default='HEEH_rd4_0097')
+    parser.add_argument('-p', '--i_params', help='params YAML file .yml file',
                         default='../../params/params.yml')
     parser.add_argument('-o', '--output_dir', help='top output dir path -> output_dir/prot_name for output files',
-                        required=True, default='../../workfolder/output_hxrate')
+                        default='../../workfolder/output_hxrate')
     return parser
 
 
@@ -41,7 +41,7 @@ def hx_rate_fitting_from_parser(parser):
     :param parser: parser
     :return:
     """
-    options, args = parser.parse_args()
+    options = parser.parse_args()
     hx_mass_dist_fpath = options.i_hxdist
     hx_rate_params_fpath = options.i_params
     prot_name = options.prot_name
