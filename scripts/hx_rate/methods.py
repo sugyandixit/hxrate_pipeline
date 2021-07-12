@@ -330,6 +330,11 @@ def hx_rate_fitting_optimization(init_rate_guess: np.ndarray,
     :return: optimization object
     """
 
+    minimizer_kwargs_ = {'method': 'BFGS',
+                         'tol': 0.0001,
+                         'options': {'maxiter': 1,
+                                     'disp': True}}
+
     opt_ = basinhopping(lambda rates: mse_exp_thr_isotope_dist_all_timepoints(exp_isotope_dist_array=exp_isotope_dist_array,
                                                                               sequence=sequence,
                                                                               timepoints=timepoints,
@@ -344,7 +349,7 @@ def hx_rate_fitting_optimization(init_rate_guess: np.ndarray,
                         niter=opt_iter,
                         T=opt_temp,
                         stepsize=opt_step_size,
-                        minimizer_kwargs={'options': {'maxiter': 1}},
+                        minimizer_kwargs=minimizer_kwargs_,
                         disp=True)
 
     if return_tuple:
