@@ -129,7 +129,7 @@ def plot_hx_rates(hx_rates: np.ndarray,
     ax.set_xticklabels(range(0, len(hx_rates) + 2, 2), fontsize=8)
     plt.grid(axis='x', alpha=0.25)
     plt.xlabel('Residues (Ranked from slowest to fastest exchanging)')
-    plt.ylabel('Rate (lnk k [1/s])')
+    plt.ylabel('Rate: lnk k (1/s)')
     plt.subplots_adjust(hspace=0.5, wspace=0.1, top=0.95)
     plt.savefig(output_path)
     plt.close()
