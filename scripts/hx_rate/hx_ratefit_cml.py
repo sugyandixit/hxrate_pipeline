@@ -3,6 +3,7 @@
 import os
 import argparse
 from hx_rate_fit import fit_rate_from_to_file
+import yaml
 
 
 def gen_parser_arguments():
@@ -11,11 +12,15 @@ def gen_parser_arguments():
     :return:parser
     """
     parser = argparse.ArgumentParser(prog='HX_RATE_FIT', description='Run HX rate fitting algorithm')
-    parser.add_argument('-i', '--i_hxdist', help='hx mass distribution input file .csv', required=True)
-    parser.add_argument('-n', '--prot_name', help='protein name', required=True)
-    parser.add_argument('-p', '--i_params', help='params .csv file', required=False)
+    parser.add_argument('-i', '--i_hxdist', help='hx mass distribution input file .csv', required=True,
+                        default='../../workfolder/input_hx_dist/HEEH_rd4_0097_hx_mass_dist.csv')
+    parser.add_argument('-s', '--sequence', help='protein sequence one letter amino acid', required=True,
+                        default='HMTQVHVDGVTYTFSNPEEAKKFADEMAKRKGGTWEIKDGHIHVE')
+    parser.add_argument('-n', '--prot_name', help='protein name', required=True, default='HEEH_rd4_0097')
+    parser.add_argument('-p', '--i_params', help='params YAML file .yml file', required=True,
+                        default='../../params/params.yml')
     parser.add_argument('-o', '--output_dir', help='top output dir path -> output_dir/prot_name for output files',
-                        required=True)
+                        required=True, default='../../workfolder/output_hxrate')
     return parser
 
 
@@ -30,21 +35,6 @@ def make_new_dir(dirpath):
     return dirpath
 
 
-def gen_params_from_file(param_fpath):
-    """
-    generate params from the param file
-    :param param_fpath: param file csv
-    :return: dictionary of params
-    """
-    file_dict = dict()
-    with open(param_fpath, 'r') as inputfile:
-        param_lines = inputfile.read().splitlines()
-        for line in param_lines:
-            chars = line.split(',')
-            file_dict[chars[0]] = chars[1]
-    return file_dict
-
-
 def hx_rate_fitting_from_parser(parser):
     """
     from the parser arguments, generate essential arguments for hx rate fitting function and run the function
@@ -55,56 +45,38 @@ def hx_rate_fitting_from_parser(parser):
     hx_mass_dist_fpath = options.i_hxdist
     hx_rate_params_fpath = options.i_params
     prot_name = options.prot_name
+    prot_sequence = options.sequence
     output_dirpath = options.output_dir
 
-    params_dict = gen_params_from_file(hx_rate_params_fpath)
+    params_dict = yaml.load(open(hx_rate_params_fpath, 'rb'), Loader=yaml.Loader)
 
     prot_output_dirpath = make_new_dir(os.path.join(output_dirpath, prot_name))
 
-    if params_dict['d2o_fraction'] == '':
-        d2o_fraction = 0.95
-        print('setting the default d2o fraction to %.2f (Put a value in the params file to use your own)' % d2o_fraction)
-    else:
-        d2o_fraction = float(params_dict['d2o_fraction'])
+    hx_rate_output_path_ = os.path.join(prot_output_dirpath, prot_name + '_hx_rate_.pickle')
+    hx_rate_csv_output_path_ = os.path.join(prot_output_dirpath, prot_name + '_hx_rate_csv.csv')
+    hx_isotope_dist_output_path_ = os.path.join(prot_output_dirpath, prot_name + '_hx_rate_isotope_dist.csv')
+    hx_rate_plot_path_ = os.path.join(prot_output_dirpath, prot_name + '_hx_rates_plot.pdf')
+    hx_isotope_dist_plot_path_ = os.path.join(prot_output_dirpath, prot_name + '_hx_isotope_dist_plot.pdf')
 
-    if params_dict['d2o_purity'] == '':
-        d2o_purity = 0.95
-        print('setting the default d2o purity to %.2f (Put a value in the params file to use your own)' % d2o_purity)
-    else:
-        d2o_purity = float(params_dict['d2o_purity'])
+    fit_rate_from_to_file(sequence=prot_sequence,
+                          hx_ms_dist_fpath=hx_mass_dist_fpath,
+                          d2o_fraction=params_dict['d2o_fraction'],
+                          d2o_purity=params_dict['d2o_purity'],
+                          opt_temp=params_dict['opt_temp'],
+                          opt_iter=params_dict['opt_iter'],
+                          opt_step_size=params_dict['opt_step_size'],
+                          multi_proc=params_dict['multi_proc'],
+                          number_of_cores=params_dict['number_of_cores'],
+                          free_energy_values=None,
+                          temperature=None,
+                          hx_rate_output_path=hx_rate_output_path_,
+                          hx_rate_csv_output_path=hx_rate_csv_output_path_,
+                          hx_isotope_dist_plot_path=hx_isotope_dist_plot_path_,
+                          hx_isotope_dist_output_path=hx_isotope_dist_output_path_,
+                          hx_rate_plot_path=hx_rate_plot_path_)
 
-    if params_dict['opt_iter'] == '':
-        opt_iter = 30
-        print('setting the default opt_iter to %i (Put a value in the params file to use your own)' % opt_iter)
-    else:
-        opt_iter = int(params_dict['opt_iter'])
 
-    if params_dict['opt_temp'] == '':
-        opt_temp = 0.00003
-        print('setting the default opt_temp to %.5f (Put a value in the params file to use your own)' % opt_temp)
-    else:
-        opt_temp = float(params_dict['opt_temp'])
+if __name__ == '__main__':
 
-    if params_dict['opt_step_size'] == '':
-        opt_step_size = 0.02
-        print('setting the default opt_step_size to %.2f (Put a value in the params file to use your own)' % opt_step_size)
-    else:
-        opt_step_size = float(params_dict['opt_step_size'])
-
-    if params_dict['multi_proc'] == '':
-        multi_proc = True
-        print('setting multiprocessing to True')
-    else:
-        if params_dict['multi_proc'] == 'True':
-            multi_proc = True
-        elif params_dict['multi_proc'] == 'False':
-            multi_proc = False
-        else:
-            multi_proc = True
-            print('cannot recognize the multi proc param, setting it to False')
-
-    if params_dict['number_of_cores'] == '':
-        num_cores = 6
-        print('setting the number of cores to 6')
-    else:
-        num_cores = int(params_dict['number_of_cores'])
+    parser = gen_parser_arguments()
+    hx_rate_fitting_from_parser(parser)
