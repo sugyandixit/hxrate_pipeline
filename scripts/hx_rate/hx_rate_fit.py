@@ -256,6 +256,10 @@ def fit_rate(sequence: str,
     if multi_proc:
         st_time = time.time()
 
+        # set the max number of cores to be equal to the number of initial rate guesses
+        if number_of_cores > len(init_rates_list):
+            number_of_cores = len(init_rates_list)
+
         pool = mp.Pool(processes=number_of_cores)
 
         results = []
@@ -372,6 +376,7 @@ def fit_rate_from_to_file(sequence: str,
                           opt_temp: float,
                           opt_step_size: float,
                           multi_proc: bool = False,
+                          number_of_cores: int = 6,
                           free_energy_values: np.ndarray = None,
                           temperature: float = None,
                           hx_rate_output_path: str = None,
@@ -398,6 +403,7 @@ def fit_rate_from_to_file(sequence: str,
                              opt_temp=opt_temp,
                              opt_step_size=opt_step_size,
                              multi_proc=multi_proc,
+                             number_of_cores=number_of_cores,
                              free_energy_values=free_energy_values,
                              temperature=temperature)
 
@@ -442,6 +448,7 @@ if __name__ == '__main__':
     opt_temp_ = 0.00003
     opt_step_size_ = 0.02
     multi_proc_ = True
+    num_cores = 6
 
     import pandas as pd
 
@@ -461,6 +468,7 @@ if __name__ == '__main__':
                           opt_temp=opt_temp_,
                           opt_step_size=opt_step_size_,
                           multi_proc=multi_proc_,
+                          number_of_cores=num_cores,
                           free_energy_values=None,
                           temperature=None,
                           hx_rate_output_path=output_dirpath + 'hx_rate_object.pickle',
