@@ -4,6 +4,7 @@ import os
 import argparse
 from hx_rate_fit import fit_rate_from_to_file
 import yaml
+from datetime import datetime
 
 
 def gen_parser_arguments():
@@ -35,6 +36,22 @@ def make_new_dir(dirpath):
     return dirpath
 
 
+def gen_parser_args_string(parser_options):
+    now = datetime.now()
+    dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
+    new_line = '\n'
+    out_string = '#####' + new_line
+    out_string += '#' + dt_string + new_line
+    out_string += '#HX RATE FITTING' + new_line
+    out_string += '#PROT NAME: ' + parser_options.prot_name + new_line
+    out_string += '#PROT SEQUENCE: ' + parser_options.sequence + new_line
+    out_string += '#HX PARAMS: ' + parser_options.i_params + new_line
+    out_string += '#HX MASS DIST: ' + parser_options.i_hxdist + new_line
+    out_string += '#HX OUTPUT DIR: ' + parser_options.output_dir + new_line
+    out_string += '#####' + new_line + new_line
+    return out_string
+
+
 def hx_rate_fitting_from_parser(parser):
     """
     from the parser arguments, generate essential arguments for hx rate fitting function and run the function
@@ -57,6 +74,8 @@ def hx_rate_fitting_from_parser(parser):
     hx_isotope_dist_output_path_ = os.path.join(prot_output_dirpath, prot_name + '_hx_rate_isotope_dist.csv')
     hx_rate_plot_path_ = os.path.join(prot_output_dirpath, prot_name + '_hx_rates_plot.pdf')
     hx_isotope_dist_plot_path_ = os.path.join(prot_output_dirpath, prot_name + '_hx_isotope_dist_plot.pdf')
+
+    print(gen_parser_args_string(parser_options=options))
 
     fit_rate_from_to_file(sequence=prot_sequence,
                           hx_ms_dist_fpath=hx_mass_dist_fpath,
