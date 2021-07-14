@@ -151,6 +151,8 @@ def calc_back_exchange(sequence: str,
     :return: backexchange data object
     """
 
+    print('CALCULATING BACK EXCHANGE ... ')
+
     # set high rates for calculating back exchange
     rates = gen_temp_rates(sequence=sequence,
                            rate_value=1e2)
@@ -206,6 +208,8 @@ def fit_rate(sequence: str,
              backexchange_value: float = None) -> object:
 
     # todo: add param descritpions
+
+    print('HX RATE FITTING ... ')
 
     # initialize hxrate data object
     hxrate = HXRate()
