@@ -65,13 +65,6 @@ def gen_bash_script(job_params_dict: dict,
     return bash_string
 
 
-def make_empty_file(filepath):
-
-    with open(filepath, 'w') as outfile:
-        outfile.write('#iamfile\n')
-        outfile.close()
-
-
 def get_jobs_from_sample_list(sample_list_fpath,
                               jobs_params_fpath,
                               sbatch_output_path,
@@ -111,9 +104,6 @@ def get_jobs_from_sample_list(sample_list_fpath,
         job_name = prot_name + '_quest' + str(job_num)
 
         sbatch_out_file = os.path.join(sbatch_output_path, job_name + '.out')
-
-        # make the out and err files
-        make_empty_file(sbatch_out_file)
 
         bash_script_string = gen_bash_script(job_params_dict=job_params_dict,
                                              hx_rate_params_fpath=hx_params_fpath,
