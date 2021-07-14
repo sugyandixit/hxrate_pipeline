@@ -88,11 +88,11 @@ def get_jobs_from_sample_list(sample_list_fpath,
 
     sample_df = pd.read_csv(sample_list_fpath)
 
-    prot_name_list = sample_df.iloc[1:, 0].values
-    prot_seq_list = sample_df.iloc[1:, 1].values
-    hx_dist_fpath_list = sample_df.iloc[1:, 2].values
-    hx_params_fpath_list = sample_df.iloc[1:, 3].values
-    output_path_list = sample_df.iloc[1:, 4].values
+    prot_name_list = sample_df.iloc[:, 0].values
+    prot_seq_list = sample_df.iloc[:, 1].values
+    hx_dist_fpath_list = sample_df.iloc[:, 2].values
+    hx_params_fpath_list = sample_df.iloc[:, 3].values
+    output_path_list = sample_df.iloc[:, 4].values
 
     job_params_dict = yaml.load(open(jobs_params_fpath, 'rb'), Loader=yaml.Loader)
 
