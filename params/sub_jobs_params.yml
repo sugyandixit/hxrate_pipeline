@@ -1,13 +1,13 @@
-account: p31346
-partition: short
-time: 1:15:00
-num_nodes: 1
-memory: 2G
-ntask_per_node: 6
-job_name: hx_rate_fit
-email: None
+account: 'p31346'
+partition: 'short'
+time: '1:15:00'
+num_nodes: '1'
+memory: '2G'
+ntask_per_node: '6'
+job_name: 'hx_rate_fit'
+email: 'None'
 sub_commands:
   - "module purge"
-  - "module load python/anaconda3"
+  - "source ~/.bashrc"
   - "source activate hxrate"
 python_script: /projects/p31346/suggie/hxrate/scripts/hx_rate/hx_ratefit_cml.py
