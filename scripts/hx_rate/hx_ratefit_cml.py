@@ -41,13 +41,13 @@ def gen_parser_args_string(parser_options):
     dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
     new_line = '\n'
     out_string = '#####' + new_line
-    out_string += '#' + dt_string + new_line
-    out_string += '#HX RATE FITTING' + new_line
-    out_string += '#PROT NAME: ' + parser_options.prot_name + new_line
-    out_string += '#PROT SEQUENCE: ' + parser_options.sequence + new_line
-    out_string += '#HX PARAMS: ' + parser_options.i_params + new_line
-    out_string += '#HX MASS DIST: ' + parser_options.i_hxdist + new_line
-    out_string += '#HX OUTPUT DIR: ' + parser_options.output_dir + new_line
+    out_string += '# ' + dt_string + new_line
+    out_string += '# HX RATE FITTING' + new_line
+    out_string += '# PROT NAME: ' + parser_options.prot_name + new_line
+    out_string += '# PROT SEQUENCE: ' + parser_options.sequence + new_line
+    out_string += '# HX PARAMS: ' + parser_options.i_params + new_line
+    out_string += '# HX MASS DIST: ' + parser_options.i_hxdist + new_line
+    out_string += '# HX OUTPUT DIR: ' + parser_options.output_dir + new_line
     out_string += '#####' + new_line + new_line
     return out_string
 
