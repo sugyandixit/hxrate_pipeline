@@ -149,7 +149,7 @@ def gen_parser_commands():
     parser.add_argument('-p', '--job_params', help='job params YAML file .yml',
                         default='../../params/sub_jobs_params.yml')
     parser.add_argument('-o', '--output', help='sbatch output path', default='../../workfolder/sub_jobs_')
-    parser.add_argument('-r', '--run', action='store_true')
+    parser.add_argument('-r', '--run', action='store_true', help='option to submit the job')
 
     return parser
 
