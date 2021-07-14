@@ -10,4 +10,4 @@ sub_commands:
   - "module purge"
   - "source ~/.bashrc"
   - "source activate hxrate"
-python_script: /projects/p31346/suggie/hxrate/scripts/hx_rate/hx_ratefit_cml.py
+python_script: '/projects/p31346/suggie/hxrate/scripts/hx_rate/hx_ratefit_cml.py'
