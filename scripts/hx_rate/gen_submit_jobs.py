@@ -15,7 +15,6 @@ def gen_bash_script(job_params_dict: dict,
                     protein_sequence: str,
                     output_dirpath: str,
                     sbatch_output_fpath: str,
-                    sbatch_error_fpath: str,
                     sbatch_job_name: str) -> str:
     """
     generate bash script string to be saved for quest jobs
@@ -48,7 +47,6 @@ def gen_bash_script(job_params_dict: dict,
         bash_string += sbatch_string + '--mail-user=' + job_params_dict['email'] + new_line
         bash_string += sbatch_string + '--mail-type=BEGIN,END,FAIL,REQUEUE' + new_line
     bash_string += sbatch_string + '--output=' + sbatch_output_fpath + new_line
-    bash_string += sbatch_string + '--error=' + sbatch_error_fpath + new_line
     bash_string += sbatch_string + '--job-name=' + sbatch_job_name + new_line
 
     # additional commands
@@ -113,11 +111,9 @@ def get_jobs_from_sample_list(sample_list_fpath,
         job_name = prot_name + '_quest' + str(job_num)
 
         sbatch_out_file = os.path.join(sbatch_output_path, job_name + '.out')
-        sbatch_err_file = os.path.join(sbatch_output_path, job_name + '.err')
 
         # make the out and err files
         make_empty_file(sbatch_out_file)
-        make_empty_file(sbatch_err_file)
 
         bash_script_string = gen_bash_script(job_params_dict=job_params_dict,
                                              hx_rate_params_fpath=hx_params_fpath,
@@ -126,7 +122,6 @@ def get_jobs_from_sample_list(sample_list_fpath,
                                              protein_sequence=prot_seq,
                                              output_dirpath=output_path,
                                              sbatch_output_fpath=sbatch_out_file,
-                                             sbatch_error_fpath=sbatch_err_file,
                                              sbatch_job_name=job_name)
 
         sbatch_sh_file = os.path.join(sbatch_output_path, 'sub_' + job_name + '.sh')
