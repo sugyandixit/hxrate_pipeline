@@ -110,7 +110,7 @@ def get_jobs_from_sample_list(sample_list_fpath,
                                                                                                  output_path_list)):
 
         job_num = job_num_range[ind]
-        job_name = prot_name + '_hxrate_#' + str(job_num)
+        job_name = prot_name + '_hxrate_jn_' + str(job_num)
 
         sbatch_out_file = os.path.join(sbatch_output_path, job_name + '.out')
         sbatch_err_file = os.path.join(sbatch_output_path, job_name + '.err')
