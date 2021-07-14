@@ -209,8 +209,6 @@ def fit_rate(sequence: str,
 
     # todo: add param descritpions
 
-    print('HX RATE FITTING ... ')
-
     # initialize hxrate data object
     hxrate = HXRate()
 
@@ -242,6 +240,8 @@ def fit_rate(sequence: str,
     num_rates = len(temp_rates) - len(zero_indices)
 
     num_bins_ = len(norm_mass_distribution_array[0])
+
+    print('HX RATE FITTING ... ')
 
     # get init rate list as initial guesses for rate fit optimization
     if rate_init_list is not None:
