@@ -15,10 +15,21 @@ import time
 
 
 @dataclass
+class ExpData(object):
+    """
+    class container to store exp data
+    """
+    protein_sequence: str = None
+    timepoints: np.ndarray = None
+    exp_isotope_dist_array: np.ndarray = None
+
+
+@dataclass
 class HXRate(object):
     """
     class container to store hx rate fitting data
     """
+    exp_data: object = None
     back_exchange: object = None
     optimization_cost: float = None
     optimization_func_evals: int = None
@@ -43,6 +54,7 @@ class BackExchange(object):
 def plot_exp_thr_dist(exp_dist_array: np.ndarray,
                       thr_dist_array: np.ndarray,
                       timepoints_array: np.ndarray,
+                      backexchange: float,
                       output_path: str,
                       rmse_each_timepoint: np.ndarray = None,
                       total_rmse: float = None):
@@ -51,6 +63,7 @@ def plot_exp_thr_dist(exp_dist_array: np.ndarray,
     :param exp_dist_array: exp dist array
     :param thr_dist_array: thr dist array
     :param timepoints_array: timepoints array
+    :param backexchange: backexchange float value
     :param rmse_each_timepoint: rmse at each timepoint. if None, will compute
     :param total_rmse: total rmse. if None, will compute
     :param output_path: output path
@@ -108,7 +121,7 @@ def plot_exp_thr_dist(exp_dist_array: np.ndarray,
                                                    thr_isotope_dist=thr_isotope_dist_concat,
                                                    squared=False)
 
-    plot_title = 'EXP vs THR Isotope Distribution (Fit RMSE: %.4f)' % total_rmse
+    plot_title = 'EXP vs THR Isotope Distribution (Fit RMSE: %.4f | BACKEXCHANGE: %.2f)' % (total_rmse, backexchange*100)
     plt.suptitle(plot_title)
     plt.subplots_adjust(hspace=0.5, wspace=0.1, top=0.95)
     plt.savefig(output_path)
@@ -211,6 +224,14 @@ def fit_rate(sequence: str,
 
     # initialize hxrate data object
     hxrate = HXRate()
+
+    # store exp data in the object
+    expdata = ExpData(protein_sequence=sequence,
+                      timepoints=time_points,
+                      exp_isotope_dist_array=norm_mass_distribution_array)
+
+    # store expdata object in hxrate data object
+    hxrate.exp_data = expdata
 
     # calculate back exchange first
     back_exchange = calc_back_exchange(sequence=sequence,
@@ -412,10 +433,6 @@ def fit_rate_from_to_file(sequence: str,
                              temperature=temperature)
 
     # convert hxrate object to dict and save as a pickle file
-    if hx_rate_output_path is not None:
-        hxrate_object.back_exchange = vars(hxrate_object.back_exchange)
-        hxrate_vars = vars(hxrate_object)
-        write_pickle_object(hxrate_vars, hx_rate_output_path)
 
     # write hxrate as a csv file
     if hx_rate_csv_output_path is not None:
@@ -436,9 +453,16 @@ def fit_rate_from_to_file(sequence: str,
         plot_exp_thr_dist(exp_dist_array=norm_dist,
                           thr_dist_array=hxrate_object.thr_isotope_dist_array,
                           timepoints_array=timepoints,
+                          backexchange=hxrate_object.back_exchange.backexchange_value,
                           output_path=hx_isotope_dist_plot_path,
                           rmse_each_timepoint=hxrate_object.fit_rmse_each_timepoint,
                           total_rmse=hxrate_object.total_fit_rmse)
+
+    if hx_rate_output_path is not None:
+        hxrate_object.back_exchange = vars(hxrate_object.back_exchange)
+        hxrate_object.exp_data = vars(hxrate_object.exp_data)
+        hxrate_vars = vars(hxrate_object)
+        write_pickle_object(hxrate_vars, hx_rate_output_path)
 
     if return_flag:
         return hxrate_object
