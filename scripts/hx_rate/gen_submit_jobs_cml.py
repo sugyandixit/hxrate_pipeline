@@ -161,5 +161,5 @@ def run_sub_job_from_parser(parser):
 
 if __name__ == '__main__':
 
-    parser = gen_parser_commands()
-    run_sub_job_from_parser(parser)
+    parser_ = gen_parser_commands()
+    run_sub_job_from_parser(parser_)
