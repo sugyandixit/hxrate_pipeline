@@ -46,6 +46,18 @@ def PoiBin(success_probabilities):
     return xi.real
 
 
+# def gauss_func(x, )
+
+
+# def fit_gaussian_to_isotope_dist(isotope_dist):
+#     """
+#     fit gaussian to isotope dist
+#     :param isotope_dist:
+#     :return:
+#     """
+
+
+
 def gen_temp_rates(sequence: str, rate_value: float = 1e2) -> np.ndarray:
     """
     generate template rates
@@ -388,10 +400,14 @@ def plot_hx_rate_fitting_(hx_rates: np.ndarray,
     # define figure size
     num_columns = 2
     num_rows = len(timepoints)
-    fig_size = (num_columns * 3, num_rows * 3)
+    fig_size = (20, 25)
+
+    font_size = 10
 
     fig = plt.figure(figsize=fig_size)
-    gs = fig.add_gridspec(nrwos=num_rows, ncols=num_columns)
+    gs = fig.add_gridspec(nrows=num_rows, ncols=num_columns)
+
+    plt.rcParams.update({'font.size': font_size})
 
     if fit_rmse_timepoints is None:
         fit_rmse_tp = np.zeros(len(timepoints))
@@ -413,14 +429,14 @@ def plot_hx_rate_fitting_(hx_rates: np.ndarray,
 
         # plot exp and thr isotope dist
         ax = fig.add_subplot(gs[num, 0])
-        plt.plot(exp_dist, color='blue', marker='o', ls='-')
+        plt.plot(exp_dist, color='blue', marker='o', ls='-', markersize=3)
         plt.plot(thr_dist, color='red')
         ax.set_yticks([])
         ax.spines['right'].set_visible(False)
         ax.spines['top'].set_visible(False)
         # ax.spines['left'].set_visible(False)
         plt.xticks(range(0, len(exp_dist) + 5, 5))
-        ax.set_xticklabels(range(0, len(exp_dist) + 5, 5), fontsize=8)
+        ax.set_xticklabels(range(0, len(exp_dist) + 5, 5))
         plt.grid(axis='x', alpha=0.25)
         ax.tick_params(length=3, pad=3)
 
@@ -431,7 +447,7 @@ def plot_hx_rate_fitting_(hx_rates: np.ndarray,
                  transform=ax.transAxes)
 
         # put timepoint on  the left side of the plot
-        plt.text(0.01, 1.2, '%s t %s' % (num, timepoint),
+        plt.text(0.01, 1.2, '%s t %i' % (num, timepoint),
                  horizontalalignment="left",
                  verticalalignment="top",
                  transform=ax.transAxes)
@@ -445,44 +461,24 @@ def plot_hx_rate_fitting_(hx_rates: np.ndarray,
 
     #######################################################
     #######################################################
-    # plot fit rmse
-    ax2 = fig.add_subplot(gs[1, second_plot_indices[0]: second_plot_indices[1]])
-    plt.scatter(np.arange(len(timepoints)), fit_rmse_tp, color='red')
-    ax2.spines['right'].set_visible(False)
-    ax2.spines['top'].set_visible(False)
-    plt.xticks(range(0, len(timepoints) + 1, 1))
-    ax2.set_xticklabels(range(0, len(timepoints) + 1, 1), fontsize=8)
-    plt.xlabel('Timepoint index')
-    plt.ylabel('Fit RMSE')
-    plt.grid(axis='x', alpha=0.25)
-    ax2.tick_params(length=3, pad=3)
-
-    # put the total fit rmse on the left side of the plot
-    plt.text(0.01, 1.2, 'Total fit rmse %.4f' % fit_rmse_total,
-             horizontalalignment='left',
-             verticalalignment='top',
-             transform=ax2.transAxes)
-    #######################################################
-    #######################################################
-
-    #######################################################
-    #######################################################
     # plot center of mass exp and thr
 
     exp_com_ = np.array([center_of_mass_(arr) for arr in exp_isotope_dist])
     thr_com_ = np.array([center_of_mass_(arr) for arr in thr_isotope_dist])
 
     timepoints_v2 = np.array([x for x in timepoints])
-    timepoints_v2[0] = 0.01
-    log_timepoint = np.log10(timepoints_v2)
+    timepoints_v2[0] = timepoints_v2[2] - timepoints_v2[1]
 
-    ax3 = fig.add_subplot(gs[1, second_plot_indices[1]: second_plot_indices[2]])
-    ax3.plot(log_timepoint, exp_com_, marker='o', ls='-', color='blue')
-    ax3.plot(log_timepoint, thr_com_, marker='o', ls='-', color='red')
+    ax3 = fig.add_subplot(gs[second_plot_indices[0]: second_plot_indices[1], 1])
+    ax3.plot(timepoints_v2, exp_com_, marker='o', ls='-', color='blue')
+    ax3.plot(timepoints_v2, thr_com_, marker='o', ls='-', color='red')
+    ax3.set_xscale('log')
+    ax3.set_xticks(timepoints_v2)
+    ax3.set_xticklabels([])
     ax3.spines['right'].set_visible(False)
     ax3.spines['top'].set_visible(False)
-    plt.xticks(range(0, len(log_timepoint) + 1, 1))
-    plt.xlabel('log(timepoints) seconds')
+    plt.grid(axis='x', alpha=0.25)
+    plt.xlabel('log(timepoint)')
     plt.ylabel('Center of Mass')
     #######################################################
     #######################################################
@@ -493,15 +489,46 @@ def plot_hx_rate_fitting_(hx_rates: np.ndarray,
 
     com_difference = np.subtract(thr_com_, exp_com_)
 
-    ax4 = fig.add_subplot(gs[1, second_plot_indices[2]: second_plot_indices[3]])
+    ax4 = fig.add_subplot(gs[second_plot_indices[1]: second_plot_indices[2], 1])
     ax4.scatter(np.arange(len(timepoints)), com_difference, color='red')
     plt.axhline(y=0, ls='--', color='black')
     ax4.spines['right'].set_visible(False)
     ax4.spines['top'].set_visible(False)
     plt.xticks(range(0, len(timepoints) + 1, 1))
-    ax4.set_xticklabels(range(0, len(timepoints) + 1, 1), fontsize=8)
+    ax4.set_xticklabels(range(0, len(timepoints) + 1, 1))
+    plt.grid(axis='x', alpha=0.25)
+    plt.grid(axis='y', alpha=0.25)
     plt.xlabel('Timepoint index')
     plt.ylabel('Center of mass difference (THR - EXP)')
+    #######################################################
+    #######################################################
+
+    #######################################################
+    #######################################################
+    # plot fit rmse
+
+    if max(fit_rmse_tp) <= 0.15:
+        y_ticks = np.round(np.linspace(0, 0.15, num=16), 2)
+    else:
+        y_ticks = np.round(np.linspace(0, max(fit_rmse_tp)+0.05, num=16), 2)
+
+    ax2 = fig.add_subplot(gs[second_plot_indices[2]: second_plot_indices[3], 1])
+    plt.scatter(np.arange(len(timepoints)), fit_rmse_tp, color='red')
+    ax2.spines['right'].set_visible(False)
+    ax2.spines['top'].set_visible(False)
+    plt.xticks(range(0, len(timepoints) + 1, 1))
+    ax2.set_xticklabels(range(0, len(timepoints) + 1, 1))
+    plt.yticks(y_ticks)
+    ax2.set_yticklabels(y_ticks)
+    if max(fit_rmse_tp) > 0.15:
+        plt.axhline(y=0.15, ls='--', color='black')
+    plt.grid(axis='x', alpha=0.25)
+    plt.grid(axis='y', alpha=0.25)
+    plt.xlabel('Timepoint index')
+    plt.ylabel('Fit RMSE')
+    plt.grid(axis='x', alpha=0.25)
+    ax2.tick_params(length=3, pad=3)
+
     #######################################################
     #######################################################
 
@@ -510,23 +537,25 @@ def plot_hx_rate_fitting_(hx_rates: np.ndarray,
     # plot the rates in log10 scale
     hx_rates_log10 = np.log10(np.exp(hx_rates))
 
-    ax5 = fig.add_subplot(gs[1, second_plot_indices[3]:])
+    ax5 = fig.add_subplot(gs[second_plot_indices[3]:, 1])
     plt.plot(np.arange(len(hx_rates_log10)), np.sort(hx_rates_log10), marker='o', ls='-', color='black', markerfacecolor='red')
     plt.xticks(range(0, len(hx_rates_log10) + 2, 2))
-    ax5.set_xticklabels(range(0, len(hx_rates_log10) + 2, 2), fontsize=8)
+    ax5.set_xticklabels(range(0, len(hx_rates_log10) + 2, 2))
+    ax5.spines['right'].set_visible(False)
+    ax5.spines['top'].set_visible(False)
     plt.grid(axis='x', alpha=0.25)
     plt.xlabel('Residues (Ranked from slowest to fastest exchanging)')
-    plt.ylabel('log k (1/s)')
+    plt.ylabel('Rate: log k (1/s)')
     #######################################################
     #######################################################
 
     # adjust some plot properties and add title
-    plt.subplots_adjust(hspace=0.5, wspace=0.1, top=0.95)
+    plt.subplots_adjust(hspace=1.2, wspace=0.1, top=0.96)
 
     plot_title = 'EXP vs THR Isotope Distribution (Fit RMSE: %.4f | BACKEXCHANGE: %.2f)' % (fit_rmse_total, backexchange*100)
     plt.suptitle(plot_title)
 
-    plt.savefig(output_path)
+    plt.savefig(output_path, bbox_inches="tight")
     plt.close()
 
 
