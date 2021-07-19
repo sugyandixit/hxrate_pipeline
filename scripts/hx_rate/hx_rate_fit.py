@@ -50,6 +50,21 @@ class BackExchange(object):
     backexchange_array: np.ndarray = None
 
 
+@dataclass
+class GaussFit(object):
+    """
+    class container to fit and store gauss fit data
+    """
+    x_dist: np.ndarray
+    gauss_fit_dist: np.ndarray
+    y_baseline: float
+    amplitude: float
+    centroid: float
+    width: float
+    r_sq: float
+    rmse: float
+
+
 def calc_back_exchange(sequence: str,
                        experimental_isotope_dist: np.ndarray,
                        d2o_fraction: float,
