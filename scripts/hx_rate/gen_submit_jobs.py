@@ -1,5 +1,6 @@
 # script to generate job submitting .sh files
 import os
+import sys
 import subprocess
 import argparse
 import numpy as np
@@ -44,8 +45,13 @@ def gen_bash_script(job_params_dict: dict,
     bash_string += sbatch_string + '--mem=' + job_params_dict['memory'] + new_line
     bash_string += sbatch_string + '--ntasks-per-node=' + job_params_dict['ntask_per_node'] + new_line
     if job_params_dict['email'] != 'None':
-        bash_string += sbatch_string + '--mail-user=' + job_params_dict['email'] + new_line
-        bash_string += sbatch_string + '--mail-type=BEGIN,END,FAIL,REQUEUE' + new_line
+        if '@' in job_params_dict['email']:
+            bash_string += sbatch_string + '--mail-user=' + job_params_dict['email'] + new_line
+            bash_string += sbatch_string + '--mail-type=BEGIN,END,FAIL,REQUEUE' + new_line
+        else:
+            print('Valid email address required (example@email.com)')
+            sys.exit(0)
+
     bash_string += sbatch_string + '--output=' + sbatch_output_fpath + new_line
     bash_string += sbatch_string + '--job-name=' + sbatch_job_name + new_line
 
