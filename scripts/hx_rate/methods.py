@@ -360,20 +360,29 @@ def hx_rate_fitting_optimization(init_rate_guess: np.ndarray,
 
 
 def plot_hx_rates(hx_rates: np.ndarray,
-                  output_path: str):
+                  output_path: str,
+                  log_rates: bool = True):
     """
     plot the hx rates in increasing order
     :param hx_rates:
     :param output_path:
+    :param log_rates: If True, plot the rates in log10 scale. If not, plots in ln scale.
     :return:
     """
+
+    y_label = 'ln k (1/s)'
+
+    if log_rates:
+        hx_rates = np.log10(np.exp(hx_rates))
+        y_label = 'log10 k (1/s)'
+
     fig, ax = plt.subplots()
     plt.plot(np.arange(len(hx_rates)), np.sort(hx_rates), marker='o', ls='-', color='black', markerfacecolor='red')
     plt.xticks(range(0, len(hx_rates) + 2, 2))
     ax.set_xticklabels(range(0, len(hx_rates) + 2, 2), fontsize=8)
     plt.grid(axis='x', alpha=0.25)
     plt.xlabel('Residues (Ranked from slowest to fastest exchanging)')
-    plt.ylabel('Rate: lnk k (1/s)')
+    plt.ylabel(y_label)
     plt.subplots_adjust(hspace=0.5, wspace=0.1, top=0.95)
     plt.savefig(output_path)
     plt.close()
