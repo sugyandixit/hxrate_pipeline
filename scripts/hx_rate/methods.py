@@ -5,10 +5,26 @@ import matplotlib.gridspec as gridspec
 from scipy.optimize import basinhopping
 from sklearn.metrics import mean_squared_error
 from scipy.ndimage import center_of_mass
+from dataclasses import dataclass
 # from numba import jit
 
 # global variables
 r_constant = 0.0019872036
+
+
+@dataclass
+class GaussFit(object):
+    """
+    class container to fit and store gauss fit data
+    """
+    x_dist: np.ndarray
+    gauss_fit_dist: np.ndarray
+    y_baseline: float
+    amplitude: float
+    centroid: float
+    width: float
+    r_sq: float
+    rmse: float
 
 
 def PoiBin(success_probabilities):
