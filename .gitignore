@@ -10,9 +10,6 @@ __pycache__/
 *.
 !*.gitignore
 *.DS_Store
-/*.DS_Store
-/*/*.DS_Store
-/*/*/*.DS_Store
 *
 !config
 !params
