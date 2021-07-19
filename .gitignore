@@ -8,9 +8,9 @@ __pycache__/
 
 # Distribution / packaging
 *.DS_Store
-/.DS_Store
-/*/.DS_Store
-/*/*/.DS_Store
+/*.DS_Store
+/*/*.DS_Store
+/*/*/*.DS_Store
 *
 !config
 !params
