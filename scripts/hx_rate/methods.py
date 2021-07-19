@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 import molmass
+import matplotlib.gridspec as gridspec
 from scipy.optimize import basinhopping
 from sklearn.metrics import mean_squared_error
 # from numba import jit
@@ -356,6 +357,103 @@ def hx_rate_fitting_optimization(init_rate_guess: np.ndarray,
         return opt_, init_rate_guess
     else:
         return opt_
+
+
+def plot_hx_rates(hx_rates: np.ndarray,
+                  output_path: str):
+    """
+    plot the hx rates in increasing order
+    :param hx_rates:
+    :param output_path:
+    :return:
+    """
+    fig, ax = plt.subplots()
+    plt.plot(np.arange(len(hx_rates)), np.sort(hx_rates), marker='o', ls='-', color='black', markerfacecolor='red')
+    plt.xticks(range(0, len(hx_rates) + 2, 2))
+    ax.set_xticklabels(range(0, len(hx_rates) + 2, 2), fontsize=8)
+    plt.grid(axis='x', alpha=0.25)
+    plt.xlabel('Residues (Ranked from slowest to fastest exchanging)')
+    plt.ylabel('Rate: lnk k (1/s)')
+    plt.subplots_adjust(hspace=0.5, wspace=0.1, top=0.95)
+    plt.savefig(output_path)
+    plt.close()
+
+
+def plot_exp_thr_dist(exp_dist_array: np.ndarray,
+                      thr_dist_array: np.ndarray,
+                      timepoints_array: np.ndarray,
+                      backexchange: float,
+                      output_path: str,
+                      rmse_each_timepoint: np.ndarray = None,
+                      total_rmse: float = None):
+    """
+    plot the experimental and theoretical isotope distribution at each time point
+    :param exp_dist_array: exp dist array
+    :param thr_dist_array: thr dist array
+    :param timepoints_array: timepoints array
+    :param backexchange: backexchange float value
+    :param rmse_each_timepoint: rmse at each timepoint. if None, will compute
+    :param total_rmse: total rmse. if None, will compute
+    :param output_path: output path
+    :return:
+    """
+
+    num_columns = 0
+    num_rows = 5
+
+    for num in range(len(exp_dist_array)):
+        if num % num_rows == 0:
+            num_columns += 1
+
+    fig = plt.figure(figsize=(num_columns * 3, num_rows * 3.0))
+    gs = gridspec.GridSpec(ncols=num_columns, nrows=num_rows, figure=fig)
+
+    n_rows = 0
+    n_cols = 0
+
+    for num, (timepoint, exp_dist, thr_dist) in enumerate(zip(timepoints_array, exp_dist_array, thr_dist_array)):
+
+        if rmse_each_timepoint is None:
+            rmse_tp = compute_rmse_exp_thr_iso_dist(exp_isotope_dist=exp_dist,
+                                                    thr_isotope_dist=thr_dist,
+                                                    squared=False)
+        else:
+            rmse_tp = rmse_each_timepoint[num]
+
+        ax = fig.add_subplot(gs[n_rows, n_cols])
+        plt.plot(exp_dist, color='blue', label='exp')
+        plt.plot(thr_dist, color='red', label='thr (%.4f)' % rmse_tp)
+        ax.set_yticks([])
+        ax.spines['right'].set_visible(False)
+        ax.spines['top'].set_visible(False)
+        ax.spines['left'].set_visible(False)
+        plt.xticks(range(0, len(exp_dist) + 5, 5))
+        ax.set_xticklabels(range(0, len(exp_dist) + 5, 5), fontsize=8)
+        plt.xlabel('Added mass units')
+        plt.grid(axis='x', alpha=0.25)
+        ax.tick_params(length=3, pad=3)
+        plt.legend(loc='best', fontsize='small')
+        plt.title('timepoint %i' % timepoint)
+
+        if (n_rows+1) % num_rows == 0:
+            n_cols += 1
+            n_rows = 0
+        else:
+            n_rows += 1
+
+    if total_rmse is None:
+        exp_isotope_dist_concat = np.concatenate(exp_dist_array)
+        thr_isotope_dist_concat = np.concatenate(thr_dist_array)
+        thr_isotope_dist_concat[np.isnan(thr_isotope_dist_concat)] = 0
+        total_rmse = compute_rmse_exp_thr_iso_dist(exp_isotope_dist=exp_isotope_dist_concat,
+                                                   thr_isotope_dist=thr_isotope_dist_concat,
+                                                   squared=False)
+
+    plot_title = 'EXP vs THR Isotope Distribution (Fit RMSE: %.4f | BACKEXCHANGE: %.2f)' % (total_rmse, backexchange*100)
+    plt.suptitle(plot_title)
+    plt.subplots_adjust(hspace=0.5, wspace=0.1, top=0.95)
+    plt.savefig(output_path)
+    plt.close()
 
 
 if __name__ == '__main__':
