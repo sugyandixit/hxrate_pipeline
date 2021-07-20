@@ -73,7 +73,6 @@ def hx_rate_fitting_from_parser(parser):
     hx_rate_csv_output_path_ = os.path.join(prot_output_dirpath, prot_name + '_hx_rate_csv.csv')
     hx_isotope_dist_output_path_ = os.path.join(prot_output_dirpath, prot_name + '_hx_rate_isotope_dist.csv')
     hx_rate_plot_path_ = os.path.join(prot_output_dirpath, prot_name + '_hx_rates_plot.pdf')
-    hx_isotope_dist_plot_path_ = os.path.join(prot_output_dirpath, prot_name + '_hx_isotope_dist_plot.pdf')
 
     print(gen_parser_args_string(parser_options=options))
 
@@ -90,7 +89,6 @@ def hx_rate_fitting_from_parser(parser):
                           temperature=None,
                           hx_rate_output_path=hx_rate_output_path_,
                           hx_rate_csv_output_path=hx_rate_csv_output_path_,
-                          hx_isotope_dist_plot_path=hx_isotope_dist_plot_path_,
                           hx_isotope_dist_output_path=hx_isotope_dist_output_path_,
                           hx_rate_plot_path=hx_rate_plot_path_)
 
