@@ -7,8 +7,8 @@ from dataclasses import dataclass
 from scipy.special import expit
 from scipy.optimize import fmin_powell
 from methods import isotope_dist_from_PoiBin, gen_temp_rates, gen_theoretical_isotope_dist_for_all_timepoints, \
-    normalize_mass_distribution_array, hx_rate_fitting_optimization, compute_rmse_exp_thr_iso_dist, plot_hx_rates, \
-    plot_exp_thr_dist, gauss_fit_to_isotope_dist_array, convert_hxrate_object_to_dict
+    normalize_mass_distribution_array, hx_rate_fitting_optimization, compute_rmse_exp_thr_iso_dist, \
+    gauss_fit_to_isotope_dist_array, convert_hxrate_object_to_dict, plot_hx_rate_fitting_
 from hxdata import load_data_from_hdx_ms_dist_, write_pickle_object, write_hx_rate_output, write_isotope_dist_timepoints
 import time
 
@@ -315,7 +315,6 @@ def fit_rate_from_to_file(sequence: str,
                           hx_rate_csv_output_path: str = None,
                           hx_isotope_dist_output_path: str = None,
                           hx_rate_plot_path: str = None,
-                          hx_isotope_dist_plot_path: str = None,
                           return_flag: bool = False) -> object:
     # todo: add param descriptions for the function here
 
@@ -351,19 +350,27 @@ def fit_rate_from_to_file(sequence: str,
                                       isotope_dist_array=hxrate_object.thr_isotope_dist_array,
                                       output_path=hx_isotope_dist_output_path)
 
-    # plot hxrate as .pdf file
+    # plot hxrate output as .pdf file
     if hx_rate_plot_path is not None:
-        plot_hx_rates(hx_rates=hxrate_object.hx_rates, output_path=hx_rate_plot_path)
 
-    # plot hxrate dist as .pdf file
-    if hx_isotope_dist_plot_path is not None:
-        plot_exp_thr_dist(exp_dist_array=norm_dist,
-                          thr_dist_array=hxrate_object.thr_isotope_dist_array,
-                          timepoints_array=timepoints,
-                          backexchange=hxrate_object.back_exchange.backexchange_value,
-                          output_path=hx_isotope_dist_plot_path,
-                          rmse_each_timepoint=hxrate_object.fit_rmse_each_timepoint,
-                          total_rmse=hxrate_object.total_fit_rmse)
+        exp_centroid_arr = np.array([x.centroid for x in hxrate_object.exp_data.gauss_fit])
+        exp_width_arr = np.array([x.width for x in hxrate_object.exp_data.gauss_fit])
+
+        thr_centroid_arr = np.array([x.centroid for x in hxrate_object.thr_isotope_dist_gauss_fit])
+        thr_width_arr = np.array([x.width for x in hxrate_object.thr_isotope_dist_gauss_fit])
+
+        plot_hx_rate_fitting_(hx_rates=hxrate_object.hx_rates,
+                              exp_isotope_dist=norm_dist,
+                              thr_isotope_dist=hxrate_object.thr_isotope_dist_array,
+                              exp_isotope_centroid_array=exp_centroid_arr,
+                              thr_isotope_centroid_array=thr_centroid_arr,
+                              exp_isotope_width_array=exp_width_arr,
+                              thr_isotope_width_array=thr_width_arr,
+                              timepoints=time_points,
+                              fit_rmse_timepoints=hxrate_object.fit_rmse_each_timepoint,
+                              fit_rmse_total=hxrate_object.total_fit_rmse,
+                              backexchange=hxrate_object.back_exchange.backexchange_value,
+                              output_path=hx_rate_plot_path)
 
     # save hxrate object into a pickle object
     if hx_rate_output_path is not None:
