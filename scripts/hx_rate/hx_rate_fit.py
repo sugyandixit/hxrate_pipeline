@@ -8,7 +8,7 @@ from scipy.special import expit
 from scipy.optimize import fmin_powell
 from methods import isotope_dist_from_PoiBin, gen_temp_rates, gen_theoretical_isotope_dist_for_all_timepoints, \
     normalize_mass_distribution_array, hx_rate_fitting_optimization, compute_rmse_exp_thr_iso_dist, plot_hx_rates, \
-    plot_exp_thr_dist
+    plot_exp_thr_dist, gauss_fit_to_isotope_dist_array
 from hxdata import load_data_from_hdx_ms_dist_, write_pickle_object, write_hx_rate_output, write_isotope_dist_timepoints
 import time
 
@@ -21,6 +21,7 @@ class ExpData(object):
     protein_sequence: str = None
     timepoints: np.ndarray = None
     exp_isotope_dist_array: np.ndarray = None
+    gauss_fit: list = None
 
 
 @dataclass
@@ -35,6 +36,7 @@ class HXRate(object):
     optimization_init_rate_guess: np.ndarray = None
     hx_rates: np.ndarray = None
     thr_isotope_dist_array: np.ndarray = None
+    thr_isotope_dist_gauss_fit: list = None
     fit_rmse_each_timepoint: np.ndarray = None
     total_fit_rmse: float = None
 
@@ -130,6 +132,9 @@ def fit_rate(sequence: str,
     expdata = ExpData(protein_sequence=sequence,
                       timepoints=time_points,
                       exp_isotope_dist_array=norm_mass_distribution_array)
+
+    # fit gaussian to exp data
+    expdata.gauss_fit = gauss_fit_to_isotope_dist_array(norm_mass_distribution_array)
 
     # store expdata object in hxrate data object
     hxrate.exp_data = expdata
@@ -289,7 +294,8 @@ def fit_rate(sequence: str,
                                                           thr_isotope_dist=thr_isotope_dist_concat,
                                                           squared=False)
 
-    print('time took for hx rate fitting optimization: ', time_took)
+    # fit gaussian to the thr isotope dist
+    hxrate.thr_isotope_dist_gauss_fit = gauss_fit_to_isotope_dist_array(hxrate.thr_isotope_dist_array)
 
     return hxrate
 

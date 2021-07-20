@@ -2,10 +2,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import molmass
 import matplotlib.gridspec as gridspec
-from scipy.optimize import basinhopping
+from scipy.optimize import basinhopping, curve_fit
 from sklearn.metrics import mean_squared_error
 from scipy.ndimage import center_of_mass
 from dataclasses import dataclass
+from scipy.stats import linregress
 # from numba import jit
 
 # global variables
@@ -17,7 +18,7 @@ class GaussFit(object):
     """
     class container to fit and store gauss fit data
     """
-    x_dist: np.ndarray
+    fit_success: bool
     gauss_fit_dist: np.ndarray
     y_baseline: float
     amplitude: float
@@ -62,16 +63,96 @@ def PoiBin(success_probabilities):
     return xi.real
 
 
-# def gauss_func(x, )
+def estimate_gauss_param(ydata: np.ndarray,
+                         xdata: np.ndarray,
+                         baseline: float = 0.0,
+                         width_ht: float = 0.7) -> list:
+    ymax = np.max(ydata)
+    maxindex = np.nonzero(ydata == ymax)[0]
+    peakmax_x = xdata[maxindex][0]
+    norm_arr = ydata/max(ydata)
+    bins_for_width = norm_arr[norm_arr > width_ht]
+    width_bin = len(bins_for_width)
+    init_guess = [baseline, ymax, peakmax_x, width_bin]
+    return init_guess
 
 
-# def fit_gaussian_to_isotope_dist(isotope_dist):
-#     """
-#     fit gaussian to isotope dist
-#     :param isotope_dist:
-#     :return:
-#     """
+def gauss_func(x, y0, A, xc, w):
+    """
+    gaussian function with baseline
+    :param x: xdata
+    :param y0: baseline
+    :param A: amplitude
+    :param xc: centroid
+    :param w: width
+    :return: gauss(x)
+    """
+    rxc = ((x - xc) ** 2) / (2 * (w ** 2))
+    y = y0 + A * (np.exp(-rxc))
+    return y
 
+
+def fit_gaussian(data: np.ndarray) -> object:
+    """
+    fit gaussian to data
+    :param data: xdata to fit gaussian
+    :return: gauss fit object
+    """
+    xdata = np.arange(len(data))
+    guess_params = estimate_gauss_param(ydata=data,
+                                        xdata=xdata)
+
+    # initialize gauss fit object with fit success as false
+    mean = sum(xdata * data) / sum(data)
+    sigma = np.sqrt(sum(data * (xdata - mean) ** 2) / sum(data))
+    gaussfit = GaussFit(fit_success=False,
+                        gauss_fit_dist=data,
+                        y_baseline=guess_params[0],
+                        amplitude=guess_params[1],
+                        centroid=center_of_mass_(data_array=data),
+                        width=sigma,
+                        r_sq=0.00,
+                        rmse=100.0)
+
+    # fit gaussian
+    popt, pcov = curve_fit(gauss_func, xdata, data, p0=guess_params, maxfev=100000)
+
+    # if the centroid is smaller than 0, return the false gaussfit object
+    if popt[2] < 0.0:
+        gaussfit.centroid = center_of_mass_(data_array=data)
+        return gaussfit
+
+    # if the width is smaller than 0, return the false gauss fit object
+    if popt[3] < 0.0 or popt[3] > len(data):
+        return gaussfit
+
+    # for successful gaussian fit
+    else:
+        gaussfit.fit_success = True
+        gaussfit.y_baseline = popt[0]
+        gaussfit.amplitude = popt[1]
+        gaussfit.centroid = popt[2]
+        gaussfit.width = popt[3]
+        gaussfit.gauss_fit_dist = gauss_func(xdata, *popt)
+        gaussfit.rmse = compute_rmse_exp_thr_iso_dist(exp_isotope_dist=data,
+                                                      thr_isotope_dist=gaussfit.gauss_fit_dist,
+                                                      squared=True)
+        slope, intercept, rvalue, pvalue, stderr = linregress(data, gaussfit.gauss_fit_dist)
+        gaussfit.r_sq = rvalue**2
+
+        return gaussfit
+
+
+def gauss_fit_to_isotope_dist_array(isotope_dist: np.ndarray) -> list:
+
+    gauss_fit_list = []
+
+    for dist in isotope_dist:
+
+        gauss_fit = fit_gaussian(data=dist)
+        gauss_fit_list.append(gauss_fit)
+
+    return gauss_fit_list
 
 
 def gen_temp_rates(sequence: str, rate_value: float = 1e2) -> np.ndarray:
@@ -97,7 +178,7 @@ def gen_temp_rates(sequence: str, rate_value: float = 1e2) -> np.ndarray:
 
 
 def center_of_mass_(data_array):
-    com = center_of_mass(data_array)
+    com = center_of_mass(data_array)[0]
     return com
 
 
