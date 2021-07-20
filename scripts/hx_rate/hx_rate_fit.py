@@ -8,7 +8,7 @@ from scipy.special import expit
 from scipy.optimize import fmin_powell
 from methods import isotope_dist_from_PoiBin, gen_temp_rates, gen_theoretical_isotope_dist_for_all_timepoints, \
     normalize_mass_distribution_array, hx_rate_fitting_optimization, compute_rmse_exp_thr_iso_dist, plot_hx_rates, \
-    plot_exp_thr_dist, gauss_fit_to_isotope_dist_array
+    plot_exp_thr_dist, gauss_fit_to_isotope_dist_array, convert_hxrate_object_to_dict
 from hxdata import load_data_from_hdx_ms_dist_, write_pickle_object, write_hx_rate_output, write_isotope_dist_timepoints
 import time
 
@@ -365,11 +365,10 @@ def fit_rate_from_to_file(sequence: str,
                           rmse_each_timepoint=hxrate_object.fit_rmse_each_timepoint,
                           total_rmse=hxrate_object.total_fit_rmse)
 
+    # save hxrate object into a pickle object
     if hx_rate_output_path is not None:
-        hxrate_object.back_exchange = vars(hxrate_object.back_exchange)
-        hxrate_object.exp_data = vars(hxrate_object.exp_data)
-        hxrate_vars = vars(hxrate_object)
-        write_pickle_object(hxrate_vars, hx_rate_output_path)
+        hxrate_dict = convert_hxrate_object_to_dict(hxrate_object=hxrate_object)
+        write_pickle_object(hxrate_dict, hx_rate_output_path)
 
     if return_flag:
         return hxrate_object
@@ -391,12 +390,12 @@ if __name__ == '__main__':
     sample_df = pd.read_csv(sample_fpath)
     prot_name = sample_df['name'].values[0]
     prot_seq = sample_df['sequence'].values[0]
-    hx_ms_dist_fpath = sample_df['hx_dist_fpath'].values[0]
+    hx_ms_dist_fpath_ = sample_df['hx_dist_fpath'].values[0]
 
     output_dirpath = '../../workfolder/output_hxrate/'
 
     fit_rate_from_to_file(sequence=prot_seq,
-                          hx_ms_dist_fpath=hx_ms_dist_fpath,
+                          hx_ms_dist_fpath=hx_ms_dist_fpath_,
                           d2o_purity=d2o_purity_,
                           d2o_fraction=d2o_fraction_,
                           opt_iter=opt_iter_,
