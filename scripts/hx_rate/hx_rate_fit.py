@@ -415,5 +415,4 @@ if __name__ == '__main__':
                           hx_rate_output_path=output_dirpath + 'hx_rate_object.pickle',
                           hx_rate_csv_output_path=output_dirpath + 'hx_rate.csv',
                           hx_isotope_dist_output_path=output_dirpath + 'hxrate_isotope_dist.csv',
-                          hx_rate_plot_path=output_dirpath + 'hx_rate.pdf',
-                          hx_isotope_dist_plot_path=output_dirpath + 'hx_rate_isotope_dist.pdf')
+                          hx_rate_plot_path=output_dirpath + 'hx_rate.pdf')
