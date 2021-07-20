@@ -509,8 +509,10 @@ def hx_rate_fitting_optimization(init_rate_guess: np.ndarray,
 def plot_hx_rate_fitting_(hx_rates: np.ndarray,
                           exp_isotope_dist: np.ndarray,
                           thr_isotope_dist: np.ndarray,
-                          exp_isotope_gauss_list: list,
-                          thr_isotope_gauss_list: list,
+                          exp_isotope_centroid_array: np.ndarray,
+                          thr_isotope_centroid_array: np.ndarray,
+                          exp_isotope_width_array: np.ndarray,
+                          thr_isotope_width_array: np.ndarray,
                           timepoints: np.ndarray,
                           fit_rmse_timepoints: np.ndarray,
                           fit_rmse_total: float,
@@ -521,6 +523,10 @@ def plot_hx_rate_fitting_(hx_rates: np.ndarray,
     :param hx_rates: in ln scale
     :param exp_isotope_dist: exp isotope dist array
     :param thr_isotope_dist: thr isotope dist array from hx rates
+    :param exp_isotope_centroid_array: exp isotope centroid in an array
+    :param thr_isotope_centroid_array: thr isotope centroid in an array
+    :param exp_isotope_width_array: exp isotope width in an array
+    :param thr_isotope_width_array: thr isotope width in an array
     :param timepoints: time points
     :param fit_rmse_timepoints: fit rmse for each timepoint
     :param fit_rmse_total: total fit rmse
@@ -549,7 +555,7 @@ def plot_hx_rate_fitting_(hx_rates: np.ndarray,
     #######################################################
     #######################################################
     # start plotting the exp and thr isotope dist
-    for num, (timepoint, exp_dist, thr_dist) in enumerate(zip(timepoints, exp_isotope_dist, thr_isotope_dist)):
+    for num, (timepoint, exp_dist, thr_dist, exp_centroid) in enumerate(zip(timepoints, exp_isotope_dist, thr_isotope_dist, exp_isotope_centroid_array)):
 
         if fit_rmse_timepoints is None:
             rmse_tp = compute_rmse_exp_thr_iso_dist(exp_isotope_dist=exp_dist,
@@ -572,8 +578,16 @@ def plot_hx_rate_fitting_(hx_rates: np.ndarray,
         plt.grid(axis='x', alpha=0.25)
         ax.tick_params(length=3, pad=3)
 
-        # put the rmse on the right side of the plot
-        plt.text(1.0, 1.0, "fit rmse %.4f" % rmse_tp,
+        # put the rmse on the right side of the plot and delta centroid
+        if num == 0:
+            delta_centroid = 0.0
+        else:
+            prev_centroid = exp_isotope_centroid_array[num - 1]
+            delta_centroid = exp_centroid - prev_centroid
+
+        # delta_centroid_text = 'dmz=%.2f' % delta_centroid
+
+        plt.text(1.0, 1.0, "fit rmse = %.4f\nd_mz = %.2f" % (rmse_tp, delta_centroid),
                  horizontalalignment="right",
                  verticalalignment="top",
                  transform=ax.transAxes)
@@ -583,11 +597,20 @@ def plot_hx_rate_fitting_(hx_rates: np.ndarray,
                  horizontalalignment="left",
                  verticalalignment="top",
                  transform=ax.transAxes)
+
+        # put the centroid information by the peak max
+        plt.text(
+            exp_centroid,
+            1.1,
+            "%.1f" % exp_centroid,
+            horizontalalignment="center",
+            verticalalignment="bottom",
+            fontsize=8)
     #######################################################
     #######################################################
 
     # 4 plots on the second row
-    num_plots_second_row = 4
+    num_plots_second_row = 6
     second_plot_row_thickness = int(len(timepoints)/num_plots_second_row)
     second_plot_indices = [(num*second_plot_row_thickness) for num in range(num_plots_second_row)]
 
@@ -595,23 +618,21 @@ def plot_hx_rate_fitting_(hx_rates: np.ndarray,
     #######################################################
     # plot center of mass exp and thr
 
-    exp_com_ = np.array([center_of_mass_(arr) for arr in exp_isotope_dist])
-    thr_com_ = np.array([center_of_mass_(arr) for arr in thr_isotope_dist])
-
     timepoints_v2 = np.array([x for x in timepoints])
     timepoints_v2[0] = timepoints_v2[2] - timepoints_v2[1]
 
     ax3 = fig.add_subplot(gs[second_plot_indices[0]: second_plot_indices[1], 1])
-    ax3.plot(timepoints_v2, exp_com_, marker='o', ls='-', color='blue')
-    ax3.plot(timepoints_v2, thr_com_, marker='o', ls='-', color='red')
+    ax3.plot(timepoints_v2, exp_isotope_centroid_array, marker='o', ls='-', color='blue')
+    ax3.plot(timepoints_v2, thr_isotope_centroid_array, marker='o', ls='-', color='red')
     ax3.set_xscale('log')
     ax3.set_xticks(timepoints_v2)
     ax3.set_xticklabels([])
     ax3.spines['right'].set_visible(False)
     ax3.spines['top'].set_visible(False)
     plt.grid(axis='x', alpha=0.25)
+    plt.grid(axis='y', alpha=0.25)
     plt.xlabel('log(timepoint)')
-    plt.ylabel('Center of Mass')
+    plt.ylabel('Centroid')
     #######################################################
     #######################################################
 
@@ -619,11 +640,11 @@ def plot_hx_rate_fitting_(hx_rates: np.ndarray,
     #######################################################
     # plot the error in center of mass between exp and thr distributions
 
-    com_difference = np.subtract(thr_com_, exp_com_)
+    com_difference = np.subtract(thr_isotope_centroid_array, exp_isotope_centroid_array)
 
     ax4 = fig.add_subplot(gs[second_plot_indices[1]: second_plot_indices[2], 1])
-    ax4.scatter(np.arange(len(timepoints)), com_difference, color='red')
-    plt.axhline(y=0, ls='--', color='black')
+    ax4.scatter(np.arange(len(timepoints)), com_difference, color='black')
+    plt.axhline(y=0, ls='--', color='black', alpha=0.50)
     ax4.spines['right'].set_visible(False)
     ax4.spines['top'].set_visible(False)
     plt.xticks(range(0, len(timepoints) + 1, 1))
@@ -631,7 +652,45 @@ def plot_hx_rate_fitting_(hx_rates: np.ndarray,
     plt.grid(axis='x', alpha=0.25)
     plt.grid(axis='y', alpha=0.25)
     plt.xlabel('Timepoint index')
-    plt.ylabel('Center of mass difference (THR - EXP)')
+    plt.ylabel('Centroid difference (THEO - EXP)')
+    #######################################################
+    #######################################################
+
+    #######################################################
+    #######################################################
+    # plot the width of exp and thr distributions
+
+    ax6 = fig.add_subplot(gs[second_plot_indices[2]: second_plot_indices[3], 1])
+    ax6.scatter(np.arange(len(timepoints)), exp_isotope_width_array, color='blue')
+    ax6.scatter(np.arange(len(timepoints)), thr_isotope_width_array, color='red')
+    ax6.spines['right'].set_visible(False)
+    ax6.spines['top'].set_visible(False)
+    plt.xticks(range(0, len(timepoints) + 1, 1))
+    ax6.set_xticklabels(range(0, len(timepoints) + 1, 1))
+    plt.grid(axis='x', alpha=0.25)
+    plt.grid(axis='y', alpha=0.25)
+    plt.xlabel('Timepoint index')
+    plt.ylabel('Width')
+    #######################################################
+    #######################################################
+
+    #######################################################
+    #######################################################
+    # plot the error in center of mass between exp and thr distributions
+
+    width_difference = np.subtract(thr_isotope_width_array, exp_isotope_width_array)
+
+    ax7 = fig.add_subplot(gs[second_plot_indices[3]: second_plot_indices[4], 1])
+    ax7.scatter(np.arange(len(timepoints)), width_difference, color='black')
+    plt.axhline(y=0, ls='--', color='black', alpha=0.50)
+    ax7.spines['right'].set_visible(False)
+    ax7.spines['top'].set_visible(False)
+    plt.xticks(range(0, len(timepoints) + 1, 1))
+    ax7.set_xticklabels(range(0, len(timepoints) + 1, 1))
+    plt.grid(axis='x', alpha=0.25)
+    plt.grid(axis='y', alpha=0.25)
+    plt.xlabel('Timepoint index')
+    plt.ylabel('Width difference (THEO - EXP)')
     #######################################################
     #######################################################
 
@@ -644,8 +703,8 @@ def plot_hx_rate_fitting_(hx_rates: np.ndarray,
     else:
         y_ticks = np.round(np.linspace(0, max(fit_rmse_tp)+0.05, num=16), 2)
 
-    ax2 = fig.add_subplot(gs[second_plot_indices[2]: second_plot_indices[3], 1])
-    plt.scatter(np.arange(len(timepoints)), fit_rmse_tp, color='red')
+    ax2 = fig.add_subplot(gs[second_plot_indices[4]: second_plot_indices[5], 1])
+    plt.scatter(np.arange(len(timepoints)), fit_rmse_tp, color='black')
     ax2.spines['right'].set_visible(False)
     ax2.spines['top'].set_visible(False)
     plt.xticks(range(0, len(timepoints) + 1, 1))
@@ -669,13 +728,14 @@ def plot_hx_rate_fitting_(hx_rates: np.ndarray,
     # plot the rates in log10 scale
     hx_rates_log10 = np.log10(np.exp(hx_rates))
 
-    ax5 = fig.add_subplot(gs[second_plot_indices[3]:, 1])
+    ax5 = fig.add_subplot(gs[second_plot_indices[5]:, 1])
     plt.plot(np.arange(len(hx_rates_log10)), np.sort(hx_rates_log10), marker='o', ls='-', color='black', markerfacecolor='red')
     plt.xticks(range(0, len(hx_rates_log10) + 2, 2))
     ax5.set_xticklabels(range(0, len(hx_rates_log10) + 2, 2))
     ax5.spines['right'].set_visible(False)
     ax5.spines['top'].set_visible(False)
     plt.grid(axis='x', alpha=0.25)
+    plt.grid(axis='y', alpha=0.25)
     plt.xlabel('Residues (Ranked from slowest to fastest exchanging)')
     plt.ylabel('Rate: log k (1/s)')
     #######################################################
@@ -684,7 +744,7 @@ def plot_hx_rate_fitting_(hx_rates: np.ndarray,
     # adjust some plot properties and add title
     plt.subplots_adjust(hspace=1.2, wspace=0.1, top=0.96)
 
-    plot_title = 'EXP vs THR Isotope Distribution (Fit RMSE: %.4f | BACKEXCHANGE: %.2f)' % (fit_rmse_total, backexchange*100)
+    plot_title = 'EXP vs THEO Isotope Distribution (Fit RMSE: %.4f | BACKEXCHANGE: %.2f)' % (fit_rmse_total, backexchange*100)
     plt.suptitle(plot_title)
 
     plt.savefig(output_path, bbox_inches="tight")
