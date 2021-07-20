@@ -718,6 +718,7 @@ def plot_hx_rate_fitting_(hx_rates: np.ndarray,
     plt.xlabel('Timepoint index')
     plt.ylabel('Fit RMSE')
     plt.grid(axis='x', alpha=0.25)
+    plt.grid(axis='y', alpha=0.25)
     ax2.tick_params(length=3, pad=3)
 
     #######################################################
