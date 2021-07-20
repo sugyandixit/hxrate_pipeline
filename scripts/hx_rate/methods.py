@@ -16,7 +16,7 @@ r_constant = 0.0019872036
 @dataclass
 class GaussFit(object):
     """
-    class container to fit and store gauss fit data
+    class container to store gauss fit data
     """
     fit_success: bool
     gauss_fit_dist: np.ndarray
@@ -119,7 +119,6 @@ def fit_gaussian(data: np.ndarray) -> object:
 
     # if the centroid is smaller than 0, return the false gaussfit object
     if popt[2] < 0.0:
-        gaussfit.centroid = center_of_mass_(data_array=data)
         return gaussfit
 
     # if the width is smaller than 0, return the false gauss fit object
@@ -144,6 +143,11 @@ def fit_gaussian(data: np.ndarray) -> object:
 
 
 def gauss_fit_to_isotope_dist_array(isotope_dist: np.ndarray) -> list:
+    """
+    fit gaussian to each isotope dist array and store the output in a list
+    :param isotope_dist: 2d array of isotope dist
+    :return: gauss fit list
+    """
 
     gauss_fit_list = []
 
@@ -153,6 +157,35 @@ def gauss_fit_to_isotope_dist_array(isotope_dist: np.ndarray) -> list:
         gauss_fit_list.append(gauss_fit)
 
     return gauss_fit_list
+
+
+def convert_hxrate_object_to_dict(hxrate_object):
+
+    # first convert the gauss fit objects to dicts
+    exp_gauss_list = []
+    for gauss_obj in hxrate_object.exp_data.gauss_fit:
+        exp_gauss_list.append(vars(gauss_obj))
+
+    # replace with the dict list
+    hxrate_object.exp_data.gauss_fit = exp_gauss_list
+
+    thr_gauss_list = []
+    for gauss_obj_ in hxrate_object.thr_isotope_dist_gauss_fit:
+        thr_gauss_list.append(vars(gauss_obj_))
+
+    # replace with dict list
+    hxrate_object.thr_isotope_dist_gauss_fit = thr_gauss_list
+
+    # convert expdata object to dict
+    hxrate_object.exp_data = vars(hxrate_object.exp_data)
+
+    # convert backexchange object to dict
+    hxrate_object.back_exchange = vars(hxrate_object.back_exchange)
+
+    # convert hxrate object to dict
+    hxrate_dict = vars(hxrate_object)
+
+    return hxrate_dict
 
 
 def gen_temp_rates(sequence: str, rate_value: float = 1e2) -> np.ndarray:
@@ -476,6 +509,8 @@ def hx_rate_fitting_optimization(init_rate_guess: np.ndarray,
 def plot_hx_rate_fitting_(hx_rates: np.ndarray,
                           exp_isotope_dist: np.ndarray,
                           thr_isotope_dist: np.ndarray,
+                          exp_isotope_gauss_list: list,
+                          thr_isotope_gauss_list: list,
                           timepoints: np.ndarray,
                           fit_rmse_timepoints: np.ndarray,
                           fit_rmse_total: float,
