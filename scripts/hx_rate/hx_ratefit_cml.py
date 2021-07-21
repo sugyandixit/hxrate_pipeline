@@ -76,7 +76,8 @@ def hx_rate_fitting_from_parser(parser):
 
     print(gen_parser_args_string(parser_options=options))
 
-    fit_rate_from_to_file(sequence=prot_sequence,
+    fit_rate_from_to_file(prot_name=prot_name,
+                          sequence=prot_sequence,
                           hx_ms_dist_fpath=hx_mass_dist_fpath,
                           d2o_fraction=params_dict['d2o_fraction'],
                           d2o_purity=params_dict['d2o_purity'],
