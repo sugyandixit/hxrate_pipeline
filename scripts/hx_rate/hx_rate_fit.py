@@ -18,6 +18,7 @@ class ExpData(object):
     """
     class container to store exp data
     """
+    protein_name: str = None
     protein_sequence: str = None
     timepoints: np.ndarray = None
     exp_isotope_dist_array: np.ndarray = None
@@ -108,7 +109,8 @@ def calc_back_exchange(sequence: str,
     return backexchange_obj
 
 
-def fit_rate(sequence: str,
+def fit_rate(prot_name: str,
+             sequence: str,
              time_points: np.ndarray,
              norm_mass_distribution_array: np.ndarray,
              d2o_fraction: float,
@@ -129,7 +131,8 @@ def fit_rate(sequence: str,
     hxrate = HXRate()
 
     # store exp data in the object
-    expdata = ExpData(protein_sequence=sequence,
+    expdata = ExpData(protein_name=prot_name,
+                      protein_sequence=sequence,
                       timepoints=time_points,
                       exp_isotope_dist_array=norm_mass_distribution_array)
 
@@ -300,7 +303,8 @@ def fit_rate(sequence: str,
     return hxrate
 
 
-def fit_rate_from_to_file(sequence: str,
+def fit_rate_from_to_file(prot_name: str,
+                          sequence: str,
                           hx_ms_dist_fpath: str,
                           d2o_fraction: float,
                           d2o_purity: float,
@@ -325,7 +329,8 @@ def fit_rate_from_to_file(sequence: str,
     norm_dist = normalize_mass_distribution_array(mass_dist_array=mass_dist)
 
     # fit rate
-    hxrate_object = fit_rate(sequence=sequence,
+    hxrate_object = fit_rate(prot_name=prot_name,
+                             sequence=sequence,
                              time_points=timepoints,
                              norm_mass_distribution_array=norm_dist,
                              d2o_fraction=d2o_fraction,
@@ -359,7 +364,8 @@ def fit_rate_from_to_file(sequence: str,
         thr_centroid_arr = np.array([x.centroid for x in hxrate_object.thr_isotope_dist_gauss_fit])
         thr_width_arr = np.array([x.width for x in hxrate_object.thr_isotope_dist_gauss_fit])
 
-        plot_hx_rate_fitting_(hx_rates=hxrate_object.hx_rates,
+        plot_hx_rate_fitting_(prot_name=prot_name,
+                              hx_rates=hxrate_object.hx_rates,
                               exp_isotope_dist=norm_dist,
                               thr_isotope_dist=hxrate_object.thr_isotope_dist_array,
                               exp_isotope_centroid_array=exp_centroid_arr,
@@ -370,6 +376,8 @@ def fit_rate_from_to_file(sequence: str,
                               fit_rmse_timepoints=hxrate_object.fit_rmse_each_timepoint,
                               fit_rmse_total=hxrate_object.total_fit_rmse,
                               backexchange=hxrate_object.back_exchange.backexchange_value,
+                              d2o_fraction=d2o_fraction,
+                              d2o_purity=d2o_purity,
                               output_path=hx_rate_plot_path)
 
     # save hxrate object into a pickle object

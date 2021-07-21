@@ -506,7 +506,8 @@ def hx_rate_fitting_optimization(init_rate_guess: np.ndarray,
         return opt_
 
 
-def plot_hx_rate_fitting_(hx_rates: np.ndarray,
+def plot_hx_rate_fitting_(prot_name: str,
+                          hx_rates: np.ndarray,
                           exp_isotope_dist: np.ndarray,
                           thr_isotope_dist: np.ndarray,
                           exp_isotope_centroid_array: np.ndarray,
@@ -517,9 +518,12 @@ def plot_hx_rate_fitting_(hx_rates: np.ndarray,
                           fit_rmse_timepoints: np.ndarray,
                           fit_rmse_total: float,
                           backexchange: float,
+                          d2o_fraction: float,
+                          d2o_purity: float,
                           output_path: str):
     """
     generate several plots for visualizing the hx rate fitting output
+    :param prot_name: protein name
     :param hx_rates: in ln scale
     :param exp_isotope_dist: exp isotope dist array
     :param thr_isotope_dist: thr isotope dist array from hx rates
@@ -531,6 +535,8 @@ def plot_hx_rate_fitting_(hx_rates: np.ndarray,
     :param fit_rmse_timepoints: fit rmse for each timepoint
     :param fit_rmse_total: total fit rmse
     :param backexchange: backexchange value
+    :param d2o_fraction: d2o fraction
+    :param d2o_purity: d2o purity
     :param output_path: plot saveing output path
     :return:
     """
@@ -616,19 +622,47 @@ def plot_hx_rate_fitting_(hx_rates: np.ndarray,
 
     #######################################################
     #######################################################
+    # plot fit rmse
+
+    if max(fit_rmse_tp) <= 0.15:
+        y_ticks = np.round(np.linspace(0, 0.15, num=16), 2)
+    else:
+        y_ticks = np.round(np.linspace(0, max(fit_rmse_tp)+0.05, num=16), 2)
+
+    ax1 = fig.add_subplot(gs[second_plot_indices[0]: second_plot_indices[1], 1])
+    plt.scatter(np.arange(len(timepoints)), fit_rmse_tp, color='black')
+    ax1.spines['right'].set_visible(False)
+    ax1.spines['top'].set_visible(False)
+    plt.xticks(range(0, len(timepoints) + 1, 1))
+    ax1.set_xticklabels(range(0, len(timepoints) + 1, 1))
+    plt.yticks(y_ticks)
+    ax1.set_yticklabels(y_ticks)
+    if max(fit_rmse_tp) > 0.15:
+        plt.axhline(y=0.15, ls='--', color='black')
+    plt.grid(axis='x', alpha=0.25)
+    plt.grid(axis='y', alpha=0.25)
+    plt.xlabel('Timepoint index')
+    plt.ylabel('Fit RMSE')
+    ax1.tick_params(length=3, pad=3)
+
+    #######################################################
+    #######################################################
+
+    #######################################################
+    #######################################################
     # plot center of mass exp and thr
 
     timepoints_v2 = np.array([x for x in timepoints])
     timepoints_v2[0] = timepoints_v2[2] - timepoints_v2[1]
 
-    ax3 = fig.add_subplot(gs[second_plot_indices[0]: second_plot_indices[1], 1])
-    ax3.plot(timepoints_v2, exp_isotope_centroid_array, marker='o', ls='-', color='blue')
-    ax3.plot(timepoints_v2, thr_isotope_centroid_array, marker='o', ls='-', color='red')
-    ax3.set_xscale('log')
-    ax3.set_xticks(timepoints_v2)
-    ax3.set_xticklabels([])
-    ax3.spines['right'].set_visible(False)
-    ax3.spines['top'].set_visible(False)
+    ax2 = fig.add_subplot(gs[second_plot_indices[1]: second_plot_indices[2], 1])
+    ax2.plot(timepoints_v2, exp_isotope_centroid_array, marker='o', ls='-', color='blue')
+    ax2.plot(timepoints_v2, thr_isotope_centroid_array, marker='o', ls='-', color='red')
+    ax2.set_xscale('log')
+    ax2.set_xticks(timepoints_v2)
+    ax2.set_xticklabels([])
+    ax2.spines['right'].set_visible(False)
+    ax2.spines['top'].set_visible(False)
     plt.grid(axis='x', alpha=0.25)
     plt.grid(axis='y', alpha=0.25)
     plt.xlabel('log(timepoint)')
@@ -642,13 +676,13 @@ def plot_hx_rate_fitting_(hx_rates: np.ndarray,
 
     com_difference = np.subtract(thr_isotope_centroid_array, exp_isotope_centroid_array)
 
-    ax4 = fig.add_subplot(gs[second_plot_indices[1]: second_plot_indices[2], 1])
-    ax4.scatter(np.arange(len(timepoints)), com_difference, color='black')
+    ax3 = fig.add_subplot(gs[second_plot_indices[2]: second_plot_indices[3], 1])
+    ax3.scatter(np.arange(len(timepoints)), com_difference, color='black')
     plt.axhline(y=0, ls='--', color='black', alpha=0.50)
-    ax4.spines['right'].set_visible(False)
-    ax4.spines['top'].set_visible(False)
+    ax3.spines['right'].set_visible(False)
+    ax3.spines['top'].set_visible(False)
     plt.xticks(range(0, len(timepoints) + 1, 1))
-    ax4.set_xticklabels(range(0, len(timepoints) + 1, 1))
+    ax3.set_xticklabels(range(0, len(timepoints) + 1, 1))
     plt.grid(axis='x', alpha=0.25)
     plt.grid(axis='y', alpha=0.25)
     plt.xlabel('Timepoint index')
@@ -660,13 +694,13 @@ def plot_hx_rate_fitting_(hx_rates: np.ndarray,
     #######################################################
     # plot the width of exp and thr distributions
 
-    ax6 = fig.add_subplot(gs[second_plot_indices[2]: second_plot_indices[3], 1])
-    ax6.scatter(np.arange(len(timepoints)), exp_isotope_width_array, color='blue')
-    ax6.scatter(np.arange(len(timepoints)), thr_isotope_width_array, color='red')
-    ax6.spines['right'].set_visible(False)
-    ax6.spines['top'].set_visible(False)
+    ax4 = fig.add_subplot(gs[second_plot_indices[3]: second_plot_indices[4], 1])
+    ax4.scatter(np.arange(len(timepoints)), exp_isotope_width_array, color='blue')
+    ax4.scatter(np.arange(len(timepoints)), thr_isotope_width_array, color='red')
+    ax4.spines['right'].set_visible(False)
+    ax4.spines['top'].set_visible(False)
     plt.xticks(range(0, len(timepoints) + 1, 1))
-    ax6.set_xticklabels(range(0, len(timepoints) + 1, 1))
+    ax4.set_xticklabels(range(0, len(timepoints) + 1, 1))
     plt.grid(axis='x', alpha=0.25)
     plt.grid(axis='y', alpha=0.25)
     plt.xlabel('Timepoint index')
@@ -680,13 +714,13 @@ def plot_hx_rate_fitting_(hx_rates: np.ndarray,
 
     width_difference = np.subtract(thr_isotope_width_array, exp_isotope_width_array)
 
-    ax7 = fig.add_subplot(gs[second_plot_indices[3]: second_plot_indices[4], 1])
-    ax7.scatter(np.arange(len(timepoints)), width_difference, color='black')
+    ax5 = fig.add_subplot(gs[second_plot_indices[4]: second_plot_indices[5], 1])
+    ax5.scatter(np.arange(len(timepoints)), width_difference, color='black')
     plt.axhline(y=0, ls='--', color='black', alpha=0.50)
-    ax7.spines['right'].set_visible(False)
-    ax7.spines['top'].set_visible(False)
+    ax5.spines['right'].set_visible(False)
+    ax5.spines['top'].set_visible(False)
     plt.xticks(range(0, len(timepoints) + 1, 1))
-    ax7.set_xticklabels(range(0, len(timepoints) + 1, 1))
+    ax5.set_xticklabels(range(0, len(timepoints) + 1, 1))
     plt.grid(axis='x', alpha=0.25)
     plt.grid(axis='y', alpha=0.25)
     plt.xlabel('Timepoint index')
@@ -696,45 +730,16 @@ def plot_hx_rate_fitting_(hx_rates: np.ndarray,
 
     #######################################################
     #######################################################
-    # plot fit rmse
-
-    if max(fit_rmse_tp) <= 0.15:
-        y_ticks = np.round(np.linspace(0, 0.15, num=16), 2)
-    else:
-        y_ticks = np.round(np.linspace(0, max(fit_rmse_tp)+0.05, num=16), 2)
-
-    ax2 = fig.add_subplot(gs[second_plot_indices[4]: second_plot_indices[5], 1])
-    plt.scatter(np.arange(len(timepoints)), fit_rmse_tp, color='black')
-    ax2.spines['right'].set_visible(False)
-    ax2.spines['top'].set_visible(False)
-    plt.xticks(range(0, len(timepoints) + 1, 1))
-    ax2.set_xticklabels(range(0, len(timepoints) + 1, 1))
-    plt.yticks(y_ticks)
-    ax2.set_yticklabels(y_ticks)
-    if max(fit_rmse_tp) > 0.15:
-        plt.axhline(y=0.15, ls='--', color='black')
-    plt.grid(axis='x', alpha=0.25)
-    plt.grid(axis='y', alpha=0.25)
-    plt.xlabel('Timepoint index')
-    plt.ylabel('Fit RMSE')
-    plt.grid(axis='x', alpha=0.25)
-    plt.grid(axis='y', alpha=0.25)
-    ax2.tick_params(length=3, pad=3)
-
-    #######################################################
-    #######################################################
-
-    #######################################################
-    #######################################################
     # plot the rates in log10 scale
     hx_rates_log10 = np.log10(np.exp(hx_rates))
 
-    ax5 = fig.add_subplot(gs[second_plot_indices[5]:, 1])
-    plt.plot(np.arange(len(hx_rates_log10)), np.sort(hx_rates_log10), marker='o', ls='-', color='black', markerfacecolor='red')
+    ax6 = fig.add_subplot(gs[second_plot_indices[5]:, 1])
+    plt.plot(np.arange(len(hx_rates_log10)), np.sort(hx_rates_log10), marker='o', ls='-', color='red',
+             markerfacecolor='red', markeredgecolor='black')
     plt.xticks(range(0, len(hx_rates_log10) + 2, 2))
-    ax5.set_xticklabels(range(0, len(hx_rates_log10) + 2, 2))
-    ax5.spines['right'].set_visible(False)
-    ax5.spines['top'].set_visible(False)
+    ax6.set_xticklabels(range(0, len(hx_rates_log10) + 2, 2))
+    ax6.spines['right'].set_visible(False)
+    ax6.spines['top'].set_visible(False)
     plt.grid(axis='x', alpha=0.25)
     plt.grid(axis='y', alpha=0.25)
     plt.xlabel('Residues (Ranked from slowest to fastest exchanging)')
@@ -745,8 +750,17 @@ def plot_hx_rate_fitting_(hx_rates: np.ndarray,
     # adjust some plot properties and add title
     plt.subplots_adjust(hspace=1.2, wspace=0.1, top=0.96)
 
-    plot_title = 'EXP vs THEO Isotope Distribution (Fit RMSE: %.4f | BACKEXCHANGE: %.2f)' % (fit_rmse_total, backexchange*100)
+    title_1 = 'Fit RMSE: %.4f | Backexchange: %.2f %% | D2O Purity: %.1f %% | D2O_Fraction: %.1f %%' %(fit_rmse_total,
+                                                                                                       backexchange*100,
+                                                                                                       d2o_purity*100,
+                                                                                                       d2o_fraction*100)
+
+    plot_title = prot_name + ' (' + title_1 + ')'
+
     plt.suptitle(plot_title)
+
+    plt.figtext(0.498, 0.968, "EXP DATA", color='blue', ha='right', fontsize=8)
+    plt.figtext(0.502, 0.968, "FIT DATA", color='red', ha='left', fontsize=8)
 
     plt.savefig(output_path, bbox_inches="tight")
     plt.close()
