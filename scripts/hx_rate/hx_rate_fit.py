@@ -143,14 +143,13 @@ def fit_rate(prot_name: str,
     hxrate.exp_data = expdata
 
     # calculate back exchange first
-    back_exchange = calc_back_exchange(sequence=sequence,
-                                       experimental_isotope_dist=norm_mass_distribution_array[-1],
-                                       d2o_fraction=d2o_fraction,
-                                       d2o_purity=d2o_purity)
-
-    # to input backexchange value manually
-    if backexchange_value is not None:
-        back_exchange.backexchange_value = backexchange_value
+    if backexchange_value is None:
+        back_exchange = calc_back_exchange(sequence=sequence,
+                                           experimental_isotope_dist=norm_mass_distribution_array[-1],
+                                           d2o_fraction=d2o_fraction,
+                                           d2o_purity=d2o_purity)
+    else:
+        back_exchange = BackExchange(backexchange_value=backexchange_value)
 
     # generate an array of backexchange with same backexchange value to an array of length of timepoints
     back_exchange.backexchange_array = np.array([back_exchange.backexchange_value for x in time_points])
