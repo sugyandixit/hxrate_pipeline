@@ -624,20 +624,17 @@ def plot_hx_rate_fitting_(prot_name: str,
     #######################################################
     # plot fit rmse
 
-    if max(fit_rmse_tp) <= 0.15:
-        y_ticks = np.round(np.linspace(0, 0.15, num=16), 2)
-    else:
-        y_ticks = np.round(np.linspace(0, max(fit_rmse_tp)+0.05, num=16), 2)
-
     ax1 = fig.add_subplot(gs[second_plot_indices[0]: second_plot_indices[1], 1])
     plt.scatter(np.arange(len(timepoints)), fit_rmse_tp, color='black')
     ax1.spines['right'].set_visible(False)
     ax1.spines['top'].set_visible(False)
     plt.xticks(range(0, len(timepoints) + 1, 1))
     ax1.set_xticklabels(range(0, len(timepoints) + 1, 1))
-    plt.yticks(y_ticks)
-    ax1.set_yticklabels(y_ticks)
-    if max(fit_rmse_tp) > 0.15:
+    if max(fit_rmse_tp) <= 0.15:
+        y_ticks = np.round(np.linspace(0, 0.15, num=16), 2)
+        plt.yticks(y_ticks)
+        ax1.set_yticklabels(y_ticks)
+    else:
         plt.axhline(y=0.15, ls='--', color='black')
     plt.grid(axis='x', alpha=0.25)
     plt.grid(axis='y', alpha=0.25)
