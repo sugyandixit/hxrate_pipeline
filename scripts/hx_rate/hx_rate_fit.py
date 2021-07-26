@@ -156,7 +156,7 @@ def fit_rate_optim_backexchange(prot_name: str,
     for num, sample_bkexch in enumerate(sample_backexch_array):
 
         hx_rate_obj = fit_rate(prot_name=prot_name,
-                               sequence=prot_seq,
+                               sequence=sequence,
                                time_points=time_points,
                                norm_mass_distribution_array=norm_mass_distribution_array,
                                d2o_fraction=d2o_fraction,
@@ -472,6 +472,7 @@ def fit_rate_from_to_file(prot_name: str,
                           number_of_cores: int = 6,
                           free_energy_values: np.ndarray = None,
                           temperature: float = None,
+                          usr_backexchange: float = None,
                           hx_rate_output_path: str = None,
                           hx_rate_csv_output_path: str = None,
                           hx_isotope_dist_output_path: str = None,
@@ -498,7 +499,8 @@ def fit_rate_from_to_file(prot_name: str,
                              multi_proc=multi_proc,
                              number_of_cores=number_of_cores,
                              free_energy_values=free_energy_values,
-                             temperature=temperature)
+                             temperature=temperature,
+                             backexchange_value=usr_backexchange)
 
     # convert hxrate object to dict and save as a pickle file
 
@@ -547,20 +549,4 @@ def fit_rate_from_to_file(prot_name: str,
 
 
 if __name__ == '__main__':
-
-    d2o_fraction_ = 0.95
-    d2o_purity_ = 0.95
-    opt_iter_ = 30
-    opt_temp_ = 0.00003
-    opt_step_size_ = 0.02
-    multi_proc_ = True
-    num_cores = 6
-
-    import pandas as pd
-
-    sample_fpath = '../../workfolder/sample.csv'
-    sample_df = pd.read_csv(sample_fpath)
-    prot_seq = sample_df['sequence'].values[0]
-    hx_ms_dist_fpath_ = sample_df['hx_dist_fpath'].values[0]
-
-    output_dirpath = '../../workfolder/output_hxrate/'
+    pass
