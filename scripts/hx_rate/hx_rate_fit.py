@@ -70,8 +70,6 @@ def calc_back_exchange(sequence: str,
     value
     :return: backexchange data object
     """
-    back_exchange = 0.0
-
     # set high rates for calculating back exchange
     rates = gen_temp_rates(sequence=sequence,
                            rate_value=1e2)
