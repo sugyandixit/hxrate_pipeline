@@ -74,6 +74,13 @@ def hx_rate_fitting_from_parser(parser):
     hx_isotope_dist_output_path_ = os.path.join(prot_output_dirpath, prot_name + '_hx_rate_isotope_dist.csv')
     hx_rate_plot_path_ = os.path.join(prot_output_dirpath, prot_name + '_hx_rates_plot.pdf')
 
+    # set user backexchange
+    usr_backexchange = params_dict['usr_backexchange']
+    if usr_backexchange == 0:
+        usr_backexch = None
+    else:
+        usr_backexch = usr_backexchange
+
     print(gen_parser_args_string(parser_options=options))
 
     fit_rate_from_to_file(prot_name=prot_name,
@@ -84,6 +91,7 @@ def hx_rate_fitting_from_parser(parser):
                           opt_temp=params_dict['opt_temp'],
                           opt_iter=params_dict['opt_iter'],
                           opt_step_size=params_dict['opt_step_size'],
+                          usr_backexchange=usr_backexch,
                           multi_proc=params_dict['multi_proc'],
                           number_of_cores=params_dict['number_of_cores'],
                           free_energy_values=None,
