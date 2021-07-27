@@ -479,7 +479,6 @@ def hx_rate_fitting_optimization(init_rate_guess: np.ndarray,
     """
 
     minimizer_kwargs_ = {'method': 'BFGS',
-                         'tol': 0.0001,
                          'options': {'maxiter': 1,
                                      'disp': True}}
 
