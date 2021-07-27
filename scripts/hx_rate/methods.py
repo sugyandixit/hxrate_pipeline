@@ -7,6 +7,7 @@ from sklearn.metrics import mean_squared_error
 from scipy.ndimage import center_of_mass
 from dataclasses import dataclass
 from scipy.stats import linregress
+import os
 # from numba import jit
 
 # global variables
@@ -186,6 +187,17 @@ def convert_hxrate_object_to_dict(hxrate_object):
     hxrate_dict = vars(hxrate_object)
 
     return hxrate_dict
+
+
+def make_new_dir(dirpath):
+    """
+    make a new directory if the directory doesn't already exists
+    :param dirpath: directory path
+    :return: directory path
+    """
+    if not os.path.exists(dirpath):
+        os.makedirs(dirpath)
+    return dirpath
 
 
 def gen_temp_rates(sequence: str, rate_value: float = 1e2) -> np.ndarray:

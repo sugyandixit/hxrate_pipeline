@@ -1,6 +1,7 @@
 # command line operation of hx rate fitting
 
 import os
+from methods import make_new_dir
 import argparse
 from hx_rate_fit import fit_rate_from_to_file
 import yaml
@@ -23,17 +24,6 @@ def gen_parser_arguments():
     parser.add_argument('-o', '--output_dir', help='top output dir path -> output_dir/prot_name for output files',
                         default='../../workfolder/output_hxrate')
     return parser
-
-
-def make_new_dir(dirpath):
-    """
-    make a new directory if the directory doesn't already exists
-    :param dirpath: directory path
-    :return: directory path
-    """
-    if not os.path.exists(dirpath):
-        os.makedirs(dirpath)
-    return dirpath
 
 
 def gen_parser_args_string(parser_options):
