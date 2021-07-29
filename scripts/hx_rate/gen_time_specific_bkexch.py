@@ -1,4 +1,4 @@
-from hxdata import load_data_from_hdx_ms_dist_
+from hxdata import load_data_from_hdx_ms_dist_, write_pickle_object
 from methods import gauss_fit_to_isotope_dist_array, normalize_mass_distribution_array
 import pandas as pd
 import numpy as np
@@ -52,7 +52,6 @@ class BackExchangeCorrection(object):
     """
     class container to store data for correcting timepoint specific backexchange
     """
-    corr_rate_tol: float = None
     protein_names: list = None
     mass_rate_arr: np.ndarray = None
     average_rate_arr: np.ndarray = None
@@ -183,6 +182,33 @@ def filter_tp_bkexch_obj(list_of_tp_bkexch_obj, min_number_accept=1, ch_frac_thr
     new_list = accept_list + reject_list
 
     return new_list
+
+
+def generate_backexchange_correction_object(list_of_mass_rate_object, output_path=None, return_flag=True):
+
+    # todo: add param description
+
+    accept_list = [x for x in list_of_mass_rate_object if x.accept is True]
+
+    backexchange_corr_obj = BackExchangeCorrection()
+    backexchange_corr_obj.protein_names = [x.protein_name for x in accept_list]
+
+    backexchange_corr_obj.mass_rate_arr = np.array([x.mass_rate_arr for x in accept_list])
+
+    if len(accept_list) == 1:
+        backexchange_corr_obj.average_rate_arr = accept_list[0].mass_rate_arr
+    else:
+        backexchange_corr_obj.average_rate_arr = np.average(backexchange_corr_obj.mass_rate_arr, axis=0)
+
+    backexchange_corr_obj.correction_rate = backexchange_corr_obj.average_rate_arr
+    backexchange_corr_obj.correction_rate[0] = backexchange_corr_obj.correction_rate[1]
+
+    if output_path is not None:
+        backexchange_corr_dict = vars(backexchange_corr_obj)
+        write_pickle_object(backexchange_corr_dict, output_path)
+
+    if return_flag:
+        return backexchange_corr_obj
 
 
 def plot_mass_rate_all(list_of_tp_bkexchange_obj, output_path):
