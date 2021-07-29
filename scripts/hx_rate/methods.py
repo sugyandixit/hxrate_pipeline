@@ -115,32 +115,38 @@ def fit_gaussian(data: np.ndarray) -> object:
                         r_sq=0.00,
                         rmse=100.0)
 
-    # fit gaussian
-    popt, pcov = curve_fit(gauss_func, xdata, data, p0=guess_params, maxfev=100000)
+    try:
 
-    # if the centroid is smaller than 0, return the false gaussfit object
-    if popt[2] < 0.0:
+        # fit gaussian
+        popt, pcov = curve_fit(gauss_func, xdata, data, p0=guess_params, maxfev=100000)
+
+        # if the centroid is smaller than 0, return the false gaussfit object
+        if popt[2] < 0.0:
+            return gaussfit
+
+        # if the width is smaller than 0, return the false gauss fit object
+        if popt[3] < 0.0 or popt[3] > len(data):
+            return gaussfit
+
+        # for successful gaussian fit
+        else:
+            gaussfit.fit_success = True
+            gaussfit.y_baseline = popt[0]
+            gaussfit.amplitude = popt[1]
+            gaussfit.centroid = popt[2]
+            gaussfit.width = popt[3]
+            gaussfit.gauss_fit_dist = gauss_func(xdata, *popt)
+            gaussfit.rmse = compute_rmse_exp_thr_iso_dist(exp_isotope_dist=data,
+                                                          thr_isotope_dist=gaussfit.gauss_fit_dist,
+                                                          squared=True)
+            slope, intercept, rvalue, pvalue, stderr = linregress(data, gaussfit.gauss_fit_dist)
+            gaussfit.r_sq = rvalue**2
+
+            return gaussfit
+
+    except RuntimeError:
         return gaussfit
 
-    # if the width is smaller than 0, return the false gauss fit object
-    if popt[3] < 0.0 or popt[3] > len(data):
-        return gaussfit
-
-    # for successful gaussian fit
-    else:
-        gaussfit.fit_success = True
-        gaussfit.y_baseline = popt[0]
-        gaussfit.amplitude = popt[1]
-        gaussfit.centroid = popt[2]
-        gaussfit.width = popt[3]
-        gaussfit.gauss_fit_dist = gauss_func(xdata, *popt)
-        gaussfit.rmse = compute_rmse_exp_thr_iso_dist(exp_isotope_dist=data,
-                                                      thr_isotope_dist=gaussfit.gauss_fit_dist,
-                                                      squared=True)
-        slope, intercept, rvalue, pvalue, stderr = linregress(data, gaussfit.gauss_fit_dist)
-        gaussfit.r_sq = rvalue**2
-
-        return gaussfit
 
 
 def gauss_fit_to_isotope_dist_array(isotope_dist: np.ndarray) -> list:
