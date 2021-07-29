@@ -236,7 +236,7 @@ if __name__ == '__main__':
     #                                                      rate_tol=rate_tol_,
     #                                                      frac_threshold=frac_thres_)
 
-    sample_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/lib15_ph6_sample.csv'
+    sample_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/lib15_ph7_sample.csv'
 
     list_of_tp_bkexch = gen_list_of_mass_rate_obj(sample_csv_fpath=sample_fpath,
                                                   rate_tol=0.05,
@@ -250,5 +250,5 @@ if __name__ == '__main__':
                                     min_number_accept=2,
                                     ch_frac_threshold=0.01)
 
-    plot_mass_rate_all(list_of_tp_bkexchange_obj=list_of_tp_bkexch,
+    plot_mass_rate_all(list_of_tp_bkexchange_obj=new_list,
                        output_path=sample_fpath+'_massrate.pdf')
