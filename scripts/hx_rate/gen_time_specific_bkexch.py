@@ -25,8 +25,9 @@ class MassRate(object):
 
     def check_mass_rate_pass(self):
 
-        mass_rate_arr_tol = self.mass_rate_arr[np.abs(self.mass_rate_arr) < self.rate_tol]
-        self.frac_cal = len(mass_rate_arr_tol)/len(self.mass_rate_arr)
+        mass_rate_arr_comp = self.mass_rate_arr[1:]
+        mass_rate_arr_tol = mass_rate_arr_comp[np.abs(mass_rate_arr_comp) < self.rate_tol]
+        self.frac_cal = len(mass_rate_arr_tol)/len(mass_rate_arr_comp)
 
         start_index = 2
         if self.frac_start_ind is not None:
@@ -251,11 +252,11 @@ if __name__ == '__main__':
     sample_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/lib15_ph7_sample.csv'
 
     list_of_tp_bkexch = gen_list_of_mass_rate_obj(sample_csv_fpath=sample_fpath,
-                                                  rate_tol=0.05,
+                                                  rate_tol=0.06,
                                                   frac_threshold=0.5,
                                                   frac_thres_ind=0.8,
                                                   start_ind=1,
-                                                  end_ind=5,
+                                                  end_ind=4,
                                                   max_mass_rate=0.5)
 
     new_list_ = filter_tp_bkexch_obj(list_of_tp_bkexch_obj=list_of_tp_bkexch,
