@@ -60,6 +60,8 @@ class BackExchangeCorrection(object):
 
 def calc_mass_diff_rate(ref_mass, mass_array):
 
+    # todo: add param description
+
     diff_rate = np.zeros(len(mass_array))
     for ind, mass_val in enumerate(mass_array):
         rate = (mass_val - ref_mass)/ref_mass
@@ -75,6 +77,8 @@ def gen_mass_rate_obj(protein_name: str,
                       start_ind: int,
                       end_ind: int,
                       max_mass_rate: float):
+
+    # todo: add param description
 
     # fit gaussian to the isotope distributions
     gauss_fit = gauss_fit_to_isotope_dist_array(isotope_dist=isotope_distribution)
@@ -109,6 +113,8 @@ def gen_mass_rate_obj_from_file(protein_name: str,
                                 end_ind: int = None,
                                 max_mass_rate: float = 1.0):
 
+    # todo: add param description
+
     tp, iso_dist = load_data_from_hdx_ms_dist_(hx_ms_dist_fpath)
 
     norm_dist = normalize_mass_distribution_array(mass_dist_array=iso_dist)
@@ -132,6 +138,8 @@ def gen_list_of_mass_rate_obj(sample_csv_fpath: str,
                               start_ind: int = None,
                               end_ind: int = None,
                               max_mass_rate: float = 1.0):
+
+    # todo: add param description
 
     sample_df = pd.read_csv(sample_csv_fpath)
 
@@ -158,6 +166,8 @@ def gen_list_of_mass_rate_obj(sample_csv_fpath: str,
 
 def filter_tp_bkexch_obj(list_of_tp_bkexch_obj, min_number_accept=1, ch_frac_threshold=0.02):
 
+    # todo: add param description
+
     accept_list = [x for x in list_of_tp_bkexch_obj if x.accept is True]
     reject_list = [x for x in list_of_tp_bkexch_obj if x.accept is False]
 
@@ -175,6 +185,8 @@ def filter_tp_bkexch_obj(list_of_tp_bkexch_obj, min_number_accept=1, ch_frac_thr
 
 
 def plot_mass_rate_all(list_of_tp_bkexchange_obj, output_path):
+
+    # todo: add param description
 
     false_color = 'grey'
     true_color = 'red'
