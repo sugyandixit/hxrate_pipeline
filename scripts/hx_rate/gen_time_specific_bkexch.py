@@ -246,9 +246,9 @@ if __name__ == '__main__':
                                                   end_ind=5,
                                                   max_mass_rate=0.5)
 
-    new_list = filter_tp_bkexch_obj(list_of_tp_bkexch_obj=list_of_tp_bkexch,
-                                    min_number_accept=2,
-                                    ch_frac_threshold=0.01)
+    new_list_ = filter_tp_bkexch_obj(list_of_tp_bkexch_obj=list_of_tp_bkexch,
+                                     min_number_accept=2,
+                                     ch_frac_threshold=0.01)
 
-    plot_mass_rate_all(list_of_tp_bkexchange_obj=new_list,
+    plot_mass_rate_all(list_of_tp_bkexchange_obj=new_list_,
                        output_path=sample_fpath+'_massrate.pdf')
