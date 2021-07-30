@@ -184,7 +184,7 @@ def filter_tp_bkexch_obj(list_of_tp_bkexch_obj, min_number_accept=1, ch_frac_thr
     return new_list
 
 
-def generate_backexchange_correction_object(list_of_mass_rate_object, output_path=None, return_flag=True):
+def generate_backexchange_correction_object(list_of_mass_rate_object):
 
     # todo: add param description
 
@@ -203,12 +203,18 @@ def generate_backexchange_correction_object(list_of_mass_rate_object, output_pat
     backexchange_corr_obj.correction_rate = backexchange_corr_obj.average_rate_arr
     backexchange_corr_obj.correction_rate[0] = backexchange_corr_obj.correction_rate[1]
 
-    if output_path is not None:
-        backexchange_corr_dict = vars(backexchange_corr_obj)
-        write_pickle_object(backexchange_corr_dict, output_path)
+    return backexchange_corr_obj
 
-    if return_flag:
-        return backexchange_corr_obj
+
+def gen_timepoint_backexchange_array(backexchange_value, correction_rate_array):
+
+    # todo: add param description
+
+    backexchange_tp_ = np.zeros(len(correction_rate_array))
+    for ind, corr_rate in enumerate(correction_rate_array):
+        backexchange_tp_[ind] = backexchange_value + (corr_rate*backexchange_value)
+
+    return backexchange_tp_
 
 
 def plot_mass_rate_all(list_of_tp_bkexchange_obj, output_path):
@@ -291,3 +297,9 @@ if __name__ == '__main__':
 
     plot_mass_rate_all(list_of_tp_bkexchange_obj=new_list_,
                        output_path=sample_fpath+'_massrate.pdf')
+
+    bkexch_corr_obj = generate_backexchange_correction_object(list_of_mass_rate_object=new_list_)
+
+    bkexch_value = .18
+    bkexch_tp = gen_timepoint_backexchange_array(backexchange_value=bkexch_value,
+                                                 correction_rate_array=bkexch_corr_obj.correction_rate)
