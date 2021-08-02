@@ -7,3 +7,4 @@ opt_temp: 0.0003
 opt_step_size: 0.02
 multi_proc: True
 number_of_cores: 6
+backexchange_correction_fpath: '../../workfolder/backexchange_mass_rate.csv'
