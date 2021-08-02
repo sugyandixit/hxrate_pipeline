@@ -8,7 +8,7 @@ from scipy.special import expit
 from scipy.optimize import fmin_powell
 from methods import isotope_dist_from_PoiBin, gen_temp_rates, gen_theoretical_isotope_dist_for_all_timepoints, \
     normalize_mass_distribution_array, hx_rate_fitting_optimization, compute_rmse_exp_thr_iso_dist, \
-    gauss_fit_to_isotope_dist_array, convert_hxrate_object_to_dict, plot_hx_rate_fitting_
+    gauss_fit_to_isotope_dist_array, convert_hxrate_object_to_dict, plot_hx_rate_fitting_, gen_corr_backexchange
 from hxdata import load_data_from_hdx_ms_dist_, write_pickle_object, write_hx_rate_output, write_isotope_dist_timepoints
 import time
 
@@ -131,7 +131,8 @@ def fit_rate(prot_name: str,
              rate_init_list: list = None,
              free_energy_values: np.ndarray = None,
              temperature: float = None,
-             backexchange_value: float = None) -> object:
+             backexchange_value: float = None,
+             backexchange_correction_array: np.ndarray = None) -> object:
 
     # todo: add param descritpions
 
@@ -163,8 +164,12 @@ def fit_rate(prot_name: str,
                                            d2o_purity=d2o_purity,
                                            usr_backexchange=backexchange_value)
 
+    if backexchange_correction_array is None:
     # generate an array of backexchange with same backexchange value to an array of length of timepoints
-    back_exchange.backexchange_array = np.array([back_exchange.backexchange_value for x in time_points])
+        back_exchange.backexchange_array = np.array([back_exchange.backexchange_value for x in time_points])
+    else:
+        back_exchange.backexchange_array = gen_corr_backexchange(mass_rate_array=backexchange_correction_array,
+                                                                 fix_backexchange_value=back_exchange.backexchange_value)
 
     # store backexchange object in hxrate object
     hxrate.back_exchange = back_exchange
