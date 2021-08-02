@@ -1,5 +1,5 @@
 from hxdata import load_data_from_hdx_ms_dist_, write_pickle_object
-from methods import gauss_fit_to_isotope_dist_array, normalize_mass_distribution_array
+from methods import gauss_fit_to_isotope_dist_array, normalize_mass_distribution_array, gen_corr_backexchange
 import pandas as pd
 import numpy as np
 from dataclasses import dataclass
@@ -63,22 +63,6 @@ class BackExchangeCorrection(object):
 
         else:
             self.average_mass_rate_arr = np.average(self.mass_rate_arr, axis=0)
-
-
-def gen_corr_backexchange(mass_rate_array, fix_backexchange_value):
-    """
-
-    :param mass_rate_array:
-    :param fix_backexchange_value:
-    :return:
-    """
-    backexchange_array = np.zeros(len(mass_rate_array))
-
-    for ind, mass_rate in enumerate(mass_rate_array):
-        corr_bkexch = (((1 - fix_backexchange_value)/(-1 - 0)) * mass_rate) + fix_backexchange_value
-        backexchange_array[ind] = corr_bkexch
-
-    return backexchange_array
 
 
 def calc_mass_diff_rate(ref_mass, mass_array):
