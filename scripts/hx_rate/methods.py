@@ -64,6 +64,22 @@ def PoiBin(success_probabilities):
     return xi.real
 
 
+def gen_corr_backexchange(mass_rate_array, fix_backexchange_value):
+    """
+
+    :param mass_rate_array:
+    :param fix_backexchange_value:
+    :return:
+    """
+    backexchange_array = np.zeros(len(mass_rate_array))
+
+    for ind, mass_rate in enumerate(mass_rate_array):
+        corr_bkexch = (((1 - fix_backexchange_value)/(-1 - 0)) * mass_rate) + fix_backexchange_value
+        backexchange_array[ind] = corr_bkexch
+
+    return backexchange_array
+
+
 def estimate_gauss_param(ydata: np.ndarray,
                          xdata: np.ndarray,
                          baseline: float = 0.0,
