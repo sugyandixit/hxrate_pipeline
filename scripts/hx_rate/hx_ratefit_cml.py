@@ -62,10 +62,12 @@ def hx_rate_fitting_from_parser(parser):
 
     prot_output_dirpath = make_new_dir(os.path.join(output_dirpath, prot_name))
 
-    hx_rate_output_path_ = os.path.join(prot_output_dirpath, prot_name + '_hx_rate_.pickle')
-    hx_rate_csv_output_path_ = os.path.join(prot_output_dirpath, prot_name + '_hx_rate_csv.csv')
-    hx_isotope_dist_output_path_ = os.path.join(prot_output_dirpath, prot_name + '_hx_rate_isotope_dist.csv')
-    hx_rate_plot_path_ = os.path.join(prot_output_dirpath, prot_name + '_hx_rates_plot.pdf')
+    end_file_string = '_hx_rate_'
+
+    hx_rate_output_path_ = os.path.join(prot_output_dirpath, prot_name + end_file_string + '.pickle')
+    hx_rate_csv_output_path_ = os.path.join(prot_output_dirpath, prot_name + end_file_string + '.csv')
+    hx_isotope_dist_output_path_ = os.path.join(prot_output_dirpath, prot_name + end_file_string + '_isotope_dist.csv')
+    hx_rate_plot_path_ = os.path.join(prot_output_dirpath, prot_name + end_file_string + '.pdf')
 
     print(gen_parser_args_string(parser_options=options))
 
@@ -87,6 +89,45 @@ def hx_rate_fitting_from_parser(parser):
                           hx_rate_csv_output_path=hx_rate_csv_output_path_,
                           hx_isotope_dist_output_path=hx_isotope_dist_output_path_,
                           hx_rate_plot_path=hx_rate_plot_path_)
+
+    # do another rate fitting if backexchange correction fpath is given
+
+    if params_dict['backexchange_correction_fpath'] is not None:
+
+        bkcorr_df = pd.read_csv(params_dict['backexchange_correction_fpath'])
+        col_names = list(bkcorr_df.columns)
+
+        if prot_name in col_names:
+
+            end_file_string += 'bkcorr_orig_'
+
+            hx_rate_output_path_ = os.path.join(prot_output_dirpath, prot_name + end_file_string + '.pickle')
+            hx_rate_csv_output_path_ = os.path.join(prot_output_dirpath, prot_name + end_file_string + '.csv')
+            hx_isotope_dist_output_path_ = os.path.join(prot_output_dirpath, prot_name + end_file_string + 'isotope_dist.csv')
+            hx_rate_plot_path_ = os.path.join(prot_output_dirpath, prot_name + end_file_string + '.pdf')
+
+            print('\n###### HX RATE FITTING BACKEXCHANGE ORIGINAL CORRECTION ##########\n')
+            print(gen_parser_args_string(parser_options=options))
+
+            fit_rate_from_to_file(prot_name=prot_name,
+                                  sequence=prot_sequence,
+                                  hx_ms_dist_fpath=hx_mass_dist_fpath,
+                                  d2o_fraction=params_dict['d2o_fraction'],
+                                  d2o_purity=params_dict['d2o_purity'],
+                                  opt_temp=params_dict['opt_temp'],
+                                  opt_iter=params_dict['opt_iter'],
+                                  opt_step_size=params_dict['opt_step_size'],
+                                  usr_backexchange=params_dict['usr_backexchange'],
+                                  backexchange_corr_fpath=params_dict['backexchange_correction_fpath'],
+                                  backexchange_corr_prot_name=prot_name,
+                                  multi_proc=params_dict['multi_proc'],
+                                  number_of_cores=params_dict['number_of_cores'],
+                                  free_energy_values=None,
+                                  temperature=None,
+                                  hx_rate_output_path=hx_rate_output_path_,
+                                  hx_rate_csv_output_path=hx_rate_csv_output_path_,
+                                  hx_isotope_dist_output_path=hx_isotope_dist_output_path_,
+                                  hx_rate_plot_path=hx_rate_plot_path_)
 
 
 if __name__ == '__main__':
