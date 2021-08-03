@@ -47,24 +47,6 @@ class MassRate(object):
                     self.accept = True
 
 
-@dataclass
-class BackExchangeCorrection(object):
-    """
-    class container to store data for correcting timepoint specific backexchange
-    """
-    protein_names: list = None
-    mass_rate_arr: np.ndarray = None
-    average_mass_rate_arr: np.ndarray = None
-
-    def get_average_rate(self):
-
-        if len(self.protein_names) == 1:
-            self.average_mass_rate_arr = self.mass_rate_arr[0]
-
-        else:
-            self.average_mass_rate_arr = np.average(self.mass_rate_arr, axis=0)
-
-
 def calc_mass_diff_rate(ref_mass, mass_array):
 
     # todo: add param description
@@ -171,13 +153,14 @@ def gen_list_of_mass_rate_obj(sample_csv_fpath: str,
     return list_of_mass_rate_obj
 
 
-def filter_mass_rate_object(list_of_mass_rate_obj, min_number_accept=1, ch_frac_threshold=0.02):
+def filter_mass_rate_object(list_of_mass_rate_obj, min_number_accept=1, ch_frac_threshold=0.02, max_iter_number=50):
 
     # todo: add param description
 
     accept_list = [x for x in list_of_mass_rate_obj if x.accept is True]
     reject_list = [x for x in list_of_mass_rate_obj if x.accept is False]
 
+    iter_num = 1
     while len(accept_list) < min_number_accept:
         for ind, tp_bkexc_obj in enumerate(reject_list):
             tp_bkexc_obj.frac_threshold -= ch_frac_threshold
@@ -185,29 +168,16 @@ def filter_mass_rate_object(list_of_mass_rate_obj, min_number_accept=1, ch_frac_
             if tp_bkexc_obj.accept:
                 accept_list.append(tp_bkexc_obj)
                 del reject_list[ind]
+        iter_num += 1
+        if iter_num > max_iter_number:
+            min_number_accept -= 1
 
     new_list = accept_list + reject_list
 
     return new_list
 
 
-def generate_backexchange_correction_object(list_of_mass_rate_object):
-
-    # todo: add param description
-
-    accept_list = [x for x in list_of_mass_rate_object if x.accept is True]
-
-    backexchange_corr_obj = BackExchangeCorrection()
-    backexchange_corr_obj.protein_names = [x.protein_name for x in accept_list]
-
-    backexchange_corr_obj.mass_rate_arr = np.array([x.mass_rate_arr for x in accept_list])
-
-    backexchange_corr_obj.get_average_rate()
-
-    return backexchange_corr_obj
-
-
-def write_backexchange_corr_to_file(mass_rate_array, csv_out_path):
+def write_backexchange_corr_to_file(protein_list, mass_rate_list, csv_out_path):
     """
     write the backexchange correction to a csv file with the correction rate
     :param bakexchange_corr_obj: backexchange correction object
@@ -215,13 +185,26 @@ def write_backexchange_corr_to_file(mass_rate_array, csv_out_path):
     :return: None
     """
 
-    # write the correction rate to csv file
-
-    header = 'idx,dM_rate\n'
+    protein_list_string = ''
+    header = ''
     data_string = ''
 
-    for ind, dm_rate in enumerate(mass_rate_array):
-        data_string += '{},{}\n'.format(ind, dm_rate)
+    if len(mass_rate_list) == 1:
+        protein_list_string += protein_list[0]
+        header += 'idx,avg_dm_rate,'+protein_list_string+'\n'
+        mass_rate_arr = mass_rate_list[0]
+        for num in range(len(mass_rate_arr)):
+            data_string += '{},{},{}\n'.format(num, mass_rate_arr[num], mass_rate_arr[num])
+
+    else:
+        protein_list_string += ','.join([x for x in protein_list])
+        header += 'idx,avg_dm_rate,'+protein_list_string+'\n'
+        mass_rate_arr = np.array(mass_rate_list)
+        average_mass_rate = np.average(mass_rate_arr, axis=0)
+        mass_rate_arr_t = mass_rate_arr.T
+        for num in range(len(average_mass_rate)):
+            mass_rate_arr_string = ','.join([str(x) for x in mass_rate_arr_t[num]])
+            data_string += '{},{},{}\n'.format(num, average_mass_rate[num], mass_rate_arr_string)
 
     with open(csv_out_path, 'w') as outfile:
         outfile.write(header + data_string)
@@ -290,9 +273,8 @@ def gen_backexchange_corr_obj_from_sample_list(sample_list_fpath: str,
                                                min_number_paths: int,
                                                change_frac_threshold: float,
                                                plot_rate_path: str,
-                                               pickle_out_path: str,
                                                csv_out_path: str,
-                                               return_flag: bool) -> object:
+                                               return_flag: bool) -> list:
     """
 
     :param sample_list_fpath:
@@ -326,21 +308,19 @@ def gen_backexchange_corr_obj_from_sample_list(sample_list_fpath: str,
                                                         min_number_accept=min_number_paths,
                                                         ch_frac_threshold=change_frac_threshold)
 
-    # generate backexchange correction object from the new list
-    backexchange_corr_obj = generate_backexchange_correction_object(list_of_mass_rate_object=new_mass_rate_object_list)
-
     if plot_rate_path is not None:
         plot_mass_rate_all(list_of_tp_bkexchange_obj=new_mass_rate_object_list,
                            output_path=plot_rate_path)
 
-    if pickle_out_path is not None:
-        write_pickle_object(obj=backexchange_corr_obj, filepath=pickle_out_path)
-
     if csv_out_path is not None:
-        write_backexchange_corr_to_file(mass_rate_array=backexchange_corr_obj.average_mass_rate_arr, csv_out_path=csv_out_path)
+        mass_rate_array_list = [x.mass_rate_arr for x in new_mass_rate_object_list if x.accept is True]
+        protein_list = [x.protein_name for x in new_mass_rate_object_list if x.accept is True]
+        write_backexchange_corr_to_file(protein_list=protein_list,
+                                        mass_rate_list=mass_rate_array_list,
+                                        csv_out_path=csv_out_path)
 
     if return_flag:
-        return backexchange_corr_obj
+        return new_mass_rate_object_list
 
 
 if __name__ == '__main__':
@@ -376,11 +356,10 @@ if __name__ == '__main__':
                                                           start_bound=1,
                                                           end_bound=4,
                                                           max_rate=0.5,
-                                                          min_number_paths=2,
+                                                          min_number_paths=3,
                                                           change_frac_threshold=0.01,
-                                                          plot_rate_path='../../workfolder/output_hxrate/dm_rate.pdf',
-                                                          pickle_out_path='../../workfolder/output_hxrate/dm_rate.pickle',
-                                                          csv_out_path='../../workfolder/output_hxrate/backexchange_correction.csv',
+                                                          plot_rate_path=sample_fpath + '_dm_rate.pdf',
+                                                          csv_out_path=sample_fpath + '_backexchange_correction.csv',
                                                           return_flag=True)
 
     # bkexch_value = 0.18
