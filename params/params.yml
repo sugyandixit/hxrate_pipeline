@@ -1,10 +1,11 @@
 d2o_fraction: 0.95
 d2o_purity: 0.95
 # if usr_backexchange is 0, the code wil calculate the backexchange. But you can use a manual backexchange value (0.18)
-usr_backexchange: 0
-opt_iter: 30
+usr_backexchange:
+opt_iter: 50
 opt_temp: 0.0003
 opt_step_size: 0.02
 multi_proc: True
 number_of_cores: 6
-backexchange_correction_fpath: '../../workfolder/backexchange_mass_rate.csv'
+# absolute or relative path (relative in terms of the actual script)
+backexchange_correction_fpath: '../../workfolder/output_hxrate/backexchange_correction.csv'
