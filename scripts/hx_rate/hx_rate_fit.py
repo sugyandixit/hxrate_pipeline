@@ -4,6 +4,8 @@
 import multiprocessing as mp
 import numpy as np
 from dataclasses import dataclass
+
+import pandas as pd
 from scipy.special import expit
 from scipy.optimize import fmin_powell
 from methods import isotope_dist_from_PoiBin, gen_temp_rates, gen_theoretical_isotope_dist_for_all_timepoints, \
@@ -322,6 +324,7 @@ def fit_rate_from_to_file(prot_name: str,
                           free_energy_values: np.ndarray = None,
                           temperature: float = None,
                           usr_backexchange: float = None,
+                          backexchange_corr_fpath: str = None,
                           hx_rate_output_path: str = None,
                           hx_rate_csv_output_path: str = None,
                           hx_isotope_dist_output_path: str = None,
@@ -334,6 +337,11 @@ def fit_rate_from_to_file(prot_name: str,
 
     # normalize the mass distribution
     norm_dist = normalize_mass_distribution_array(mass_dist_array=mass_dist)
+
+    bkexch_corr_arr = None
+    if backexchange_corr_fpath is not None:
+        bkcorr_df = pd.read_csv(backexchange_corr_fpath)
+        bkexch_corr_arr = bkcorr_df.iloc[:, 1].values
 
     # fit rate
     hxrate_object = fit_rate(prot_name=prot_name,
@@ -349,7 +357,8 @@ def fit_rate_from_to_file(prot_name: str,
                              number_of_cores=number_of_cores,
                              free_energy_values=free_energy_values,
                              temperature=temperature,
-                             backexchange_value=usr_backexchange)
+                             backexchange_value=usr_backexchange,
+                             backexchange_correction_array=bkexch_corr_arr)
 
     # convert hxrate object to dict and save as a pickle file
 
