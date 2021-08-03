@@ -1,6 +1,9 @@
 # command line operation of hx rate fitting
 
 import os
+
+import pandas as pd
+
 from methods import make_new_dir
 import argparse
 from hx_rate_fit import fit_rate_from_to_file
@@ -17,7 +20,7 @@ def gen_parser_arguments():
     parser.add_argument('-i', '--i_hxdist', help='hx mass distribution input file .csv',
                         default='../../workfolder/input_hx_dist/HEEH_rd4_0097_hx_mass_dist.csv')
     parser.add_argument('-s', '--sequence', help='protein sequence one letter amino acid',
-                        default='HMTQVHVDGVTYTFSNPEEAKKFADEMAKRKGGTWEIKDGHIHVE')
+                        default='HMDVEEQIRRLEEVLKKNQPVTWNGTTYTDPNEIKKVIEELRKSM')
     parser.add_argument('-n', '--prot_name', help='protein name', default='HEEH_rd4_0097')
     parser.add_argument('-p', '--i_params', help='params YAML file .yml file',
                         default='../../params/params.yml')
@@ -64,13 +67,6 @@ def hx_rate_fitting_from_parser(parser):
     hx_isotope_dist_output_path_ = os.path.join(prot_output_dirpath, prot_name + '_hx_rate_isotope_dist.csv')
     hx_rate_plot_path_ = os.path.join(prot_output_dirpath, prot_name + '_hx_rates_plot.pdf')
 
-    # set user backexchange
-    usr_backexchange = params_dict['usr_backexchange']
-    if usr_backexchange == 0:
-        usr_backexch = None
-    else:
-        usr_backexch = usr_backexchange
-
     print(gen_parser_args_string(parser_options=options))
 
     fit_rate_from_to_file(prot_name=prot_name,
@@ -81,7 +77,8 @@ def hx_rate_fitting_from_parser(parser):
                           opt_temp=params_dict['opt_temp'],
                           opt_iter=params_dict['opt_iter'],
                           opt_step_size=params_dict['opt_step_size'],
-                          usr_backexchange=usr_backexch,
+                          usr_backexchange=params_dict['usr_backexchange'],
+                          backexchange_corr_fpath=params_dict['backexchange_correction_fpath'],
                           multi_proc=params_dict['multi_proc'],
                           number_of_cores=params_dict['number_of_cores'],
                           free_energy_values=None,
