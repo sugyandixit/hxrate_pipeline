@@ -325,6 +325,7 @@ def fit_rate_from_to_file(prot_name: str,
                           temperature: float = None,
                           usr_backexchange: float = None,
                           backexchange_corr_fpath: str = None,
+                          backexchange_corr_prot_name: str = None,
                           hx_rate_output_path: str = None,
                           hx_rate_csv_output_path: str = None,
                           hx_isotope_dist_output_path: str = None,
@@ -341,7 +342,10 @@ def fit_rate_from_to_file(prot_name: str,
     bkexch_corr_arr = None
     if backexchange_corr_fpath is not None:
         bkcorr_df = pd.read_csv(backexchange_corr_fpath)
-        bkexch_corr_arr = bkcorr_df.iloc[:, 1].values
+        if backexchange_corr_prot_name is None:
+            bkexch_corr_arr = bkcorr_df.iloc[:, 1].values
+        else:
+            bkexch_corr_arr = bkcorr_df[backexchange_corr_prot_name].values
 
     # fit rate
     hxrate_object = fit_rate(prot_name=prot_name,
