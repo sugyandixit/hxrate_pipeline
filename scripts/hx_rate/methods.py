@@ -789,8 +789,8 @@ def plot_hx_rate_fitting_(prot_name: str,
 
     plt.suptitle(plot_title)
 
-    plt.figtext(0.498, 0.968, "EXP DATA", color='blue', ha='right', fontsize=8)
-    plt.figtext(0.502, 0.968, "FIT DATA", color='red', ha='left', fontsize=8)
+    plt.figtext(0.498, 0.968, "EXP", color='blue', ha='right', fontsize=8)
+    plt.figtext(0.502, 0.968, "FIT", color='red', ha='left', fontsize=8)
 
     plt.savefig(output_path, bbox_inches="tight")
     plt.close()
