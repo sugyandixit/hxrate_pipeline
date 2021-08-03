@@ -327,28 +327,6 @@ if __name__ == '__main__':
 
     sample_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/lib15_ph6_sample.csv'
 
-    # list_of_tp_bkexch = gen_list_of_mass_rate_obj(sample_csv_fpath=sample_fpath,
-    #                                               rate_tol=0.06,
-    #                                               frac_threshold=0.5,
-    #                                               frac_thres_ind=0.8,
-    #                                               start_ind=1,
-    #                                               end_ind=4,
-    #                                               max_mass_rate=0.5)
-    #
-    # new_list_ = filter_mass_rate_object(list_of_mass_rate_obj=list_of_tp_bkexch,
-    #                                  min_number_accept=2,
-    #                                  ch_frac_threshold=0.01)
-    #
-    # # plot_mass_rate_all(list_of_tp_bkexchange_obj=new_list_,
-    # #                    output_path=sample_fpath+'_massrate.pdf')
-    #
-    # bkexch_corr_obj = generate_backexchange_correction_object(list_of_mass_rate_object=new_list_)
-    #
-    # bkexch_value = .18
-    #
-    # bkexch_tp_1 = gen_corr_backexchange(mass_rate_array=bkexch_corr_obj.average_mass_rate_arr,
-    #                                     fix_backexchange_value=bkexch_value)
-
     corr_obj = gen_backexchange_corr_obj_from_sample_list(sample_list_fpath=sample_fpath,
                                                           rate_tol=0.06,
                                                           frac_threshold=0.5,
@@ -361,31 +339,3 @@ if __name__ == '__main__':
                                                           plot_rate_path=sample_fpath + '_dm_rate.pdf',
                                                           csv_out_path=sample_fpath + '_backexchange_correction.csv',
                                                           return_flag=True)
-
-    # bkexch_value = 0.18
-    #
-    # bkexch_corr = gen_corr_backexchange(mass_rate_array=corr_obj.average_mass_rate_arr,
-    #                                     fix_backexchange_value=bkexch_value)
-    #
-    # bkexch_corr_diff_rate = calc_mass_diff_rate(ref_mass=bkexch_corr[-1], mass_array=bkexch_corr)
-
-    # from mpl_axes_aligner import align
-    #
-    # fig, ax = plt.subplots()
-    # ax.plot(np.arange(len(corr_obj.average_mass_rate_arr)), corr_obj.average_mass_rate_arr, color='red')
-    # ax.set_ylabel('dM_rate', color='red')
-    #
-    # ax.set_xlabel('Timepoint index')
-    #
-    # ax2 = ax.twinx()
-    # ax2.plot(np.arange(len(bkexch_corr)), bkexch_corr, color='black')
-    # ax2.set_ylabel('bkexchange', color='black')
-    #
-    # align.yaxes(ax, 0, ax2, bkexch_value, 0.5)
-    #
-    # plt.grid(axis='x')
-    #
-    # plt.savefig(sample_fpath+'bkexch_corr.pdf')
-    # plt.close()
-    #
-    # print('heho')
