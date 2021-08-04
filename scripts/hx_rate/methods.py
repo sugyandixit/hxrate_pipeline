@@ -551,6 +551,7 @@ def plot_hx_rate_fitting_(prot_name: str,
                           fit_rmse_timepoints: np.ndarray,
                           fit_rmse_total: float,
                           backexchange: float,
+                          backexchange_array: float,
                           d2o_fraction: float,
                           d2o_purity: float,
                           output_path: str):
@@ -568,6 +569,7 @@ def plot_hx_rate_fitting_(prot_name: str,
     :param fit_rmse_timepoints: fit rmse for each timepoint
     :param fit_rmse_total: total fit rmse
     :param backexchange: backexchange value
+    :param backexchange_array: backexchange array
     :param d2o_fraction: d2o fraction
     :param d2o_purity: d2o purity
     :param output_path: plot saveing output path
@@ -594,7 +596,7 @@ def plot_hx_rate_fitting_(prot_name: str,
     #######################################################
     #######################################################
     # start plotting the exp and thr isotope dist
-    for num, (timepoint, exp_dist, thr_dist, exp_centroid) in enumerate(zip(timepoints, exp_isotope_dist, thr_isotope_dist, exp_isotope_centroid_array)):
+    for num, (timepoint, exp_dist, thr_dist, exp_centroid, bkexch) in enumerate(zip(timepoints, exp_isotope_dist, thr_isotope_dist, exp_isotope_centroid_array, backexchange_array)):
 
         if fit_rmse_timepoints is None:
             rmse_tp = compute_rmse_exp_thr_iso_dist(exp_isotope_dist=exp_dist,
@@ -626,7 +628,7 @@ def plot_hx_rate_fitting_(prot_name: str,
 
         # delta_centroid_text = 'dmz=%.2f' % delta_centroid
 
-        plt.text(1.0, 1.0, "fit rmse = %.4f\nd_mz = %.2f" % (rmse_tp, delta_centroid),
+        plt.text(1.0, 1.2, "fit rmse = %.4f\nd_mz = %.2f\nbkexch = %.2f" % (rmse_tp, delta_centroid, bkexch*100),
                  horizontalalignment="right",
                  verticalalignment="top",
                  transform=ax.transAxes)
@@ -649,15 +651,31 @@ def plot_hx_rate_fitting_(prot_name: str,
     #######################################################
 
     # 4 plots on the second row
-    num_plots_second_row = 6
+    num_plots_second_row = 7
     second_plot_row_thickness = int(len(timepoints)/num_plots_second_row)
     second_plot_indices = [(num*second_plot_row_thickness) for num in range(num_plots_second_row)]
 
     #######################################################
     #######################################################
+    # plot timepoint specific backexchange
+    ax0 = fig.add_subplot(gs[second_plot_indices[0]: second_plot_indices[1], 1])
+
+    plt.scatter(x=np.arange(len(timepoints))[1:], y=backexchange_array[1:]*100, color='black')
+    ax0.spines['right'].set_visible(False)
+    ax0.spines['top'].set_visible(False)
+    plt.xticks(range(-1, len(timepoints) + 1, 1))
+    ax0.set_xticklabels(range(-1, len(timepoints) + 1, 1))
+    plt.grid(axis='x', alpha=0.25)
+    plt.grid(axis='y', alpha=0.25)
+    plt.xlabel('Timepoint index')
+    plt.ylabel('Back Exchange (%)')
+    ax0.tick_params(length=3, pad=3)
+
+    #######################################################
+    #######################################################
     # plot fit rmse
 
-    ax1 = fig.add_subplot(gs[second_plot_indices[0]: second_plot_indices[1], 1])
+    ax1 = fig.add_subplot(gs[second_plot_indices[1]: second_plot_indices[2], 1])
     plt.scatter(np.arange(len(timepoints)), fit_rmse_tp, color='black')
     ax1.spines['right'].set_visible(False)
     ax1.spines['top'].set_visible(False)
@@ -685,7 +703,7 @@ def plot_hx_rate_fitting_(prot_name: str,
     timepoints_v2 = np.array([x for x in timepoints])
     timepoints_v2[0] = timepoints_v2[2] - timepoints_v2[1]
 
-    ax2 = fig.add_subplot(gs[second_plot_indices[1]: second_plot_indices[2], 1])
+    ax2 = fig.add_subplot(gs[second_plot_indices[2]: second_plot_indices[3], 1])
     ax2.plot(timepoints_v2, exp_isotope_centroid_array, marker='o', ls='-', color='blue')
     ax2.plot(timepoints_v2, thr_isotope_centroid_array, marker='o', ls='-', color='red')
     ax2.set_xscale('log')
@@ -706,7 +724,7 @@ def plot_hx_rate_fitting_(prot_name: str,
 
     com_difference = np.subtract(thr_isotope_centroid_array, exp_isotope_centroid_array)
 
-    ax3 = fig.add_subplot(gs[second_plot_indices[2]: second_plot_indices[3], 1])
+    ax3 = fig.add_subplot(gs[second_plot_indices[3]: second_plot_indices[4], 1])
     ax3.scatter(np.arange(len(timepoints)), com_difference, color='black')
     plt.axhline(y=0, ls='--', color='black', alpha=0.50)
     ax3.spines['right'].set_visible(False)
@@ -724,7 +742,7 @@ def plot_hx_rate_fitting_(prot_name: str,
     #######################################################
     # plot the width of exp and thr distributions
 
-    ax4 = fig.add_subplot(gs[second_plot_indices[3]: second_plot_indices[4], 1])
+    ax4 = fig.add_subplot(gs[second_plot_indices[4]: second_plot_indices[5], 1])
     ax4.scatter(np.arange(len(timepoints)), exp_isotope_width_array, color='blue')
     ax4.scatter(np.arange(len(timepoints)), thr_isotope_width_array, color='red')
     ax4.spines['right'].set_visible(False)
@@ -744,7 +762,7 @@ def plot_hx_rate_fitting_(prot_name: str,
 
     width_difference = np.subtract(thr_isotope_width_array, exp_isotope_width_array)
 
-    ax5 = fig.add_subplot(gs[second_plot_indices[4]: second_plot_indices[5], 1])
+    ax5 = fig.add_subplot(gs[second_plot_indices[5]: second_plot_indices[6], 1])
     ax5.scatter(np.arange(len(timepoints)), width_difference, color='black')
     plt.axhline(y=0, ls='--', color='black', alpha=0.50)
     ax5.spines['right'].set_visible(False)
@@ -763,7 +781,7 @@ def plot_hx_rate_fitting_(prot_name: str,
     # plot the rates in log10 scale
     hx_rates_log10 = np.log10(np.exp(hx_rates))
 
-    ax6 = fig.add_subplot(gs[second_plot_indices[5]:, 1])
+    ax6 = fig.add_subplot(gs[second_plot_indices[6]:, 1])
     plt.plot(np.arange(len(hx_rates_log10)), np.sort(hx_rates_log10), marker='o', ls='-', color='red',
              markerfacecolor='red', markeredgecolor='black')
     plt.xticks(range(0, len(hx_rates_log10) + 2, 2))
