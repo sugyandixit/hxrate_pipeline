@@ -74,7 +74,7 @@ def calc_back_exchange(sequence: str,
     """
     # set high rates for calculating back exchange
     rates = gen_temp_rates(sequence=sequence,
-                           rate_value=1e2)
+                           rate_value=1e4)
 
     # set the number of bins for isotope distribtuion
     num_bins = len(experimental_isotope_dist)
@@ -91,7 +91,7 @@ def calc_back_exchange(sequence: str,
                                                                                 d2o_purity=d2o_purity,
                                                                                 num_bins=num_bins),
                                                                   squared=False),
-                          x0=2,
+                          x0=0.05,
                           disp=True)
 
         back_exchange = 1 - expit(opt)[0]
