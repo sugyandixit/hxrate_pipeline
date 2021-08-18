@@ -139,6 +139,8 @@ def gen_list_of_mass_rate_obj(sample_csv_fpath: str,
 
     for ind, (prot_name, hx_ms_dist_fpath) in enumerate(zip(prot_names, hx_ms_dist_fpaths)):
 
+        #todo: investigate the source of error and create better solution than a general try and except
+
         try:
             mass_rate_obj = gen_mass_rate_obj_from_file(protein_name=prot_name,
                                                         hx_ms_dist_fpath=hx_ms_dist_fpath,
