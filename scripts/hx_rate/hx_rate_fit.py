@@ -34,6 +34,7 @@ class HXRate(object):
     """
     exp_data: object = None
     back_exchange: object = None
+    back_exchange_res_subtract: int = None
     optimization_cost: float = None
     optimization_func_evals: int = None
     optimization_init_rate_guess: np.ndarray = None
@@ -119,22 +120,22 @@ def calc_back_exchange(sequence: str,
     return backexchange_obj
 
 
-def fit_rate(prot_name: str,
-             sequence: str,
-             time_points: np.ndarray,
-             norm_mass_distribution_array: np.ndarray,
-             d2o_fraction: float,
-             d2o_purity: float,
-             opt_iter: int = 500,
-             opt_temp: float = 0.00003,
-             opt_step_size: float = 0.02,
-             multi_proc: bool = True,
-             number_of_cores: int = 6,
-             rate_init_list: list = None,
-             free_energy_values: np.ndarray = None,
-             temperature: float = None,
-             backexchange_value: float = None,
-             backexchange_correction_array: np.ndarray = None) -> object:
+def fit_rate_without_backexchange_adjust(prot_name: str,
+                                         sequence: str,
+                                         time_points: np.ndarray,
+                                         norm_mass_distribution_array: np.ndarray,
+                                         d2o_fraction: float,
+                                         d2o_purity: float,
+                                         opt_iter: int = 500,
+                                         opt_temp: float = 0.00003,
+                                         opt_step_size: float = 0.02,
+                                         multi_proc: bool = True,
+                                         number_of_cores: int = 6,
+                                         rate_init_list: list = None,
+                                         free_energy_values: np.ndarray = None,
+                                         temperature: float = None,
+                                         backexchange_value: float = None,
+                                         backexchange_correction_array: np.ndarray = None) -> object:
 
     # todo: add param descritpions
 
@@ -311,6 +312,234 @@ def fit_rate(prot_name: str,
     return hxrate
 
 
+def fit_rate_with_backexchange_adjust(prot_name: str,
+                                      sequence: str,
+                                      time_points: np.ndarray,
+                                      norm_mass_distribution_array: np.ndarray,
+                                      d2o_fraction: float,
+                                      d2o_purity: float,
+                                      opt_iter: int = 500,
+                                      opt_temp: float = 0.00003,
+                                      opt_step_size: float = 0.02,
+                                      multi_proc: bool = True,
+                                      number_of_cores: int = 6,
+                                      rate_init_list: list = None,
+                                      free_energy_values: np.ndarray = None,
+                                      temperature: float = None,
+                                      backexchange_value: float = None,
+                                      backexchange_correction_array: np.ndarray = None,
+                                      max_res_subtract_for_backexchange: int = 3,
+                                      slow_rates_max_diff: float = 1.6) -> object:
+
+    # todo: add param descritpions
+
+    # initialize hxrate data object
+    hxrate = HXRate()
+
+    # store exp data in the object
+    expdata = ExpData(protein_name=prot_name,
+                      protein_sequence=sequence,
+                      timepoints=time_points,
+                      exp_isotope_dist_array=norm_mass_distribution_array)
+
+    # fit gaussian to exp data
+    expdata.gauss_fit = gauss_fit_to_isotope_dist_array(norm_mass_distribution_array)
+
+    # store expdata object in hxrate data object
+    hxrate.exp_data = expdata
+
+    # set a flag for backexchange adjusting
+    backexchange_adjust = False
+    hxrate.back_exchange_res_subtract = 0
+
+    # calculate backexchange first
+    if backexchange_value is None:
+        back_exchange = calc_back_exchange(sequence=sequence,
+                                           experimental_isotope_dist=norm_mass_distribution_array[-1],
+                                           d2o_fraction=d2o_fraction,
+                                           d2o_purity=d2o_purity)
+    else:
+        back_exchange = calc_back_exchange(sequence=sequence,
+                                           experimental_isotope_dist=norm_mass_distribution_array[-1],
+                                           d2o_fraction=d2o_fraction,
+                                           d2o_purity=d2o_purity,
+                                           usr_backexchange=backexchange_value)
+
+    original_backexchange = back_exchange.backexchange_value
+
+    while backexchange_adjust is False:
+
+        if backexchange_correction_array is None:
+            # generate an array of backexchange with same backexchange value to an array of length of timepoints
+            back_exchange.backexchange_array = np.array([back_exchange.backexchange_value for x in time_points])
+        else:
+            back_exchange.backexchange_array = gen_corr_backexchange(mass_rate_array=backexchange_correction_array,
+                                                                     fix_backexchange_value=back_exchange.backexchange_value)
+
+        # store backexchange object in hxrate object
+        hxrate.back_exchange = back_exchange
+
+        inv_back_exchange_array = np.subtract(1, back_exchange.backexchange_array)
+
+        # generate a temporary rates to determine what residues can't exchange
+        temp_rates = gen_temp_rates(sequence=sequence, rate_value=1)
+
+        # get the indices of residues that don't exchange
+        zero_indices = np.where(temp_rates == 0)[0]
+
+        # calculate the number of residues that can exchange
+        num_rates = len(temp_rates) - len(zero_indices)
+
+        num_bins_ = len(norm_mass_distribution_array[0])
+
+        print('\nHX RATE FITTING ... ')
+
+        # get init rate list as initial guesses for rate fit optimization
+        if rate_init_list is not None:
+            init_rates_list = rate_init_list
+        else:
+            init_rates_list = [np.array([-2 for x in range(num_rates)]),
+                               np.array([-5 for x in range(num_rates)]),
+                               np.linspace(-7, 0, num_rates),
+                               np.linspace(-7, -2, num_rates),
+                               np.linspace(-8, -4, num_rates),
+                               np.linspace(1, -12, num_rates)]
+
+        # create a list to store the opt object
+        store_opt_object = [0]
+
+        if multi_proc:
+
+            # set the max number of cores to be equal to the number of initial rate guesses
+            if number_of_cores > len(init_rates_list):
+                number_of_cores = len(init_rates_list)
+
+            pool = mp.Pool(processes=number_of_cores)
+
+            results = []
+
+            for init_rate in init_rates_list:
+
+                kwds_pool = {'init_rate_guess': init_rate,
+                             'exp_isotope_dist_array': norm_mass_distribution_array,
+                             'sequence': sequence,
+                             'timepoints': time_points,
+                             'inv_backexchange_array': inv_back_exchange_array,
+                             'd2o_fraction': d2o_fraction,
+                             'd2o_purity': d2o_purity,
+                             'num_bins': num_bins_,
+                             'free_energy_values': free_energy_values,
+                             'temperature': temperature,
+                             'opt_iter': opt_iter,
+                             'opt_temp': opt_temp,
+                             'opt_step_size': opt_step_size,
+                             'return_tuple': True}
+
+                pool_result = pool.apply_async(hx_rate_fitting_optimization, kwds=kwds_pool)
+                results.append(pool_result)
+
+            pool.close()
+
+            tuple_results_list = [p.get() for p in results]
+            opt_object_list = [tup[0] for tup in tuple_results_list]
+            opt_obj_fun_list = np.array([x.fun for x in opt_object_list])
+            min_fun_ind = np.argmin(opt_obj_fun_list)
+            store_opt_object[0] = opt_object_list[min_fun_ind]
+            init_rate_used = tuple_results_list[min_fun_ind][1]
+
+        else:
+
+            opt_cost = 10
+            init_rate_final_ind = -1
+
+            for ind, init_rate in enumerate(init_rates_list[:1]):
+
+                opt_ = hx_rate_fitting_optimization(exp_isotope_dist_array=norm_mass_distribution_array,
+                                                    sequence=sequence,
+                                                    timepoints=time_points,
+                                                    inv_backexchange_array=inv_back_exchange_array,
+                                                    d2o_fraction=d2o_fraction,
+                                                    d2o_purity=d2o_purity,
+                                                    num_bins=num_bins_,
+                                                    free_energy_values=free_energy_values,
+                                                    temperature=temperature,
+                                                    init_rate_guess=init_rate,
+                                                    opt_iter=opt_iter,
+                                                    opt_temp=opt_temp,
+                                                    opt_step_size=opt_step_size)
+
+                new_opt_cost = opt_.fun
+                if new_opt_cost < opt_cost:
+                    init_rate_final_ind = ind
+                    store_opt_object[0] = opt_
+                opt_cost = new_opt_cost
+
+            init_rate_used = init_rates_list[init_rate_final_ind]
+
+        opt_object = store_opt_object[0]
+        hxrate.optimization_cost = opt_object.fun
+        hxrate.optimization_func_evals = opt_object.nfev
+        hxrate.optimization_init_rate_guess = init_rate_used
+        hxrate.hx_rates = opt_object.x
+
+        # sort the rates
+        sort_rates = sorted(hxrate.hx_rates)
+
+        # get the difference of the slowest rate and 3rd slowest.
+        rate_diff = sort_rates[2] - sort_rates[0]
+
+        # if the rate difference is smaller than 1.6, hxrate optimization ends
+        if rate_diff < slow_rates_max_diff:
+            backexchange_adjust = True
+
+        # else, backexchange is adjusted by reducing its value in proportion to having less residues.
+        # then redo the hx rate fitting
+        else:
+            hxrate.back_exchange_res_subtract += 1
+            # if the backexchange res subtract exceeds the max res subtract, terminate the fitting routine
+            if hxrate.back_exchange_res_subtract > max_res_subtract_for_backexchange:
+                backexchange_adjust = True
+            else:
+                print('adjusting backexchange value ... \n')
+                backexchange_value = original_backexchange * ((len(sort_rates) + hxrate.back_exchange_res_subtract)/len(sort_rates))
+                back_exchange = calc_back_exchange(sequence=sequence,
+                                                   experimental_isotope_dist=norm_mass_distribution_array[-1],
+                                                   d2o_fraction=d2o_fraction,
+                                                   d2o_purity=d2o_purity,
+                                                   usr_backexchange=backexchange_value)
+
+    # generate theoretical isotope distribution array
+    hxrate.thr_isotope_dist_array = gen_theoretical_isotope_dist_for_all_timepoints(sequence=sequence,
+                                                                                    timepoints=time_points,
+                                                                                    rates=np.exp(hxrate.hx_rates),
+                                                                                    inv_backexchange_array=inv_back_exchange_array,
+                                                                                    d2o_fraction=d2o_fraction,
+                                                                                    d2o_purity=d2o_purity,
+                                                                                    num_bins=num_bins_,
+                                                                                    free_energy_values=free_energy_values,
+                                                                                    temperature=temperature)
+
+    # compute the fit mse for each distribution
+    hxrate.fit_rmse_each_timepoint = np.zeros(len(time_points))
+    for ind, (exp_dist, thr_dist) in enumerate(zip(norm_mass_distribution_array, hxrate.thr_isotope_dist_array)):
+        hxrate.fit_rmse_each_timepoint[ind] = compute_rmse_exp_thr_iso_dist(exp_isotope_dist=exp_dist,
+                                                                            thr_isotope_dist=thr_dist,
+                                                                            squared=False)
+
+    # compute the total fit mse distribution
+    exp_isotope_dist_concat = np.concatenate(norm_mass_distribution_array)
+    thr_isotope_dist_concat = np.concatenate(hxrate.thr_isotope_dist_array)
+    thr_isotope_dist_concat[np.isnan(thr_isotope_dist_concat)] = 0
+    hxrate.total_fit_rmse = compute_rmse_exp_thr_iso_dist(exp_isotope_dist=exp_isotope_dist_concat,
+                                                          thr_isotope_dist=thr_isotope_dist_concat,
+                                                          squared=False)
+
+    # fit gaussian to the thr isotope dist
+    hxrate.thr_isotope_dist_gauss_fit = gauss_fit_to_isotope_dist_array(hxrate.thr_isotope_dist_array)
+
+    return hxrate
+
+
 def fit_rate_from_to_file(prot_name: str,
                           sequence: str,
                           hx_ms_dist_fpath: str,
@@ -326,6 +555,7 @@ def fit_rate_from_to_file(prot_name: str,
                           usr_backexchange: float = None,
                           backexchange_corr_fpath: str = None,
                           backexchange_corr_prot_name: str = None,
+                          adjust_backexchange: bool = True,
                           hx_rate_output_path: str = None,
                           hx_rate_csv_output_path: str = None,
                           hx_isotope_dist_output_path: str = None,
@@ -348,21 +578,38 @@ def fit_rate_from_to_file(prot_name: str,
             bkexch_corr_arr = bkcorr_df[backexchange_corr_prot_name].values
 
     # fit rate
-    hxrate_object = fit_rate(prot_name=prot_name,
-                             sequence=sequence,
-                             time_points=timepoints,
-                             norm_mass_distribution_array=norm_dist,
-                             d2o_fraction=d2o_fraction,
-                             d2o_purity=d2o_purity,
-                             opt_iter=opt_iter,
-                             opt_temp=opt_temp,
-                             opt_step_size=opt_step_size,
-                             multi_proc=multi_proc,
-                             number_of_cores=number_of_cores,
-                             free_energy_values=free_energy_values,
-                             temperature=temperature,
-                             backexchange_value=usr_backexchange,
-                             backexchange_correction_array=bkexch_corr_arr)
+    if adjust_backexchange:
+        hxrate_object = fit_rate_with_backexchange_adjust(prot_name=prot_name,
+                                                          sequence=sequence,
+                                                          time_points=timepoints,
+                                                          norm_mass_distribution_array=norm_dist,
+                                                          d2o_fraction=d2o_fraction,
+                                                          d2o_purity=d2o_purity,
+                                                          opt_iter=opt_iter,
+                                                          opt_temp=opt_temp,
+                                                          opt_step_size=opt_step_size,
+                                                          multi_proc=multi_proc,
+                                                          number_of_cores=number_of_cores,
+                                                          free_energy_values=free_energy_values,
+                                                          temperature=temperature,
+                                                          backexchange_value=usr_backexchange,
+                                                          backexchange_correction_array=bkexch_corr_arr)
+    else:
+        hxrate_object = fit_rate_without_backexchange_adjust(prot_name=prot_name,
+                                                             sequence=sequence,
+                                                             time_points=timepoints,
+                                                             norm_mass_distribution_array=norm_dist,
+                                                             d2o_fraction=d2o_fraction,
+                                                             d2o_purity=d2o_purity,
+                                                             opt_iter=opt_iter,
+                                                             opt_temp=opt_temp,
+                                                             opt_step_size=opt_step_size,
+                                                             multi_proc=multi_proc,
+                                                             number_of_cores=number_of_cores,
+                                                             free_energy_values=free_energy_values,
+                                                             temperature=temperature,
+                                                             backexchange_value=usr_backexchange,
+                                                             backexchange_correction_array=bkexch_corr_arr)
 
     # convert hxrate object to dict and save as a pickle file
 
@@ -397,6 +644,7 @@ def fit_rate_from_to_file(prot_name: str,
                               fit_rmse_timepoints=hxrate_object.fit_rmse_each_timepoint,
                               fit_rmse_total=hxrate_object.total_fit_rmse,
                               backexchange=hxrate_object.back_exchange.backexchange_value,
+                              backexchange_array=hxrate_object.back_exchange.backexchange_array,
                               d2o_fraction=d2o_fraction,
                               d2o_purity=d2o_purity,
                               output_path=hx_rate_plot_path)
@@ -411,4 +659,25 @@ def fit_rate_from_to_file(prot_name: str,
 
 
 if __name__ == '__main__':
-    pass
+    # pass
+
+    prot_name = 'PDB1Z96_12.30242'
+    prot_sequence = 'HMDPGLNSKIAQLVSMGFDPLEAAQALDAANGDLDVAASFLL'
+    hx_dist_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/lib15_ph6/PDB1Z96_12.30242_winner.cpickle.zlib.csv'
+    bk_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/lib15_ph6_sample.csv_backexchange_correction.csv'
+
+    fit_rate_from_to_file(prot_name=prot_name,
+                          sequence=prot_sequence,
+                          hx_ms_dist_fpath=hx_dist_fpath,
+                          d2o_fraction=0.95,
+                          d2o_purity=0.95,
+                          opt_iter=20,
+                          opt_temp=0.0003,
+                          opt_step_size=0.02,
+                          multi_proc=True,
+                          number_of_cores=6,
+                          backexchange_corr_fpath=bk_corr_fpath,
+                          hx_rate_output_path=hx_dist_fpath + '_rate.pickle',
+                          hx_rate_csv_output_path=hx_dist_fpath + '_rate.csv',
+                          hx_rate_plot_path=hx_dist_fpath + '_rate.pdf',
+                          hx_isotope_dist_output_path=hx_dist_fpath + '_rate_iso_dist.csv')
