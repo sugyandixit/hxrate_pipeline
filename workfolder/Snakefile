@@ -28,6 +28,9 @@ gen_sample_csv_python_path = scripts_dirpath + '/generate_sample_csv.py'
 #
 #     return out_list
 
+rule all:
+    input: config['output_dirpath'] + '/sample.csv'
+
 
 rule generate_sample_csv:
     input:
