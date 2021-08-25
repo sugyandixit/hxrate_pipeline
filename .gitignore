@@ -12,6 +12,7 @@ __pycache__/
 *.DS_Store
 *
 !config
+!config/config.yml
 !params
 !params/*
 !scripts
