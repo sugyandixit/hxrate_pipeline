@@ -4,7 +4,7 @@
 import pandas as pd
 
 # set the config file path
-configfile: "config/config.yml"
+configfile: config['path_to_repo'] + '/config/config.yml'
 
 # set benchmark dirpath
 benchmark_dpath = config['output_dirpath'] + '/benchmark'
