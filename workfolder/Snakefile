@@ -1,0 +1,90 @@
+# this workflow processes the hx rate fitting
+# rule 1: generates
+
+import pandas as pd
+
+# set the config file path
+configfile: "config/config.yml"
+
+# set benchmark dirpath
+benchmark_dpath = config['output_dirpath'] + '/benchmark'
+
+# set the python scripts path
+scripts_dirpath = config['path_to_repo'] + '/scripts/hx_rate'
+hx_rate_fit_python_path = scripts_dirpath + '/hx_ratefit_cml.py'
+gen_time_specific_bkexch_path = scripts_dirpath + '/gen_time_specific_bkexch.py'
+gen_sample_csv_python_path = scripts_dirpath + '/generate_sample_csv.py'
+
+
+# def get_names_seq_paths_from_sample_file(sample_fpath):
+#     df = pd.read_csv(sample_fpath)
+#     prot_name = df['protein_name'].values
+#     sequence = df['sequence'].values
+#     prot_dist_fpath = df['input_path'].values
+#
+#     out_list = []
+#     for ind, (name, seq, fpath) in enumerate(zip(prot_name, sequence, prot_dist_fpath)):
+#         out_list.append((name, seq, fpath))
+#
+#     return out_list
+
+
+rule generate_sample_csv:
+    input:
+        top_dir = config['hx_ms_dist_fpaths_top_dir'],
+        level_to_fpaths = config['level_to_fpaths'],
+        file_delim_str = config['hx_ms_fpath_delim_string'],
+        json_file = config['library_info_json_fpath']
+    output:
+        config['output_dirpath']+'/sample.csv'
+    benchmark:
+        benchmark_dpath + '/generate_sample_csv.benchmark.txt'
+    shell:
+        gen_sample_csv_python_path + ' -t {input.top_dir} -l {input.level_to_fpaths} -d {input.file_delim_str} -j {input.json_file} -o {output}'
+
+
+if config['backexchange_correction']:
+
+    if config['backexchange_correction_fpath'] is not None:
+
+        rule gen_tp_specific_bkexch:
+            input:
+                sample_csv_fpath = config['output_dirpath'] + '/sample.csv'
+            output:
+                corr_fpath = config['output_dirpath'] + '/bkexch_corr_fpath.csv',
+                corr_plot_path = config['output_dirpath'] + '/bkexch_corr.pdf'
+            benchmark:
+                benchmark_dpath + '/gen_tp_specific_bkexch.benchmark.txt'
+            shell:
+                gen_time_specific_bkexch_path
+
+    else:
+
+        rule copy_bkexch_corr_fpath:
+            input:
+                input_corr_fpath = config['backexchange_correction_fpath']
+            output:
+                config['output_dirpath'] + '/bkexch_corr_fpath.csv'
+            benchmark:
+                benchmark_dpath + '/copy_bkexch_corr_fpath.txt'
+            shell:
+                "cp {input.input_corr_fpath} {output}"
+
+    # out_list = get_names_seq_paths_from_sample_file(config['output_dirpath'] + '/sample.csv')
+    # len_out_list = len(out_list)
+    #
+    # for out_par in out_list:
+    #     rule fit_hx_rate:
+    #         input:
+    #             prot_name = out_par[0],
+    #             prot_seq = out_par[1],
+    #             hx_dist_fpath = out_par[2]
+    #         output:
+    #             pk_file = config['output_dirpath'] + '/' + out_par[0] + '/' + out_par[0] + 'hx_rate_fit.pickle',
+    #             rate_csv_file = config['output_dirpath'] + '/' + out_par[0] + '/' + out_par[0] + 'hx_rate.csv',
+    #             iso_dist_file = config['output_dirpath'] + '/' + out_par[0] + '/' + out_par[0] + 'hx_rate_theo_iso_dist.csv',
+    #             plot_file = config['output_dirpath'] + '/' + out_par[0] + '/' + out_par[0] + 'hx_rate.pdf',
+    #         benchmark:
+    #             benchmark_dpath + '/' + out_par[0] + '_fit_hx_rate_benchmark.txt'
+    #         shell:
+
