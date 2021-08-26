@@ -56,13 +56,22 @@ if config['backexchange_correction']:
         rule gen_tp_specific_bkexch:
             input:
                 sample_csv_fpath = config['output_dirpath'] + '/sample.csv'
+            params:
+                rate_tol = config['rate_tol'],
+                frac_threshold = config['frac_threshold'],
+                frac_threshold_bound = config['frac_threshold_bound'],
+                start_bound = config['start_bound'],
+                end_bound = config['end_bound'],
+                max_rate = config['max_rate'],
+                min_num_paths = config['min_num_paths'],
+                change_frac_threshold = config['change_frac_threshold']
             output:
-                corr_fpath = config['output_dirpath'] + '/bkexch_corr_fpath.csv',
+                corr_fpath = config['output_dirpath'] + '/bkexch_corr.csv',
                 corr_plot_path = config['output_dirpath'] + '/bkexch_corr.pdf'
             benchmark:
                 benchmark_dpath + '/gen_tp_specific_bkexch.benchmark.txt'
             shell:
-                gen_time_specific_bkexch_path
+                gen_time_specific_bkexch_path + ' -s {input.sample_csv_fpath} -r {params.rate_tol} -f {params.frac_threshold} -b {params.frac_threshold_bound} -i {params.start_bound} -e {params.end_bound} -m {params.max_rate} -n {params.min_num_paths} -c {params.change_frac_threshold} -p {output.corr_plot_path} -o {output.corr_fpath}'
 
     else:
 
