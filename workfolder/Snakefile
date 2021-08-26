@@ -79,11 +79,14 @@ if config['backexchange_correction']:
             input:
                 input_corr_fpath = config['backexchange_correction_fpath']
             output:
-                config['output_dirpath'] + '/bkexch_corr_fpath.csv'
+                config['output_dirpath'] + '/bkexch_corr.csv'
             benchmark:
-                benchmark_dpath + '/copy_bkexch_corr_fpath.txt'
+                benchmark_dpath + '/copy_bkexch_corr_fpath.benchmark.txt'
             shell:
                 "cp {input.input_corr_fpath} {output}"
+
+    # now do hx rate fitting
+
 
     # out_list = get_names_seq_paths_from_sample_file(config['output_dirpath'] + '/sample.csv')
     # len_out_list = len(out_list)

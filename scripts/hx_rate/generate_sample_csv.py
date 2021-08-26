@@ -6,7 +6,9 @@ import pandas as pd
 
 def gen_sample_list(hxms_dist_fpath_top_dir, level_to_fpath, file_delimiting_string, library_info_fpath, output_path):
 
-    hx_ms_dist_file_list = glob.glob(hxms_dist_fpath_top_dir+level_to_fpath+file_delimiting_string)
+    level_str = '/*'*int(level_to_fpath)
+
+    hx_ms_dist_file_list = glob.glob(hxms_dist_fpath_top_dir+level_str+file_delimiting_string)
 
     library_info_df = pd.read_json(library_info_fpath)
 
@@ -39,7 +41,7 @@ def gen_parser_arguments():
     parser.add_argument('-t', '--topdir', help='top directory to look for hx ms dist file paths',
                         default='../../workfolder/input_hx_dist')
     parser.add_argument('-l', '--level', help='level to look for the hx ms dist file paths',
-                        default='/*/*')
+                        default=1)
     parser.add_argument('-d', '--delim', help='delimiting string to look for identifying hx ms dist file path', default='.winner.cpickle.zlib.csv')
     parser.add_argument('-j', '--json', help='library info .json filepath',
                         default='../../library_info.json')
