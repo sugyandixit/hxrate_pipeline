@@ -4,21 +4,18 @@
 path_to_repo: "/projects/p31346/suggie/hxrate"
 
 # params to find the hx ms distribution fpaths
-hx_ms_fpath_delim_string: ".winner.cpickle.zlib.csv"
+hx_ms_fpath_delim_string: "_winner.cpickle.zlib.csv"
 hx_ms_dist_fpaths_top_dir: "/projects/p31346/suggie/hdx_ms_analysis"
 level_to_fpaths: '/*/*'
 
 # library info filepath
 library_info_json_fpath: "/projects/p31346/suggie/hx_rates_workfolder/library_info.json"
 
-# hxrate fitting params filepath
-param_fpath: "/projects/p31346/suggie/hxrate/params/params.yml"
-
 # output directory where all the outputs will be placed
-output_dirpath: "/projects/p31346/suggie/hx_rates_workfolder/lib15_ph8_output"
+output_dirpath: "/projects/p31346/suggie/hx_rates_workfolder/nobkexch"
 
 # backexchange correction bool
-backexchange_correction: True
+backexchange_correction: False
 
 # give the backexchange correction filepath. If not provided, the workflow will create it automatically
 backexchange_correction_fpath:
