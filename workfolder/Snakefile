@@ -4,7 +4,7 @@
 import pandas as pd
 
 # set the config file path
-configfile: config['path_to_repo'] + '/config/config.yml'
+configfile: '../config/config.yml'
 
 # set benchmark dirpath
 benchmark_dpath = config['output_dirpath'] + '/benchmark'
@@ -34,21 +34,24 @@ rule all:
 
 rule generate_sample_csv:
     input:
-        top_dir = config['hx_ms_dist_fpaths_top_dir'],
-        level_to_fpaths = config['level_to_fpaths'],
-        file_delim_str = config['hx_ms_fpath_delim_string'],
         json_file = config['library_info_json_fpath']
+    params:
+        topdir = config['hx_ms_dist_fpaths_top_dir'],
+        delim_string = config['hx_ms_fpath_delim_string'],
+        level_to_file = config['level_to_fpaths']
+    resources:
+        threads = 1
     output:
         config['output_dirpath']+'/sample.csv'
     benchmark:
         benchmark_dpath + '/generate_sample_csv.benchmark.txt'
     shell:
-        gen_sample_csv_python_path + ' -t {input.top_dir} -l {input.level_to_fpaths} -d {input.file_delim_str} -j {input.json_file} -o {output}'
+        gen_sample_csv_python_path + ' -t {params.topdir} -l {params.level_to_file} -d {params.delim_string} -j {input.json_file} -o {output}'
 
 
 if config['backexchange_correction']:
 
-    if config['backexchange_correction_fpath'] is not None:
+    if config['backexchange_correction_fpath'] is None:
 
         rule gen_tp_specific_bkexch:
             input:
