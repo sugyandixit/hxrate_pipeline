@@ -356,14 +356,14 @@ def gen_bkexch_corr_obj_from_parser(parser):
     options = parser.parse_args()
 
     gen_backexchange_corr_obj_from_sample_list(sample_list_fpath=options.sample_fpath,
-                                               rate_tol=options.rate_tol,
-                                               frac_threshold=options.frac_threshold,
-                                               frac_threshold_bound=options.frac_threshold_bound,
-                                               start_bound=options.start_bound,
-                                               end_bound=options.end_bound,
-                                               max_rate=options.max_tolerance,
-                                               min_number_paths=options.min_paths,
-                                               change_frac_threshold=options.change_frac_threshold,
+                                               rate_tol=float(options.rate_tol),
+                                               frac_threshold=float(options.frac_threshold),
+                                               frac_threshold_bound=float(options.frac_threshold_bound),
+                                               start_bound=int(options.start_bound),
+                                               end_bound=int(options.end_bound),
+                                               max_rate=float(options.max_tolerance),
+                                               min_number_paths=int(options.min_paths),
+                                               change_frac_threshold=float(options.change_frac_threshold),
                                                plot_rate_path=options.plot_path,
                                                csv_out_path=options.output_path,
                                                return_flag=options.return_flag)
