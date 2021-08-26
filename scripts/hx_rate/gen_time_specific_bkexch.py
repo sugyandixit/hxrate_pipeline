@@ -2,6 +2,7 @@ from hxdata import load_data_from_hdx_ms_dist_
 from methods import gauss_fit_to_isotope_dist_array, normalize_mass_distribution_array
 import pandas as pd
 import numpy as np
+import argparse
 from dataclasses import dataclass
 import matplotlib.pyplot as plt
 
@@ -328,19 +329,62 @@ def gen_backexchange_corr_obj_from_sample_list(sample_list_fpath: str,
         return new_mass_rate_object_list
 
 
+def gen_parser_arguments():
+    """
+    generate commandline arguements to generate backexchange correction file
+    :return:parser
+    """
+    parser = argparse.ArgumentParser(prog='Backexchange correction', description='Generate backexchange correction path')
+    parser.add_argument('-s', '--sample_fpath', help='file path for sample.csv', default='../../workfolder/sample.csv')
+    parser.add_argument('-r', '--rate_tol', help='rate tolerance', default=0.05)
+    parser.add_argument('-f', '--frac_threshold', help='fraction threshold', default=0.50)
+    parser.add_argument('-b', '--frac_threshold_bound', help='fraction threshold bound', default=0.8)
+    parser.add_argument('-s', '--start_bound', help='start bound', default=1)
+    parser.add_argument('-e', '--end_bound', help='end bound', default=4)
+    parser.add_argument('-m', '--max_tolerance', help='max rate tolerance', default=0.5)
+    parser.add_argument('-n', '--min_paths', help='minimum number of paths', default=1)
+    parser.add_argument('-c', '--change_frac_threshold', help='change fraction threshold', default=0.01)
+    parser.add_argument('-p', '--plot_path', help='plot file path', default='../../workfolder/bkexch_corr.pdf')
+    parser.add_argument('-o', '--output_path', help='correction file path', default='../../workfolder/bkexch_corr.csv')
+    parser.add_argument('-r', '--return_flag', help='return the value bool', default=False)
+
+    return parser
+
+
+def gen_bkexch_corr_obj_from_parser(parser):
+
+    options = parser.parse_args()
+
+    gen_backexchange_corr_obj_from_sample_list(sample_list_fpath=options.sample_fpath,
+                                               rate_tol=options.rate_tol,
+                                               frac_threshold=options.frac_threshold,
+                                               frac_threshold_bound=options.frac_threshold_bound,
+                                               start_bound=options.start_bound,
+                                               end_bound=options.end_bound,
+                                               max_rate=options.max_tolerance,
+                                               min_number_paths=options.min_paths,
+                                               change_frac_threshold=options.change_frac_threshold,
+                                               plot_rate_path=options.plot_path,
+                                               csv_out_path=options.output_path,
+                                               return_flag=options.return_flag)
+
+
 if __name__ == '__main__':
 
-    sample_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/mix2_samplelist.csv'
+    parser_ = gen_parser_arguments()
+    gen_bkexch_corr_obj_from_parser(parser_)
 
-    corr_obj = gen_backexchange_corr_obj_from_sample_list(sample_list_fpath=sample_fpath,
-                                                          rate_tol=0.05,
-                                                          frac_threshold=0.50,
-                                                          frac_threshold_bound=0.8,
-                                                          start_bound=1,
-                                                          end_bound=4,
-                                                          max_rate=0.5,
-                                                          min_number_paths=1,
-                                                          change_frac_threshold=0.01,
-                                                          plot_rate_path=sample_fpath + '_dm_rate.pdf',
-                                                          csv_out_path=sample_fpath + '_backexchange_correction.csv',
-                                                          return_flag=True)
+    # sample_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/mix2_samplelist.csv'
+    #
+    # corr_obj = gen_backexchange_corr_obj_from_sample_list(sample_list_fpath=sample_fpath,
+    #                                                       rate_tol=0.05,
+    #                                                       frac_threshold=0.50,
+    #                                                       frac_threshold_bound=0.8,
+    #                                                       start_bound=1,
+    #                                                       end_bound=4,
+    #                                                       max_rate=0.5,
+    #                                                       min_number_paths=1,
+    #                                                       change_frac_threshold=0.01,
+    #                                                       plot_rate_path=sample_fpath + '_dm_rate.pdf',
+    #                                                       csv_out_path=sample_fpath + '_backexchange_correction.csv',
+    #                                                       return_flag=True)
