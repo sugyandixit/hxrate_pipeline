@@ -12,7 +12,7 @@ def gen_sample_list(hxms_dist_fpath_top_dir, level_to_fpath, file_delimiting_str
 
     library_info_df = pd.read_json(library_info_fpath)
 
-    header = 'name,sequence,hx_dist_fpath,\n'
+    header = 'name,sequence,hx_dist_fpath\n'
 
     data_string = ''
 
