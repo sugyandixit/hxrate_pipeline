@@ -46,7 +46,7 @@ rule generate_sample_csv:
     benchmark:
         benchmark_dpath + '/generate_sample_csv.benchmark.txt'
     shell:
-        gen_sample_csv_python_path + ' -t {params.topdir} -l {params.level_to_file} -d {params.delim_string} -j {input.json_file} -o {output}'
+        'python ' + gen_sample_csv_python_path + ' -t {params.topdir} -l {params.level_to_file} -d {params.delim_string} -j {input.json_file} -o {output}'
 
 
 if config['backexchange_correction']:
@@ -71,7 +71,7 @@ if config['backexchange_correction']:
             benchmark:
                 benchmark_dpath + '/gen_tp_specific_bkexch.benchmark.txt'
             shell:
-                gen_time_specific_bkexch_path + ' -s {input.sample_csv_fpath} -r {params.rate_tol} -f {params.frac_threshold} -b {params.frac_threshold_bound} -i {params.start_bound} -e {params.end_bound} -m {params.max_rate} -n {params.min_num_paths} -c {params.change_frac_threshold} -p {output.corr_plot_path} -o {output.corr_fpath}'
+                'python ' + gen_time_specific_bkexch_path + ' -s {input.sample_csv_fpath} -r {params.rate_tol} -f {params.frac_threshold} -b {params.frac_threshold_bound} -i {params.start_bound} -e {params.end_bound} -m {params.max_rate} -n {params.min_num_paths} -c {params.change_frac_threshold} -p {output.corr_plot_path} -o {output.corr_fpath}'
 
     else:
 
