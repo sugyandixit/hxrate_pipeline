@@ -12,20 +12,40 @@ level_to_fpaths: '/*/*'
 library_info_json_fpath: "/projects/p31346/suggie/hx_rates_workfolder/library_info.json"
 
 # output directory where all the outputs will be placed
-output_dirpath: "/projects/p31346/suggie/hx_rates_workfolder/nobkexch"
+output_dirpath: "/projects/p31346/suggie/hx_rates_workfolder/output"
+
+
+
+##########################################
+##########################################
+#backexchange correction parameters
 
 # backexchange correction bool
-backexchange_correction: False
+backexchange_correction: True
+rate_tol: 0.05
+frac_threshold: 0.50
+frac_threshold_bound: 0.80
+start_bound: 1
+end_bound: 4
+max_rate: 0.5
+min_num_paths: 1
+change_frac_threshold: 0.02
 
-# give the backexchange correction filepath. If not provided, the workflow will create it automatically
+# give the backexchange correction filepath if it already exists.
+# If not provided, the workflow will create it automatically if backexchange correction is turned on
 backexchange_correction_fpath:
+
+# user can set their own backexchange
+usr_backexchange:
+
+##########################################
+##########################################
+
 
 # exp params
 d2o_fraction: 0.95
 d2o_purity: 0.95
 
-# user can set their own backexchange
-usr_backexchange:
 
 # rate fitting parameters
 opt_iter: 50
