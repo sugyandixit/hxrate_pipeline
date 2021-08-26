@@ -339,14 +339,14 @@ def gen_parser_arguments():
     parser.add_argument('-r', '--rate_tol', help='rate tolerance', default=0.05)
     parser.add_argument('-f', '--frac_threshold', help='fraction threshold', default=0.50)
     parser.add_argument('-b', '--frac_threshold_bound', help='fraction threshold bound', default=0.8)
-    parser.add_argument('-s', '--start_bound', help='start bound', default=1)
+    parser.add_argument('-i', '--start_bound', help='start bound', default=1)
     parser.add_argument('-e', '--end_bound', help='end bound', default=4)
     parser.add_argument('-m', '--max_tolerance', help='max rate tolerance', default=0.5)
     parser.add_argument('-n', '--min_paths', help='minimum number of paths', default=1)
     parser.add_argument('-c', '--change_frac_threshold', help='change fraction threshold', default=0.01)
     parser.add_argument('-p', '--plot_path', help='plot file path', default='../../workfolder/bkexch_corr.pdf')
     parser.add_argument('-o', '--output_path', help='correction file path', default='../../workfolder/bkexch_corr.csv')
-    parser.add_argument('-r', '--return_flag', help='return the value bool', default=False)
+    parser.add_argument('-g', '--return_flag', help='return the value bool', default=False)
 
     return parser
 
