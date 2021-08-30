@@ -16,8 +16,8 @@ def gen_parser_arguments():
     parser.add_argument('-n', '--prot_name', help='protein name', default='HEEH_rd4_0097')
     parser.add_argument('-df', '--d2o_frac', help='d2o_fraction', default=0.95)
     parser.add_argument('-dp', '--d2o_purity', help='d2o_purity', default=0.95)
-    parser.add_argument('ot', '--opt_temp', help='optimization_temperature', default=0.0003)
-    parser.add_argument('os', '--opt_size', help='optimization_step_size', default=0.02)
+    parser.add_argument('-ot', '--opt_temp', help='optimization_temperature', default=0.0003)
+    parser.add_argument('-os', '--opt_size', help='optimization_step_size', default=0.02)
     parser.add_argument('-oi', '--opt_iter', help='optimization_iteration_number', default=50)
     parser.add_argument('-ub', '--user_backexchange', help='user_backexchange', default=None)
     parser.add_argument('-bf', '--backexchange_corr_fpath', help='backexchange_correction_fpath', default=None)
@@ -28,7 +28,7 @@ def gen_parser_arguments():
     parser.add_argument('-o', '--output_pickle_file', help='output pickle filepath')
     parser.add_argument('-or', '--output_rate_csv', help='output rates csv filepath')
     parser.add_argument('-op', '--output_rate_plot', help='output_rate_plot filepath')
-    parser.add_argument('-oi', '--output_iso_dist', help='output isotope distribution filepath')
+    parser.add_argument('-od', '--output_iso_dist', help='output isotope distribution filepath')
     return parser
 
 
