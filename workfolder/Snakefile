@@ -36,23 +36,6 @@ rule all:
     input:  expand(config['output_dirpath'] + '/{name}/{name}_hx_rate_fit.pickle', name=get_names_seq_paths_from_sample_file(config['output_dirpath'] + '/sample.csv')[0])
 
 
-rule generate_sample_csv:
-    input:
-        json_file = config['library_info_json_fpath']
-    params:
-        topdir = config['hx_ms_dist_fpaths_top_dir'],
-        delim_string = config['hx_ms_fpath_delim_string'],
-        level_to_file = config['level_to_fpaths']
-    resources:
-        threads = 1
-    output:
-        config['output_dirpath']+'/sample.csv'
-    benchmark:
-        benchmark_dpath + '/generate_sample_csv.benchmark.txt'
-    shell:
-        'python ' + gen_sample_csv_python_path + ' -t {params.topdir} -l {params.level_to_file} -d {params.delim_string} -j {input.json_file} -o {output}'
-
-
 if config['backexchange_correction']:
 
     if config['backexchange_correction_fpath'] is None:
