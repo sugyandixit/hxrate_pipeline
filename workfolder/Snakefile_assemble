@@ -1,0 +1,36 @@
+# this workflow processes the hx rate fitting
+# rule 1: generates
+
+import pandas as pd
+
+# set the config file path
+configfile: '../config/config.yml'
+
+# set benchmark dirpath
+benchmark_dpath = config['output_dirpath'] + '/benchmark'
+
+# set the python scripts path
+scripts_dirpath = config['path_to_repo'] + '/scripts/hx_rate'
+gen_time_specific_bkexch_path = scripts_dirpath + '/gen_time_specific_bkexch.py'
+gen_sample_csv_python_path = scripts_dirpath + '/generate_sample_csv.py'
+
+
+rule all:
+    input:  config['output_dirpath'] + '/sample.csv
+
+
+rule generate_sample_csv:
+    input:
+        json_file = config['library_info_json_fpath']
+    params:
+        topdir = config['hx_ms_dist_fpaths_top_dir'],
+        delim_string = config['hx_ms_fpath_delim_string'],
+        level_to_file = config['level_to_fpaths']
+    resources:
+        threads = 1
+    output:
+        config['output_dirpath']+'/sample.csv'
+    benchmark:
+        benchmark_dpath + '/generate_sample_csv.benchmark.txt'
+    shell:
+        'python ' + gen_sample_csv_python_path + ' -t {params.topdir} -l {params.level_to_file} -d {params.delim_string} -j {input.json_file} -o {output}'
