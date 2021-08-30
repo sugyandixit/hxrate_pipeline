@@ -13,19 +13,15 @@ benchmark_dpath = config['output_dirpath'] + '/benchmark'
 scripts_dirpath = config['path_to_repo'] + '/scripts/hx_rate'
 hx_rate_fit_python_path = scripts_dirpath + '/hx_ratefit_cml.py'
 gen_time_specific_bkexch_path = scripts_dirpath + '/gen_time_specific_bkexch.py'
-gen_sample_csv_python_path = scripts_dirpath + '/generate_sample_csv.py'
 
-# get a list of hx dist input files
-prot_name_string = '/{prot_name}'
-total_prot_name_string = config['level_to_fpaths']*prot_name_string
-hx_dist_input_fpath = config['hx_ms_dist_fpaths_top_dir'] + total_prot_name_string + config['hx_ms_fpath_delim_string']
+sample_csv_fpath = config['output_dirpath'] + '/sample.csv'
 
 
 def get_names_seq_paths_from_sample_file(sample_fpath):
     df = pd.read_csv(sample_fpath)
-    prot_name = df['protein_name'].values
+    prot_name = df['name'].values
     sequence = df['sequence'].values
-    prot_dist_fpath = df['input_path'].values
+    prot_dist_fpath = df['hx_dist_fpath'].values
 
     out_list = [prot_name, sequence, prot_dist_fpath]
 
@@ -33,7 +29,7 @@ def get_names_seq_paths_from_sample_file(sample_fpath):
 
 
 rule all:
-    input:  expand(config['output_dirpath'] + '/{name}/{name}_hx_rate_fit.pickle', name=get_names_seq_paths_from_sample_file(config['output_dirpath'] + '/sample.csv')[0])
+    input:  expand(config['output_dirpath'] + '/{name}/{name}_hx_rate_fit.pickle', name=get_names_seq_paths_from_sample_file(sample_csv_fpath)[0])
 
 
 if config['backexchange_correction']:
@@ -42,7 +38,7 @@ if config['backexchange_correction']:
 
         rule gen_tp_specific_bkexch:
             input:
-                sample_csv_fpath = config['output_dirpath'] + '/sample.csv'
+                sample_csv_fpath = sample_csv_fpath
             params:
                 rate_tol = config['rate_tol'],
                 frac_threshold = config['frac_threshold'],
@@ -74,7 +70,7 @@ if config['backexchange_correction']:
 
     # now do hx rate fitting
 
-    hx_rate_input_list = get_names_seq_paths_from_sample_file(config['output_dirpath'] + '/sample.csv')
+    hx_rate_input_list = get_names_seq_paths_from_sample_file(sample_csv_fpath)
     prot_name_list, seq_list, input_path_list = hx_rate_input_list
 
     rule fit_hx_rate:
@@ -84,11 +80,11 @@ if config['backexchange_correction']:
             prot_seq = lambda wildcards: seq_list,
             prot_name = lambda wildcards: prot_name_list
         output:
-            pk_file = config['output_dirpath'] + '/{params.prot_name}/{params.prot_name}_hx_rate_fit.pickle',
-            rate_csv_file = config['output_dirpath'] + '/{params.prot_name}/{params.prot_name}_hx_rate.csv',
-            iso_dist_file = config['output_dirpath'] + '/{params.prot_name}/{params.prot_name}_hx_rate_theo_dist.csv',
-            plot_file = config['output_dirpath'] + '/{params.prot_name}/{params.prot_name}_hx_rate.pdf'
+            pk_file = config['output_dirpath'] + '/{name}/{name}_hx_rate_fit.pickle',
+            rate_csv_file = config['output_dirpath'] + '/{name}/{name}_hx_rate.csv',
+            iso_dist_file = config['output_dirpath'] + '/{name}/{name}_hx_rate_theo_dist.csv',
+            plot_file = config['output_dirpath'] + '/{name}/{name}_hx_rate.pdf'
         benchmark:
-            benchmark_dpath + '/{params.prot_name}_fit_hx_rate.benchmark.txt',
+            benchmark_dpath + '/{name}_fit_hx_rate.benchmark.txt',
         shell:
             'python ' + hx_rate_fit_python_path + ''
