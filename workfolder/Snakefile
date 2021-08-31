@@ -16,10 +16,15 @@ gen_time_specific_bkexch_path = scripts_dirpath + '/gen_time_specific_bkexch.py'
 
 sample_csv_fpath = config['output_dirpath'] + '/sample.csv'
 
+name_wildcard_string = config['level_to_fpaths']*'/{name}'
+hx_dist_fpath_expand_string = config['hx_ms_dist_fpaths_top_dir'] + name_wildcard_string + config['hx_ms_fpath_delim_string']
+
 df = pd.read_csv(sample_csv_fpath)
-prot_name = df['name'].values
-sequence = df['sequence'].values
-prot_dist_fpath = df['hx_dist_fpath'].values
+prot_name = [x for x in df['name'].values]
+sequence = [x for x in df['sequence'].values]
+name_seq_dict = dict()
+for ind, (pname, pseq) in enumerate(zip(prot_name, sequence)):
+    name_seq_dict[pname] = pseq
 
 
 rule all:
@@ -64,11 +69,11 @@ if config['backexchange_correction']:
 
     rule fit_hx_rate:
         input:
-            hx_dist_fpath = lambda wildcards: prot_dist_fpath,
+            hx_dist_fpath = config['hx_ms_dist_fpaths_top_dir'] + config['level_to_fpaths']*'/{name}' + config['hx_ms_fpath_delim_string'],
             bkexch_corr_fpath = config['output_dirpath'] + '/bkexch_corr.csv'
         params:
-            prot_seq = lambda wildcards: sequence,
-            prot_name = lambda wildcards: prot_name,
+            prot_seq = lambda wildcards: name_seq_dict[wildcards.name],
+            prot_name = '{name}',
             d2o_frac = config['d2o_fraction'],
             d2o_purity = config['d2o_purity'],
             usr_backexchange = config['usr_backexchange'],
