@@ -41,20 +41,23 @@ def hx_rate_fitting_from_parser(parser):
 
     options = parser.parse_args()
 
+    if options.user_backexchange is None:
+        user_backexchange = None
+    else:
+        user_backexchange = float(options.user_backexchange)
+
     fit_rate_from_to_file(prot_name=options.prot_name,
                           sequence=options.sequence,
                           hx_ms_dist_fpath=options.hxdist,
-                          d2o_fraction=options.d2o_frac,
-                          d2o_purity=options.d2o_purity,
-                          opt_temp=options.opt_temp,
-                          opt_iter=options.opt_iter,
-                          opt_step_size=options.opt_size,
-                          usr_backexchange=options.user_backexchange,
+                          d2o_fraction=float(options.d2o_frac),
+                          d2o_purity=float(options.d2o_purity),
+                          opt_temp=float(options.opt_temp),
+                          opt_iter=int(options.opt_iter),
+                          opt_step_size=float(options.opt_size),
+                          usr_backexchange=user_backexchange,
                           backexchange_corr_fpath=options.backexchange_corr_fpath,
                           multi_proc=options.multi_proc,
-                          number_of_cores=options.num_cores,
-                          free_energy_values=options.free_energy_values,
-                          temperature=options.free_energy_temp,
+                          number_of_cores=int(options.num_cores),
                           hx_rate_output_path=options.output_pickle_file,
                           hx_rate_csv_output_path=options.output_rate_csv,
                           hx_isotope_dist_output_path=options.output_iso_dist,
