@@ -579,7 +579,7 @@ def plot_hx_rate_fitting_(prot_name: str,
     # define figure size
     num_columns = 2
     num_rows = len(timepoints)
-    fig_size = (20, 25)
+    fig_size = (25, 1.5 * num_rows)
 
     font_size = 10
 
