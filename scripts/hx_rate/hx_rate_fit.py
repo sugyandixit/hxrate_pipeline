@@ -135,6 +135,7 @@ def fit_rate_without_backexchange_adjust(prot_name: str,
                                          free_energy_values: np.ndarray = None,
                                          temperature: float = None,
                                          backexchange_value: float = None,
+                                         backexchange_array: np.ndarray = None,
                                          backexchange_correction_array: np.ndarray = None) -> object:
 
     # todo: add param descritpions
@@ -167,12 +168,22 @@ def fit_rate_without_backexchange_adjust(prot_name: str,
                                            d2o_purity=d2o_purity,
                                            usr_backexchange=backexchange_value)
 
-    if backexchange_correction_array is None:
-    # generate an array of backexchange with same backexchange value to an array of length of timepoints
-        back_exchange.backexchange_array = np.array([back_exchange.backexchange_value for x in time_points])
+    if backexchange_array is None:
+        if backexchange_correction_array is None:
+            # generate an array of backexchange with same backexchange value to an array of length of timepoints
+            back_exchange.backexchange_array = np.array([back_exchange.backexchange_value for x in time_points])
+        else:
+            back_exchange.backexchange_array = gen_corr_backexchange(mass_rate_array=backexchange_correction_array,
+                                                                     fix_backexchange_value=back_exchange.backexchange_value)
     else:
-        back_exchange.backexchange_array = gen_corr_backexchange(mass_rate_array=backexchange_correction_array,
-                                                                 fix_backexchange_value=back_exchange.backexchange_value)
+        back_exchange.backexchange_array = backexchange_array
+
+    # if backexchange_correction_array is None:
+    # # generate an array of backexchange with same backexchange value to an array of length of timepoints
+    #     back_exchange.backexchange_array = np.array([back_exchange.backexchange_value for x in time_points])
+    # else:
+    #     back_exchange.backexchange_array = gen_corr_backexchange(mass_rate_array=backexchange_correction_array,
+    #                                                              fix_backexchange_value=back_exchange.backexchange_value)
 
     # store backexchange object in hxrate object
     hxrate.back_exchange = back_exchange
@@ -555,6 +566,7 @@ def fit_rate_from_to_file(prot_name: str,
                           usr_backexchange: float = None,
                           backexchange_corr_fpath: str = None,
                           backexchange_corr_prot_name: str = None,
+                          backexchange_array_fpath: str = None,
                           adjust_backexchange: bool = True,
                           hx_rate_output_path: str = None,
                           hx_rate_csv_output_path: str = None,
@@ -595,6 +607,8 @@ def fit_rate_from_to_file(prot_name: str,
                                                           backexchange_value=usr_backexchange,
                                                           backexchange_correction_array=bkexch_corr_arr)
     else:
+        backexchange_arr_df = pd.read_csv(backexchange_array_fpath)
+        backexchange_array_ = backexchange_arr_df.iloc[:, 1].values
         hxrate_object = fit_rate_without_backexchange_adjust(prot_name=prot_name,
                                                              sequence=sequence,
                                                              time_points=timepoints,
@@ -609,7 +623,8 @@ def fit_rate_from_to_file(prot_name: str,
                                                              free_energy_values=free_energy_values,
                                                              temperature=temperature,
                                                              backexchange_value=usr_backexchange,
-                                                             backexchange_correction_array=bkexch_corr_arr)
+                                                             backexchange_correction_array=bkexch_corr_arr,
+                                                             backexchange_array=backexchange_array_)
 
     # convert hxrate object to dict and save as a pickle file
 
@@ -661,10 +676,35 @@ def fit_rate_from_to_file(prot_name: str,
 if __name__ == '__main__':
     # pass
 
-    prot_name = 'PDB1Z96_12.30242'
-    prot_sequence = 'HMDPGLNSKIAQLVSMGFDPLEAAQALDAANGDLDVAASFLL'
-    hx_dist_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/lib15_ph6/PDB1Z96_12.30242_winner.cpickle.zlib.csv'
-    bk_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/lib15_ph6_sample.csv_backexchange_correction.csv'
+    # prot_name = 'PDB1Z96_12.30242'
+    # prot_sequence = 'HMDPGLNSKIAQLVSMGFDPLEAAQALDAANGDLDVAASFLL'
+    # hx_dist_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/lib15_ph6/PDB1Z96_12.30242_winner.cpickle.zlib.csv'
+    # bk_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/lib15_ph6_sample.csv_backexchange_correction.csv'
+    #
+    # fit_rate_from_to_file(prot_name=prot_name,
+    #                       sequence=prot_sequence,
+    #                       hx_ms_dist_fpath=hx_dist_fpath,
+    #                       d2o_fraction=0.95,
+    #                       d2o_purity=0.95,
+    #                       opt_iter=20,
+    #                       opt_temp=0.0003,
+    #                       opt_step_size=0.02,
+    #                       multi_proc=True,
+    #                       number_of_cores=6,
+    #                       backexchange_corr_fpath=bk_corr_fpath,
+    #                       hx_rate_output_path=hx_dist_fpath + '_rate.pickle',
+    #                       hx_rate_csv_output_path=hx_dist_fpath + '_rate.csv',
+    #                       hx_rate_plot_path=hx_dist_fpath + '_rate.pdf',
+    #                       hx_isotope_dist_output_path=hx_dist_fpath + '_rate_iso_dist.csv')
+
+
+    prot_name = 'HEEH_rd4_0097'
+    prot_sequence = 'HMDVEEQIRRLEEVLKKNQPVTWNGTTYTDPNEIKKVIEELRKSM'
+    hx_dist_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/merged_data/HEEH_rd4_0097.pdb_9.64507_HEEH_rd4_0097.pdb_9.65902/HEEH_rd4_0097.pdb_9.64507_HEEH_rd4_0097.pdb_9.65902_merged_data.csv'
+    backexchange_array_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/merged_data/HEEH_rd4_0097.pdb_9.64507_HEEH_rd4_0097.pdb_9.65902/HEEH_rd4_0097.pdb_9.64507_HEEH_rd4_0097.pdb_9.65902_merged_backexchange.csv'
+
+    bkexch_arr_df = pd.read_csv(backexchange_array_fpath)
+    bkexch_arr = bkexch_arr_df.iloc[:, 1].values
 
     fit_rate_from_to_file(prot_name=prot_name,
                           sequence=prot_sequence,
@@ -676,7 +716,9 @@ if __name__ == '__main__':
                           opt_step_size=0.02,
                           multi_proc=True,
                           number_of_cores=6,
-                          backexchange_corr_fpath=bk_corr_fpath,
+                          backexchange_corr_fpath=None,
+                          adjust_backexchange=False,
+                          backexchange_array_fpath=backexchange_array_fpath,
                           hx_rate_output_path=hx_dist_fpath + '_rate.pickle',
                           hx_rate_csv_output_path=hx_dist_fpath + '_rate.csv',
                           hx_rate_plot_path=hx_dist_fpath + '_rate.pdf',
