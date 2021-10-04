@@ -249,6 +249,26 @@ def center_of_mass_(data_array):
     return com
 
 
+def correct_centroids_using_backexchange(centroids: np.ndarray,
+                                         backexchange_array: np.ndarray) -> np.ndarray:
+    """
+
+    :param centroids: uncorrected centroids
+    :param backexchange_array: backexchange array for each timepoint
+    :return: corrected centroids
+    """
+
+    # generate corr centroids zero arrays and fill with corrections. timepoint 0 doesn't need any correction
+    corr_centroids = np.zeros(len(centroids))
+    corr_centroids[0] = centroids[0]
+
+    # apply correction to centroids based on backexchange
+    for ind, (centr, bkexch) in enumerate(zip(centroids[1:], backexchange_array[1:])):
+        corr_centroids[ind+1] = centr/(1-bkexch)
+
+    return corr_centroids
+
+
 # @jit(parallel=True)
 def normalize_mass_distribution_array(mass_dist_array: np.ndarray) -> np.ndarray:
     norm_dist = np.zeros(np.shape(mass_dist_array))
@@ -551,7 +571,7 @@ def plot_hx_rate_fitting_(prot_name: str,
                           fit_rmse_timepoints: np.ndarray,
                           fit_rmse_total: float,
                           backexchange: float,
-                          backexchange_array: float,
+                          backexchange_array: np.ndarray,
                           d2o_fraction: float,
                           d2o_purity: float,
                           output_path: str):
@@ -579,7 +599,7 @@ def plot_hx_rate_fitting_(prot_name: str,
     # define figure size
     num_columns = 2
     num_rows = len(timepoints)
-    fig_size = (25, 1.5 * num_rows)
+    fig_size = (25, 1.0 * num_rows)
 
     font_size = 10
 
@@ -650,8 +670,8 @@ def plot_hx_rate_fitting_(prot_name: str,
     #######################################################
     #######################################################
 
-    # 4 plots on the second row
-    num_plots_second_row = 7
+    # 8 plots on the second row
+    num_plots_second_row = 8
     second_plot_row_thickness = int(len(timepoints)/num_plots_second_row)
     second_plot_indices = [(num*second_plot_row_thickness) for num in range(num_plots_second_row)]
 
@@ -720,11 +740,35 @@ def plot_hx_rate_fitting_(prot_name: str,
 
     #######################################################
     #######################################################
+    # plot center of mass exp and thr corrected using backexchange
+
+    exp_isotope_centroid_array_corr = correct_centroids_using_backexchange(centroids=exp_isotope_centroid_array,
+                                                                           backexchange_array=backexchange_array)
+    thr_isotope_centroid_array_corr = correct_centroids_using_backexchange(centroids=thr_isotope_centroid_array,
+                                                                           backexchange_array=backexchange_array)
+
+    ax2 = fig.add_subplot(gs[second_plot_indices[3]: second_plot_indices[4], 1])
+    ax2.plot(timepoints_v2, exp_isotope_centroid_array_corr, marker='o', ls='-', color='blue')
+    ax2.plot(timepoints_v2, thr_isotope_centroid_array_corr, marker='o', ls='-', color='red')
+    ax2.set_xscale('log')
+    ax2.set_xticks(timepoints_v2)
+    ax2.set_xticklabels([])
+    ax2.spines['right'].set_visible(False)
+    ax2.spines['top'].set_visible(False)
+    plt.grid(axis='x', alpha=0.25)
+    plt.grid(axis='y', alpha=0.25)
+    plt.xlabel('log(timepoint)')
+    plt.ylabel('Corrected Centroid')
+    #######################################################
+    #######################################################
+
+    #######################################################
+    #######################################################
     # plot the error in center of mass between exp and thr distributions
 
-    com_difference = np.subtract(thr_isotope_centroid_array, exp_isotope_centroid_array)
+    com_difference = np.subtract(thr_isotope_centroid_array_corr, exp_isotope_centroid_array_corr)
 
-    ax3 = fig.add_subplot(gs[second_plot_indices[3]: second_plot_indices[4], 1])
+    ax3 = fig.add_subplot(gs[second_plot_indices[4]: second_plot_indices[5], 1])
     ax3.scatter(np.arange(len(timepoints)), com_difference, color='black')
     plt.axhline(y=0, ls='--', color='black', alpha=0.50)
     ax3.spines['right'].set_visible(False)
@@ -742,7 +786,7 @@ def plot_hx_rate_fitting_(prot_name: str,
     #######################################################
     # plot the width of exp and thr distributions
 
-    ax4 = fig.add_subplot(gs[second_plot_indices[4]: second_plot_indices[5], 1])
+    ax4 = fig.add_subplot(gs[second_plot_indices[5]: second_plot_indices[6], 1])
     ax4.scatter(np.arange(len(timepoints)), exp_isotope_width_array, color='blue')
     ax4.scatter(np.arange(len(timepoints)), thr_isotope_width_array, color='red')
     ax4.spines['right'].set_visible(False)
@@ -762,7 +806,7 @@ def plot_hx_rate_fitting_(prot_name: str,
 
     width_difference = np.subtract(thr_isotope_width_array, exp_isotope_width_array)
 
-    ax5 = fig.add_subplot(gs[second_plot_indices[5]: second_plot_indices[6], 1])
+    ax5 = fig.add_subplot(gs[second_plot_indices[6]: second_plot_indices[7], 1])
     ax5.scatter(np.arange(len(timepoints)), width_difference, color='black')
     plt.axhline(y=0, ls='--', color='black', alpha=0.50)
     ax5.spines['right'].set_visible(False)
@@ -781,7 +825,7 @@ def plot_hx_rate_fitting_(prot_name: str,
     # plot the rates in log10 scale
     hx_rates_log10 = np.log10(np.exp(hx_rates))
 
-    ax6 = fig.add_subplot(gs[second_plot_indices[6]:, 1])
+    ax6 = fig.add_subplot(gs[second_plot_indices[7]:, 1])
     plt.plot(np.arange(len(hx_rates_log10)), np.sort(hx_rates_log10), marker='o', ls='-', color='red',
              markerfacecolor='red', markeredgecolor='black')
     plt.xticks(range(0, len(hx_rates_log10) + 2, 2))
