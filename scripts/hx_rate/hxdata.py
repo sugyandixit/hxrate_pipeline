@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import pickle
+import os
 
 
 def load_data_from_hdx_ms_dist_(fpath):
@@ -71,6 +72,41 @@ def write_isotope_dist_timepoints(timepoints, isotope_dist_array, output_path):
     with open(output_path, 'w') as outfile:
         outfile.write(header + data_string)
         outfile.close()
+
+
+def write_backexchange_array(timepoints, backexchange_array, output_path):
+    """
+    write merged backexchange array
+    :param timepoints: timepoints array
+    :param backexchange_array: backexchange array
+    :param output_path: output path
+    :return: Nothing
+    """
+    header = 'timepoints,backexchange\n'
+    data_string = ''
+    for tp, backexchange in zip(timepoints, backexchange_array):
+        data_string += '{},{}\n'.format(tp, backexchange)
+
+    with open(output_path, 'w') as outfile:
+        outfile.write(header + data_string)
+        outfile.close()
+
+
+def write_merge_factor(merge_factor, opt_mse, opt_nfev, opt_nit, opt_success, opt_message, output_path):
+
+    header = 'factor,mse,opt_nfev,opt_nit,opt_success,opt_message\n'
+    data_string = '{},{},{},{},{},{}\n'.format(merge_factor, opt_mse, opt_nfev, opt_nit, opt_success, opt_message)
+
+    with open(output_path, 'w') as outfile:
+        outfile.write(header + data_string)
+        outfile.close()
+
+def make_new_dir(dirpath):
+
+    if not os.path.exists(dirpath):
+        os.makedirs(dirpath)
+
+    return dirpath
 
 
 if __name__ == '__main__':
