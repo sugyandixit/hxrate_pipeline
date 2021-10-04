@@ -140,26 +140,6 @@ def generate_backexchange_array(exp_dist: np.ndarray,
     return backexchange_array
 
 
-def correct_centroids_using_backexchange(centroids: np.ndarray,
-                                         backexchange_array: np.ndarray) -> np.ndarray:
-    """
-
-    :param centroids: uncorrected centroids
-    :param backexchange_array: backexchange array for each timepoint
-    :return: corrected centroids
-    """
-
-    # generate corr centroids zero arrays and fill with corrections. timepoint 0 doesn't need any correction
-    corr_centroids = np.zeros(len(centroids))
-    corr_centroids[0] = centroids[0]
-
-    # apply correction to centroids based on backexchange
-    for ind, (centr, bkexch) in enumerate(zip(centroids[1:], backexchange_array[1:])):
-        corr_centroids[ind+1] = centr/(1-bkexch)
-
-    return corr_centroids
-
-
 def gen_merged_dstirbution(sequence: str,
                            low_tp: np.ndarray,
                            low_dist: np.ndarray,
@@ -218,10 +198,10 @@ def gen_merged_dstirbution(sequence: str,
     high_centroids = np.array([x.centroid for x in high_gauss_fit_list])
 
     # generate centroids with backexhcnage corrections
-    low_centroids_corr = correct_centroids_using_backexchange(centroids=low_centroids,
-                                                              backexchange_array=low_backexchange_array)
-    high_centroids_corr = correct_centroids_using_backexchange(centroids=high_centroids,
-                                                               backexchange_array=high_backexchange_array)
+    low_centroids_corr = methods.correct_centroids_using_backexchange(centroids=low_centroids,
+                                                                      backexchange_array=low_backexchange_array)
+    high_centroids_corr = methods.correct_centroids_using_backexchange(centroids=high_centroids,
+                                                                       backexchange_array=high_backexchange_array)
 
     # get the factor by using the optimization function. exclude zero timepoints
     opt_ = optimize_factor_for_alignment(low_tp=low_tp[1:],
