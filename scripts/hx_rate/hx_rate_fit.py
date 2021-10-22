@@ -674,7 +674,7 @@ def fit_rate_from_to_file(prot_name: str,
 
 
 if __name__ == '__main__':
-    # pass
+    pass
 
     # prot_name = 'PDB1Z96_12.30242'
     # prot_sequence = 'HMDPGLNSKIAQLVSMGFDPLEAAQALDAANGDLDVAASFLL'
@@ -696,30 +696,3 @@ if __name__ == '__main__':
     #                       hx_rate_csv_output_path=hx_dist_fpath + '_rate.csv',
     #                       hx_rate_plot_path=hx_dist_fpath + '_rate.pdf',
     #                       hx_isotope_dist_output_path=hx_dist_fpath + '_rate_iso_dist.csv')
-
-
-    prot_name = 'HEEH_rd4_0097'
-    prot_sequence = 'HMDVEEQIRRLEEVLKKNQPVTWNGTTYTDPNEIKKVIEELRKSM'
-    hx_dist_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/merged_data/HEEH_rd4_0097.pdb_9.64507_HEEH_rd4_0097.pdb_9.65902/HEEH_rd4_0097.pdb_9.64507_HEEH_rd4_0097.pdb_9.65902_merged_data.csv'
-    backexchange_array_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/merged_data/HEEH_rd4_0097.pdb_9.64507_HEEH_rd4_0097.pdb_9.65902/HEEH_rd4_0097.pdb_9.64507_HEEH_rd4_0097.pdb_9.65902_merged_backexchange.csv'
-
-    bkexch_arr_df = pd.read_csv(backexchange_array_fpath)
-    bkexch_arr = bkexch_arr_df.iloc[:, 1].values
-
-    fit_rate_from_to_file(prot_name=prot_name,
-                          sequence=prot_sequence,
-                          hx_ms_dist_fpath=hx_dist_fpath,
-                          d2o_fraction=0.95,
-                          d2o_purity=0.95,
-                          opt_iter=20,
-                          opt_temp=0.0003,
-                          opt_step_size=0.02,
-                          multi_proc=True,
-                          number_of_cores=6,
-                          backexchange_corr_fpath=None,
-                          adjust_backexchange=False,
-                          backexchange_array_fpath=backexchange_array_fpath,
-                          hx_rate_output_path=hx_dist_fpath + '_rate.pickle',
-                          hx_rate_csv_output_path=hx_dist_fpath + '_rate.csv',
-                          hx_rate_plot_path=hx_dist_fpath + '_rate.pdf',
-                          hx_isotope_dist_output_path=hx_dist_fpath + '_rate_iso_dist.csv')
