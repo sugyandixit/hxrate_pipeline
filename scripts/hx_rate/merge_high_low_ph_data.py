@@ -266,8 +266,9 @@ def plot_merge_centroids(low_tp, low_centroids, high_tp_refactored, high_centroi
     :param output_path:
     :return:
     """
-    plt.scatter(np.log(low_tp), low_centroids, marker='+', color='blue', label='low_ph')
-    plt.scatter(np.log(high_tp_refactored), high_centroids, marker='+', color='orange', label='high_ph')
+    plt.scatter(np.log(low_tp), low_centroids, marker='o', color='blue', edgecolor='black', label='low_ph', s=60)
+    plt.scatter(np.log(high_tp_refactored), high_centroids, marker='o', color='orange', edgecolor='black',
+                label='high_ph', s=60)
     plt.xlabel('log time (seconds)')
     plt.ylabel('Center of mass')
     plt.grid()
@@ -357,6 +358,7 @@ if __name__ == '__main__':
 
     common_backexchange_filepath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bkexch_corr_output/common_2.csv_bkexchange.csv'
     common_backexchange_df = pd.read_csv(common_backexchange_filepath)
+    # common_backexchange_df['comp_bool'] = np.array([1 for x in range(len(common_backexchange_df['sequence'].values))])
 
     low_backexchange_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/lib15_ph6_sample.csv_backexchange_correction.csv'
     high_backexchange_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/lib15_ph7_sample.csv_backexchange_correction.csv'
@@ -369,7 +371,7 @@ if __name__ == '__main__':
     d2o_frac = 0.95
     d2o_pur = 0.95
 
-    output_top_dir = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/merged_data'
+    output_top_dir = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/merged_data_ph6_ph7'
 
     import glob
     import os
