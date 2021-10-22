@@ -374,17 +374,3 @@ if __name__ == '__main__':
     parser_ = gen_parser_arguments()
     gen_bkexch_corr_obj_from_parser(parser_)
 
-    # sample_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/mix2_samplelist.csv'
-    #
-    # corr_obj = gen_backexchange_corr_obj_from_sample_list(sample_list_fpath=sample_fpath,
-    #                                                       rate_tol=0.05,
-    #                                                       frac_threshold=0.50,
-    #                                                       frac_threshold_bound=0.8,
-    #                                                       start_bound=1,
-    #                                                       end_bound=4,
-    #                                                       max_rate=0.5,
-    #                                                       min_number_paths=1,
-    #                                                       change_frac_threshold=0.01,
-    #                                                       plot_rate_path=sample_fpath + '_dm_rate.pdf',
-    #                                                       csv_out_path=sample_fpath + '_backexchange_correction.csv',
-    #                                                       return_flag=True)
