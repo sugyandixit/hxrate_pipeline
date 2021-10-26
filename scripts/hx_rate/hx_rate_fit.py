@@ -53,6 +53,8 @@ class BackExchange(object):
     backexchange_value: float = None
     fit_rmse: float = None
     theoretical_isotope_dist: np.ndarray = None
+    correction_tp_: dict = None
+    backexchange_tp_: dict = None
     backexchange_array: np.ndarray = None
 
 

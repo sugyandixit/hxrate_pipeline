@@ -22,52 +22,82 @@ class MassRate(object):
     frac_cal_ind: float = None
     frac_start_ind: int = None
     frac_end_ind: int = None
+    timepoint_arr: np.ndarray = None
     mass_rate_arr: np.ndarray = None
 
     def check_mass_rate_pass(self):
+        """
+        check if the mass rate array passes with the criteria that they are consistent throughout the path
+        :return: Nothing
+        """
 
         mass_rate_arr_comp = self.mass_rate_arr[1:]
         mass_rate_arr_tol = mass_rate_arr_comp[np.abs(mass_rate_arr_comp) < self.rate_tol]
-        self.frac_cal = len(mass_rate_arr_tol)/len(mass_rate_arr_comp)
+        self.frac_cal = len(mass_rate_arr_tol) / len(mass_rate_arr_comp)
 
         start_index = 2
         if self.frac_start_ind is not None:
             start_index = self.frac_start_ind
 
-        end_index = int(len(self.mass_rate_arr[start_index:])/4)
+        end_index = int(len(self.mass_rate_arr[start_index:]) / 4)
         if self.frac_end_ind is not None:
             end_index = self.frac_end_ind
 
-        mass_rate_arr_ind = self.mass_rate_arr[start_index:end_index+1]
+        mass_rate_arr_ind = self.mass_rate_arr[start_index:end_index + 1]
         mass_rate_arr_ind_tol = mass_rate_arr_ind[np.abs(mass_rate_arr_ind) < self.rate_tol]
-        self.frac_cal_ind = len(mass_rate_arr_ind_tol)/len(mass_rate_arr_ind)
+        self.frac_cal_ind = len(mass_rate_arr_ind_tol) / len(mass_rate_arr_ind)
 
         if max(np.abs(self.mass_rate_arr[1:])) < self.max_mass_rate:
             if self.frac_cal >= self.frac_threshold:
                 if self.frac_cal_ind >= self.frac_threshold_ind:
                     self.accept = True
 
+    def match_mass_rate_to_tp_array(self, ref_timepoint_array: np.ndarray):
+        """
+        update the timepoint array and mass rate array based on a reference timepoint array
+        :param ref_timepoint_array: reference timepoint array
+        :return: Nothing
+        """
+
+        if np.array_equal(self.timepoint_arr, ref_timepoint_array):
+            pass
+        else:
+            new_mass_rate_arr = np.zeros(len(ref_timepoint_array))
+            for ind, tp in enumerate(ref_timepoint_array):
+                if tp in self.timepoint_arr:
+                    where_ind = np.where(self.timepoint_arr == tp)[0][0]
+                    new_mass_rate_arr[ind] = self.mass_rate_arr[where_ind]
+                else:
+                    new_mass_rate_arr[ind] = new_mass_rate_arr[ind - 1]
+
+            # update the attributes here
+            self.timepoint_arr = ref_timepoint_array
+            self.mass_rate_arr = new_mass_rate_arr
+            print('updated the timepoint and mass rate array to match the reference timepoint array')
+
+            # check if the mass rate passes
+            self.check_mass_rate_pass()
+
 
 def calc_mass_diff_rate(ref_mass, mass_array):
-
     # todo: add param description
 
     diff_rate = np.zeros(len(mass_array))
     for ind, mass_val in enumerate(mass_array):
-        rate = (mass_val - ref_mass)/ref_mass
+        rate = (mass_val - ref_mass) / ref_mass
         diff_rate[ind] = rate
     return diff_rate
 
 
 def gen_mass_rate_obj(protein_name: str,
                       isotope_distribution: np.ndarray,
+                      timepoints: np.ndarray,
                       mass_rate_tol: float,
                       frac_thres: float,
                       frac_thres_ind: float,
                       start_ind: int,
                       end_ind: int,
                       max_mass_rate: float):
-
     # todo: add param description
 
     # fit gaussian to the isotope distributions
@@ -86,6 +116,7 @@ def gen_mass_rate_obj(protein_name: str,
                                 frac_start_ind=start_ind,
                                 frac_end_ind=end_ind,
                                 max_mass_rate=max_mass_rate,
+                                timepoint_arr=timepoints,
                                 mass_rate_arr=mass_rate_arr_)
 
     # check if mass rate object passes the tolerance
@@ -102,7 +133,6 @@ def gen_mass_rate_obj_from_file(protein_name: str,
                                 start_ind: int = None,
                                 end_ind: int = None,
                                 max_mass_rate: float = 1.0):
-
     # todo: add param description
 
     tp, iso_dist = load_data_from_hdx_ms_dist_(hx_ms_dist_fpath)
@@ -116,6 +146,7 @@ def gen_mass_rate_obj_from_file(protein_name: str,
                                          frac_thres_ind=frac_threshold_ind,
                                          start_ind=start_ind,
                                          end_ind=end_ind,
+                                         timepoints=tp,
                                          max_mass_rate=max_mass_rate)
 
     return mass_rate_object
@@ -128,7 +159,6 @@ def gen_list_of_mass_rate_obj(sample_csv_fpath: str,
                               start_ind: int = None,
                               end_ind: int = None,
                               max_mass_rate: float = 1.0):
-
     # todo: add param description
 
     sample_df = pd.read_csv(sample_csv_fpath)
@@ -140,7 +170,7 @@ def gen_list_of_mass_rate_obj(sample_csv_fpath: str,
 
     for ind, (prot_name, hx_ms_dist_fpath) in enumerate(zip(prot_names, hx_ms_dist_fpaths)):
 
-        #todo: investigate the source of error and create better solution than a general try and except
+        # todo: investigate the source of error and create better solution than a general try and except
 
         try:
             mass_rate_obj = gen_mass_rate_obj_from_file(protein_name=prot_name,
@@ -159,9 +189,32 @@ def gen_list_of_mass_rate_obj(sample_csv_fpath: str,
     return list_of_mass_rate_obj
 
 
-def filter_mass_rate_object(list_of_mass_rate_obj, min_number_accept=1, ch_frac_threshold=0.02, max_iter_number=50):
+def match_mass_rate_obj_to_ref_timepoint(list_of_mass_rate_obj):
+    # gen all timepoints
+    tp_list = [x.timepoint_arr for x in list_of_mass_rate_obj]
+    len_tp_list = [len(x) for x in tp_list]
+    tp_max_len_bool_list = []
+    for len_tp in len_tp_list:
+        if len_tp == max(len_tp_list):
+            tp_max_len_bool_list.append(True)
+        else:
+            tp_max_len_bool_list.append(False)
+    max_len_tp_list = [x for ind, x in enumerate(tp_list) if tp_max_len_bool_list[ind]]
 
+    # choose the first as the reference timepoint
+    reference_timepoint = max_len_tp_list[0]
+
+    for mass_rate_obj in list_of_mass_rate_obj:
+        mass_rate_obj.match_mass_rate_to_tp_array(ref_timepoint_array=reference_timepoint)
+
+    return list_of_mass_rate_obj
+
+
+def filter_mass_rate_object(list_of_mass_rate_obj, min_number_accept=1, ch_frac_threshold=0.02, max_iter_number=50):
     # todo: add param description
+
+    # make sure all mass rate obj have the same timepoint array
+    list_of_mass_rate_obj = match_mass_rate_obj_to_ref_timepoint(list_of_mass_rate_obj)
 
     accept_list = [x for x in list_of_mass_rate_obj if x.accept is True]
     reject_list = [x for x in list_of_mass_rate_obj if x.accept is False]
@@ -183,7 +236,7 @@ def filter_mass_rate_object(list_of_mass_rate_obj, min_number_accept=1, ch_frac_
     return new_list
 
 
-def write_backexchange_corr_to_file(protein_list, mass_rate_list, csv_out_path):
+def write_backexchange_corr_to_file(protein_list, mass_rate_list, timepoint_list, csv_out_path):
     """
     write the backexchange correction to a csv file with the correction rate
     :param bakexchange_corr_obj: backexchange correction object
@@ -197,20 +250,21 @@ def write_backexchange_corr_to_file(protein_list, mass_rate_list, csv_out_path):
 
     if len(mass_rate_list) == 1:
         protein_list_string += protein_list[0]
-        header += 'idx,avg_dm_rate,'+protein_list_string+'\n'
+        header += 'time,avg_dm_rate,' + protein_list_string + '\n'
         mass_rate_arr = mass_rate_list[0]
-        for num in range(len(mass_rate_arr)):
-            data_string += '{},{},{}\n'.format(num, mass_rate_arr[num], mass_rate_arr[num])
+        for ind, (time, dm_rate) in enumerate(zip(timepoint_list, mass_rate_arr)):
+            data_string += '{},{},{}\n'.format(time, dm_rate, dm_rate)
 
     else:
         protein_list_string += ','.join([x for x in protein_list])
-        header += 'idx,avg_dm_rate,'+protein_list_string+'\n'
+        header += 'time,avg_dm_rate,' + protein_list_string + '\n'
         mass_rate_arr = np.array(mass_rate_list)
         average_mass_rate = np.average(mass_rate_arr, axis=0)
         mass_rate_arr_t = mass_rate_arr.T
-        for num in range(len(average_mass_rate)):
-            mass_rate_arr_string = ','.join([str(x) for x in mass_rate_arr_t[num]])
-            data_string += '{},{},{}\n'.format(num, average_mass_rate[num], mass_rate_arr_string)
+        for ind, (time, avg_mass_rate, mass_rate_arr_) in enumerate(
+                zip(timepoint_list, average_mass_rate, mass_rate_arr_t)):
+            mass_rate_arr_string = ','.join([str(x) for x in mass_rate_arr_])
+            data_string += '{},{},{}\n'.format(time, avg_mass_rate, mass_rate_arr_string)
 
     with open(csv_out_path, 'w') as outfile:
         outfile.write(header + data_string)
@@ -218,7 +272,6 @@ def write_backexchange_corr_to_file(protein_list, mass_rate_list, csv_out_path):
 
 
 def plot_mass_rate_all(list_of_tp_bkexchange_obj, output_path):
-
     # todo: add param description
 
     false_color = 'grey'
@@ -321,8 +374,10 @@ def gen_backexchange_corr_obj_from_sample_list(sample_list_fpath: str,
     if csv_out_path is not None:
         mass_rate_array_list = [x.mass_rate_arr for x in new_mass_rate_object_list if x.accept is True]
         protein_list = [x.protein_name for x in new_mass_rate_object_list if x.accept is True]
+        tp_array = new_mass_rate_object_list[0].timepoint_arr
         write_backexchange_corr_to_file(protein_list=protein_list,
                                         mass_rate_list=mass_rate_array_list,
+                                        timepoint_list=tp_array,
                                         csv_out_path=csv_out_path)
 
     if return_flag:
@@ -334,7 +389,8 @@ def gen_parser_arguments():
     generate commandline arguements to generate backexchange correction file
     :return:parser
     """
-    parser = argparse.ArgumentParser(prog='Backexchange correction', description='Generate backexchange correction path')
+    parser = argparse.ArgumentParser(prog='Backexchange correction',
+                                     description='Generate backexchange correction path')
     parser.add_argument('-s', '--sample_fpath', help='file path for sample.csv', default='../../workfolder/sample.csv')
     parser.add_argument('-r', '--rate_tol', help='rate tolerance', default=0.05)
     parser.add_argument('-f', '--frac_threshold', help='fraction threshold', default=0.50)
@@ -352,7 +408,6 @@ def gen_parser_arguments():
 
 
 def gen_bkexch_corr_obj_from_parser(parser):
-
     options = parser.parse_args()
 
     gen_backexchange_corr_obj_from_sample_list(sample_list_fpath=options.sample_fpath,
@@ -374,3 +429,17 @@ if __name__ == '__main__':
     parser_ = gen_parser_arguments()
     gen_bkexch_corr_obj_from_parser(parser_)
 
+    # sample_list_fpath_ = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/lib15_ph9_sample_tt.csv'
+    #
+    # gen_backexchange_corr_obj_from_sample_list(sample_list_fpath=sample_list_fpath_,
+    #                                            rate_tol=0.05,
+    #                                            frac_threshold=0.5,
+    #                                            frac_threshold_bound=0.8,
+    #                                            start_bound=1,
+    #                                            end_bound=4,
+    #                                            max_rate=0.20,
+    #                                            min_number_paths=1,
+    #                                            change_frac_threshold=0.01,
+    #                                            plot_rate_path=sample_list_fpath_+'_dm_rate_2.pdf',
+    #                                            csv_out_path=sample_list_fpath_+'_backexchange_correction_2.csv',
+    #                                            return_flag=False)
