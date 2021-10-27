@@ -228,6 +228,7 @@ def gen_merged_dstirbution(sequence: str,
     # generate a sorted merged backexchange array
     merged_backexchange = np.concatenate([low_backexchange_array, high_backexchange_array[1:]])
     sorted_merged_backexchange = merged_backexchange[tp_sort_index]
+    merged_backexchange_correction_array = methods.gen_backexchange_correction_from_backexchange_array(backexchange_array=sorted_merged_backexchange)
 
     out_dict = dict()
     out_dict['low_tp'] = low_tp
@@ -241,6 +242,7 @@ def gen_merged_dstirbution(sequence: str,
     out_dict['merged_timepoints'] = sorted_merged_tp
     out_dict['merged_dist'] = sorted_merged_dist
     out_dict['merged_backexchange'] = sorted_merged_backexchange
+    out_dict['merged_backexchange_correction_array'] = merged_backexchange_correction_array
 
     return out_dict
 
@@ -291,6 +293,7 @@ def gen_high_low_merged_from_to_file(sequence: str,
                                      high_backexchange_corr_fpath: str,
                                      merged_backexchange_fpath: str or None,
                                      merged_data_fpath: str or None,
+                                     merged_backexchange_correction_fpath: str or None,
                                      factor_fpath: str or None,
                                      merge_plot_fpath: str or None):
 
@@ -334,6 +337,12 @@ def gen_high_low_merged_from_to_file(sequence: str,
         hxdata.write_backexchange_array(timepoints=merged_data_dict['merged_timepoints'],
                                         backexchange_array=merged_data_dict['merged_backexchange'],
                                         output_path=merged_backexchange_fpath)
+
+    # write the merged backexchange correction
+    if merged_backexchange_correction_fpath is not None:
+        hxdata.write_backexchange_correction_array(timepoints=merged_data_dict['merged_timepoints'],
+                                                   backexchange_correction_array=merged_data_dict['merged_backexchange_correction_array'],
+                                                   output_path=merged_backexchange_correction_fpath)
 
     # write factor and optimization info to a file
     if factor_fpath is not None:
@@ -384,6 +393,7 @@ if __name__ == '__main__':
         output_dir = hxdata.make_new_dir(output_top_dir + '/' + low_name + '_' + high_name)
         merged_data_path = os.path.join(output_dir, low_name + '_' + high_name + '_merged_data.csv')
         merged_backexchange_path = os.path.join(output_dir, low_name + '_' + high_name + '_merged_backexchange.csv')
+        merged_backexchange_corr_path = os.path.join(output_dir, low_name + '_' + high_name + '_merged_backexchange_correction.csv')
         factor_path = os.path.join(output_dir, low_name + '_' + high_name + '_factor.csv')
         factor_plot_path = os.path.join(output_dir, low_name + '_' + high_name + '_factor_plot.pdf')
 
@@ -399,6 +409,7 @@ if __name__ == '__main__':
                                          high_user_backexchange=None,
                                          high_backexchange_corr_fpath=high_backexchange_corr_fpath,
                                          merged_backexchange_fpath=merged_backexchange_path,
+                                         merged_backexchange_correction_fpath=merged_backexchange_corr_path,
                                          merged_data_fpath=merged_data_path,
                                          factor_fpath=factor_path,
                                          merge_plot_fpath=factor_plot_path)
