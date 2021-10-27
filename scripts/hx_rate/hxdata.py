@@ -92,6 +92,36 @@ def write_backexchange_array(timepoints, backexchange_array, output_path):
         outfile.close()
 
 
+def write_backexchange_correction_array(timepoints, backexchange_correction_array, output_path):
+    data_string = ''
+    header = 'time,avg_dm_rate\n'
+    for ind, (time, avg_mass_rate) in enumerate(zip(timepoints, backexchange_correction_array)):
+        data_string += '{},{}\n'.format(time, avg_mass_rate)
+
+    with open(output_path, 'w') as outfile:
+        outfile.write(header + data_string)
+        outfile.close()
+
+
+def load_backexhange_correction_(correction_fpath):
+    """
+    load the correction file path and outputs as a dictionary
+    :param correction_fpath:
+    :return:
+    """
+    df = pd.read_csv(correction_fpath)
+    timepoints = df.iloc[:, 0].values
+    correction_arr = df.iloc[:, 1].values
+
+    out_dict = dict()
+
+    for ind, (tp, corr) in enumerate(zip(timepoints, correction_arr)):
+
+        out_dict[tp] = corr
+
+    return out_dict
+
+
 def write_merge_factor(merge_factor, opt_mse, opt_nfev, opt_nit, opt_success, opt_message, output_path):
 
     header = 'factor,mse,opt_nfev,opt_nit,opt_success,opt_message\n'
