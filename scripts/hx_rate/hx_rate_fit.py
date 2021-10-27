@@ -11,7 +11,7 @@ from scipy.optimize import fmin_powell
 from methods import isotope_dist_from_PoiBin, gen_temp_rates, gen_theoretical_isotope_dist_for_all_timepoints, \
     normalize_mass_distribution_array, hx_rate_fitting_optimization, compute_rmse_exp_thr_iso_dist, \
     gauss_fit_to_isotope_dist_array, convert_hxrate_object_to_dict, plot_hx_rate_fitting_, gen_corr_backexchange
-from hxdata import load_data_from_hdx_ms_dist_, write_pickle_object, write_hx_rate_output, write_isotope_dist_timepoints
+from hxdata import load_data_from_hdx_ms_dist_, write_pickle_object, write_hx_rate_output, write_isotope_dist_timepoints, load_backexhange_correction_
 import time
 
 
@@ -53,9 +53,23 @@ class BackExchange(object):
     backexchange_value: float = None
     fit_rmse: float = None
     theoretical_isotope_dist: np.ndarray = None
-    correction_tp_: dict = None
-    backexchange_tp_: dict = None
+    backexchange_correction_dict: dict = None
     backexchange_array: np.ndarray = None
+
+    def gen_tp_backexchange_array(self, timepoints):
+        """
+        generate timepoint specific backexchange array
+        :param timepoints:
+        :return:
+        """
+        if self.backexchange_correction_dict is None:
+            self.backexchange_array = np.array([self.backexchange_value for _ in range(len(timepoints))])
+        else:
+            tp_backexchange_corr_array = np.zeros(len(timepoints))
+            for ind, tp in enumerate(timepoints):
+                tp_backexchange_corr_array[ind] = self.backexchange_correction_dict[tp]
+            self.backexchange_array = gen_corr_backexchange(mass_rate_array=tp_backexchange_corr_array,
+                                                            fix_backexchange_value=self.backexchange_value)
 
 
 def calc_back_exchange(sequence: str,
@@ -137,8 +151,7 @@ def fit_rate_without_backexchange_adjust(prot_name: str,
                                          free_energy_values: np.ndarray = None,
                                          temperature: float = None,
                                          backexchange_value: float = None,
-                                         backexchange_array: np.ndarray = None,
-                                         backexchange_correction_array: np.ndarray = None) -> object:
+                                         backexchange_correction_dict: dict = None) -> object:
 
     # todo: add param descritpions
 
@@ -170,15 +183,21 @@ def fit_rate_without_backexchange_adjust(prot_name: str,
                                            d2o_purity=d2o_purity,
                                            usr_backexchange=backexchange_value)
 
-    if backexchange_array is None:
-        if backexchange_correction_array is None:
-            # generate an array of backexchange with same backexchange value to an array of length of timepoints
-            back_exchange.backexchange_array = np.array([back_exchange.backexchange_value for x in time_points])
-        else:
-            back_exchange.backexchange_array = gen_corr_backexchange(mass_rate_array=backexchange_correction_array,
-                                                                     fix_backexchange_value=back_exchange.backexchange_value)
-    else:
-        back_exchange.backexchange_array = backexchange_array
+    # enter backexchange correction dictionary to class
+    back_exchange.backexchange_correction_dict = backexchange_correction_dict
+
+    # generate timepoint specific backexchange array
+    back_exchange.gen_tp_backexchange_array(timepoints=time_points)
+
+    # if backexchange_array is None:
+    #     if backexchange_correction_array is None:
+    #         # generate an array of backexchange with same backexchange value to an array of length of timepoints
+    #         back_exchange.backexchange_array = np.array([back_exchange.backexchange_value for x in time_points])
+    #     else:
+    #         back_exchange.backexchange_array = gen_corr_backexchange(mass_rate_array=backexchange_correction_array,
+    #                                                                  fix_backexchange_value=back_exchange.backexchange_value)
+    # else:
+    #     back_exchange.backexchange_array = backexchange_array
 
     # if backexchange_correction_array is None:
     # # generate an array of backexchange with same backexchange value to an array of length of timepoints
@@ -340,7 +359,7 @@ def fit_rate_with_backexchange_adjust(prot_name: str,
                                       free_energy_values: np.ndarray = None,
                                       temperature: float = None,
                                       backexchange_value: float = None,
-                                      backexchange_correction_array: np.ndarray = None,
+                                      backexchange_correction_dict: dict = None,
                                       max_res_subtract_for_backexchange: int = 3,
                                       slow_rates_max_diff: float = 1.6) -> object:
 
@@ -378,16 +397,23 @@ def fit_rate_with_backexchange_adjust(prot_name: str,
                                            d2o_purity=d2o_purity,
                                            usr_backexchange=backexchange_value)
 
+    # enter correction dict into the object
+    back_exchange.backexchange_correction_dict = backexchange_correction_dict
+
+    # generate timepoint specific backexhange array
+    back_exchange.gen_tp_backexchange_array(timepoints=time_points)
+
+    # set the original backexchange for reference
     original_backexchange = back_exchange.backexchange_value
 
     while backexchange_adjust is False:
 
-        if backexchange_correction_array is None:
-            # generate an array of backexchange with same backexchange value to an array of length of timepoints
-            back_exchange.backexchange_array = np.array([back_exchange.backexchange_value for x in time_points])
-        else:
-            back_exchange.backexchange_array = gen_corr_backexchange(mass_rate_array=backexchange_correction_array,
-                                                                     fix_backexchange_value=back_exchange.backexchange_value)
+        # if backexchange_correction_array is None:
+        #     # generate an array of backexchange with same backexchange value to an array of length of timepoints
+        #     back_exchange.backexchange_array = np.array([back_exchange.backexchange_value for x in time_points])
+        # else:
+        #     back_exchange.backexchange_array = gen_corr_backexchange(mass_rate_array=backexchange_correction_array,
+        #                                                              fix_backexchange_value=back_exchange.backexchange_value)
 
         # store backexchange object in hxrate object
         hxrate.back_exchange = back_exchange
@@ -521,6 +547,12 @@ def fit_rate_with_backexchange_adjust(prot_name: str,
                                                    d2o_purity=d2o_purity,
                                                    usr_backexchange=backexchange_value)
 
+                # enter correction dict into the object
+                back_exchange.backexchange_correction_dict = backexchange_correction_dict
+
+                # generate timepoint specific backexchange array
+                back_exchange.gen_tp_backexchange_array(timepoints=time_points)
+
     # generate theoretical isotope distribution array
     hxrate.thr_isotope_dist_array = gen_theoretical_isotope_dist_for_all_timepoints(sequence=sequence,
                                                                                     timepoints=time_points,
@@ -567,8 +599,6 @@ def fit_rate_from_to_file(prot_name: str,
                           temperature: float = None,
                           usr_backexchange: float = None,
                           backexchange_corr_fpath: str = None,
-                          backexchange_corr_prot_name: str = None,
-                          backexchange_array_fpath: str = None,
                           adjust_backexchange: bool = True,
                           hx_rate_output_path: str = None,
                           hx_rate_csv_output_path: str = None,
@@ -583,13 +613,10 @@ def fit_rate_from_to_file(prot_name: str,
     # normalize the mass distribution
     norm_dist = normalize_mass_distribution_array(mass_dist_array=mass_dist)
 
-    bkexch_corr_arr = None
+    # use backexchange correction dictionary
+    bkexch_corr_dict = None
     if backexchange_corr_fpath is not None:
-        bkcorr_df = pd.read_csv(backexchange_corr_fpath)
-        if backexchange_corr_prot_name is None:
-            bkexch_corr_arr = bkcorr_df.iloc[:, 1].values
-        else:
-            bkexch_corr_arr = bkcorr_df[backexchange_corr_prot_name].values
+        bkexch_corr_dict = load_backexhange_correction_(correction_fpath=backexchange_corr_fpath)
 
     # fit rate
     if adjust_backexchange:
@@ -607,10 +634,8 @@ def fit_rate_from_to_file(prot_name: str,
                                                           free_energy_values=free_energy_values,
                                                           temperature=temperature,
                                                           backexchange_value=usr_backexchange,
-                                                          backexchange_correction_array=bkexch_corr_arr)
+                                                          backexchange_correction_dict=bkexch_corr_dict)
     else:
-        backexchange_arr_df = pd.read_csv(backexchange_array_fpath)
-        backexchange_array_ = backexchange_arr_df.iloc[:, 1].values
         hxrate_object = fit_rate_without_backexchange_adjust(prot_name=prot_name,
                                                              sequence=sequence,
                                                              time_points=timepoints,
@@ -625,8 +650,7 @@ def fit_rate_from_to_file(prot_name: str,
                                                              free_energy_values=free_energy_values,
                                                              temperature=temperature,
                                                              backexchange_value=usr_backexchange,
-                                                             backexchange_correction_array=bkexch_corr_arr,
-                                                             backexchange_array=backexchange_array_)
+                                                             backexchange_correction_dict=bkexch_corr_dict)
 
     # convert hxrate object to dict and save as a pickle file
 
@@ -681,7 +705,7 @@ if __name__ == '__main__':
     # prot_name = 'PDB1Z96_12.30242'
     # prot_sequence = 'HMDPGLNSKIAQLVSMGFDPLEAAQALDAANGDLDVAASFLL'
     # hx_dist_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/lib15_ph6/PDB1Z96_12.30242_winner.cpickle.zlib.csv'
-    # bk_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/lib15_ph6_sample.csv_backexchange_correction.csv'
+    # bk_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/merged_data_ph6_ph7/EEHEE_rd4_0642.pdb_9.047_EEHEE_rd4_0642.pdb_9.11541/EEHEE_rd4_0642.pdb_9.047_EEHEE_rd4_0642.pdb_9.11541_merged_backexchange_correction.csv'
     #
     # fit_rate_from_to_file(prot_name=prot_name,
     #                       sequence=prot_sequence,
