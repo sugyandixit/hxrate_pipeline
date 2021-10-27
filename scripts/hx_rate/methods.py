@@ -80,6 +80,22 @@ def gen_corr_backexchange(mass_rate_array, fix_backexchange_value):
     return backexchange_array
 
 
+def gen_backexchange_correction_from_backexchange_array(backexchange_array):
+    """
+    gen mass correction array from backexchange array
+    :param backexchange_array:
+    :return:
+    """
+
+    correction_array = np.zeros(len(backexchange_array))
+    fix_backexchange_value = backexchange_array[-1]
+    for ind, bk_val in enumerate(backexchange_array):
+        mass_rate = ((bk_val - fix_backexchange_value) * (-1 - 0))/(1 - fix_backexchange_value)
+        correction_array[ind] = mass_rate
+
+    return correction_array
+
+
 def estimate_gauss_param(ydata: np.ndarray,
                          xdata: np.ndarray,
                          baseline: float = 0.0,
