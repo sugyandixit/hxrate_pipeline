@@ -1,3 +1,4 @@
+import argparse
 import numpy as np
 import pandas as pd
 from sklearn.metrics import mean_squared_error
@@ -295,7 +296,8 @@ def gen_high_low_merged_from_to_file(sequence: str,
                                      merged_data_fpath: str or None,
                                      merged_backexchange_correction_fpath: str or None,
                                      factor_fpath: str or None,
-                                     merge_plot_fpath: str or None):
+                                     merge_plot_fpath: str or None,
+                                     return_flag: bool = False):
 
     # read the ph data
     low_tp, low_dists = hxdata.load_data_from_hdx_ms_dist_(low_ph_data_fpath)
@@ -363,53 +365,107 @@ def gen_high_low_merged_from_to_file(sequence: str,
                              mse=merged_data_dict['factor_optimization']['opt_mse'],
                              output_path=merge_plot_fpath)
 
+    if return_flag:
+        return merged_data_dict
+
+
+def gen_parse_args():
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('-seq', '--sequence', help='protein sequence one letter code')
+    parser.add_argument('-ldata', '--lowphdata', help='low ph data filepath')
+    parser.add_argument('-ldf', '--lowdfrac', help='low d2o fraction')
+    parser.add_argument('-ldp', '--lowdpur', help='low d2o purity')
+    parser.add_argument('-lbk', '--lowbkex', help='low ph backexchange user value')
+    parser.add_argument('-lbkc', '--lowbkexcorr', help='low ph backexchange correction filepath')
+    parser.add_argument('-hdata', '--highphdata', help='high ph data filepath')
+    parser.add_argument('-hdf', '--highdfrac', help='high d2o fraction')
+    parser.add_argument('-hdp', '--highdpur', help='high d2o purity')
+    parser.add_argument('-hbk', '--highbkex', help='high ph backexchange user value')
+    parser.add_argument('-hbkc', '--highbkexcorr', help='high ph backexchange correction filepath')
+    parser.add_argument('-mbk', '--mergebkex', help='merge backexchange output filepath .csv')
+    parser.add_argument('-mbkc', '--mergebkexcorr', help='merge backexchange correction output filepath .csv')
+    parser.add_argument('-mdp', '--mergedatapath', help='merge distribution output filepath .csv')
+    parser.add_argument('-mpp', '--mergeplotpath', help='merge plot output filepath .pdf')
+    parser.add_argument('-mfp', '--mergefactorpath', help='merge factor output filepath .csv')
+
+    return parser
+
+
+def run_from_parser():
+
+    parser_ = gen_parse_args()
+    options = parser_.parse_args()
+
+    gen_high_low_merged_from_to_file(sequence=options.sequence,
+                                     low_ph_data_fpath=options.ldata,
+                                     low_d2o_frac=options.ldf,
+                                     low_d2o_purity=options.ldp,
+                                     low_user_backexchange=options.lbk,
+                                     low_backexchange_corr_fpath=options.lbkc,
+                                     high_ph_data_fpath=options.hdata,
+                                     high_d2o_frac=options.hdf,
+                                     high_d2o_purity=options.hdp,
+                                     high_user_backexchange=options.hbk,
+                                     high_backexchange_corr_fpath=options.hbkc,
+                                     merged_backexchange_fpath=options.mbk,
+                                     merged_backexchange_correction_fpath=options.mbkc,
+                                     merged_data_fpath=options.mdp,
+                                     factor_fpath=options.mfp,
+                                     merge_plot_fpath=options.mpp,
+                                     return_flag=False)
+
+
 if __name__ == '__main__':
 
-    common_backexchange_filepath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bkexch_corr_output/common_2.csv_bkexchange.csv'
-    common_backexchange_df = pd.read_csv(common_backexchange_filepath)
-    # common_backexchange_df['comp_bool'] = np.array([1 for x in range(len(common_backexchange_df['sequence'].values))])
+    run_from_parser()
 
-    low_backexchange_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/lib15_ph6_sample.csv_backexchange_correction.csv'
-    high_backexchange_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/lib15_ph7_sample.csv_backexchange_correction.csv'
-
-    comp_df = common_backexchange_df[common_backexchange_df['comp_bool'] == 1]
-
-    low_fpath_dir = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/lib15_ph6'
-    high_fpath_dir = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/lib15_ph7'
-
-    d2o_frac = 0.95
-    d2o_pur = 0.95
-
-    output_top_dir = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/merged_data_ph6_ph7'
-
-    import glob
-    import os
-
-    for ind, (low_name, high_name, seq) in enumerate(zip(comp_df['ph6'].values, comp_df['ph7'].values, comp_df['sequence'].values)):
-
-        low_phdata_fpath = glob.glob(low_fpath_dir + '/' + low_name + '*.csv')[0]
-        high_phdata_fpath = glob.glob(high_fpath_dir + '/' + high_name + '*.csv')[0]
-
-        output_dir = hxdata.make_new_dir(output_top_dir + '/' + low_name + '_' + high_name)
-        merged_data_path = os.path.join(output_dir, low_name + '_' + high_name + '_merged_data.csv')
-        merged_backexchange_path = os.path.join(output_dir, low_name + '_' + high_name + '_merged_backexchange.csv')
-        merged_backexchange_corr_path = os.path.join(output_dir, low_name + '_' + high_name + '_merged_backexchange_correction.csv')
-        factor_path = os.path.join(output_dir, low_name + '_' + high_name + '_factor.csv')
-        factor_plot_path = os.path.join(output_dir, low_name + '_' + high_name + '_factor_plot.pdf')
-
-        gen_high_low_merged_from_to_file(sequence=seq,
-                                         low_ph_data_fpath=low_phdata_fpath,
-                                         low_d2o_frac=d2o_frac,
-                                         low_d2o_purity=d2o_pur,
-                                         low_user_backexchange=None,
-                                         low_backexchange_corr_fpath=low_backexchange_corr_fpath,
-                                         high_ph_data_fpath=high_phdata_fpath,
-                                         high_d2o_frac=d2o_frac,
-                                         high_d2o_purity=d2o_pur,
-                                         high_user_backexchange=None,
-                                         high_backexchange_corr_fpath=high_backexchange_corr_fpath,
-                                         merged_backexchange_fpath=merged_backexchange_path,
-                                         merged_backexchange_correction_fpath=merged_backexchange_corr_path,
-                                         merged_data_fpath=merged_data_path,
-                                         factor_fpath=factor_path,
-                                         merge_plot_fpath=factor_plot_path)
+    # common_backexchange_filepath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bkexch_corr_output/common_2.csv_bkexchange.csv'
+    # common_backexchange_df = pd.read_csv(common_backexchange_filepath)
+    # # common_backexchange_df['comp_bool'] = np.array([1 for x in range(len(common_backexchange_df['sequence'].values))])
+    #
+    # low_backexchange_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/lib15_ph6_sample.csv_backexchange_correction.csv'
+    # high_backexchange_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/lib15_ph7_sample.csv_backexchange_correction.csv'
+    #
+    # comp_df = common_backexchange_df[common_backexchange_df['comp_bool'] == 1]
+    #
+    # low_fpath_dir = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/lib15_ph6'
+    # high_fpath_dir = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/lib15_ph7'
+    #
+    # d2o_frac = 0.95
+    # d2o_pur = 0.95
+    #
+    # output_top_dir = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/merged_data_ph6_ph7'
+    #
+    # import glob
+    # import os
+    #
+    # for ind, (low_name, high_name, seq) in enumerate(zip(comp_df['ph6'].values, comp_df['ph7'].values, comp_df['sequence'].values)):
+    #
+    #     low_phdata_fpath = glob.glob(low_fpath_dir + '/' + low_name + '*.csv')[0]
+    #     high_phdata_fpath = glob.glob(high_fpath_dir + '/' + high_name + '*.csv')[0]
+    #
+    #     output_dir = hxdata.make_new_dir(output_top_dir + '/' + low_name + '_' + high_name)
+    #     merged_data_path = os.path.join(output_dir, low_name + '_' + high_name + '_merged_data.csv')
+    #     merged_backexchange_path = os.path.join(output_dir, low_name + '_' + high_name + '_merged_backexchange.csv')
+    #     merged_backexchange_corr_path = os.path.join(output_dir, low_name + '_' + high_name + '_merged_backexchange_correction.csv')
+    #     factor_path = os.path.join(output_dir, low_name + '_' + high_name + '_factor.csv')
+    #     factor_plot_path = os.path.join(output_dir, low_name + '_' + high_name + '_factor_plot.pdf')
+    #
+    #     gen_high_low_merged_from_to_file(sequence=seq,
+    #                                      low_ph_data_fpath=low_phdata_fpath,
+    #                                      low_d2o_frac=d2o_frac,
+    #                                      low_d2o_purity=d2o_pur,
+    #                                      low_user_backexchange=None,
+    #                                      low_backexchange_corr_fpath=low_backexchange_corr_fpath,
+    #                                      high_ph_data_fpath=high_phdata_fpath,
+    #                                      high_d2o_frac=d2o_frac,
+    #                                      high_d2o_purity=d2o_pur,
+    #                                      high_user_backexchange=None,
+    #                                      high_backexchange_corr_fpath=high_backexchange_corr_fpath,
+    #                                      merged_backexchange_fpath=merged_backexchange_path,
+    #                                      merged_backexchange_correction_fpath=merged_backexchange_corr_path,
+    #                                      merged_data_fpath=merged_data_path,
+    #                                      factor_fpath=factor_path,
+    #                                      merge_plot_fpath=factor_plot_path)
