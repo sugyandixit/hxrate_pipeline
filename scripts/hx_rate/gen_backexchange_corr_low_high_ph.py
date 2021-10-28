@@ -5,13 +5,13 @@ import matplotlib.pyplot as plt
 from hx_rate_fit import calc_back_exchange
 from scipy.stats import linregress
 import methods
+import argparse
 
 
 def gen_list_of_backexchange(list_of_dist_files,
                              list_of_seq,
                              d2o_frac,
-                             d2o_purity,
-                             check_saturation=True):
+                             d2o_purity):
     """
 
     :param list_of_dist_files:
@@ -75,114 +75,6 @@ def plot_backexchange_correlation(low_ph_corr_bkexch,
     plt.close()
 
 
-def gen_low_high_ph_bkexchange_(merge_sample_list_fpath,
-                                low_ph_d2o_frac,
-                                low_ph_d2o_pur,
-                                high_ph_d2o_frac,
-                                high_ph_d2o_pur,
-                                bkexchange_bounds,
-                                plot_output_path,
-                                output_path):
-    """
-
-    :param merge_sample_list_fpath:
-    :param low_ph_d2o_frac:
-    :param low_ph_d2o_pur:
-    :param high_ph_d2o_frac:
-    :param high_ph_d2o_pur:
-    :param output_path:
-    :return:
-    """
-
-    merge_sample_df = pd.read_csv(merge_sample_list_fpath)
-
-    seq_array = merge_sample_df['sequence'].values
-
-    prot_name_array = merge_sample_df['protein_name'].values
-
-    high_ph_fpath_list = merge_sample_df['high_ph_data_fpath'].values
-    low_ph_fpath_list = merge_sample_df['low_ph_data_fpath'].values
-
-    check_saturation_bool_high = [check_saturation_from_file(fpath=x,
-                                                             mass_rate_threshold=0.03,
-                                                             dist_indices=[-1, -2]) for x in high_ph_fpath_list]
-    check_saturation_bool_low = [check_saturation_from_file(fpath=x,
-                                                            mass_rate_threshold=0.03,
-                                                            dist_indices=[-1, -2]) for x in low_ph_fpath_list]
-
-    check_saturation_bool = []
-    for bool_low, bool_high in zip(check_saturation_bool_low, check_saturation_bool_high):
-        if bool_low:
-            if bool_high:
-                check_saturation_bool.append(True)
-            else:
-                check_saturation_bool.append(False)
-        else:
-            check_saturation_bool.append(False)
-
-    low_ph_backexchange_arr = np.array(gen_list_of_backexchange(list_of_dist_files=low_ph_fpath_list,
-                                                                list_of_seq=seq_array,
-                                                                d2o_frac=low_ph_d2o_frac,
-                                                                d2o_purity=low_ph_d2o_pur))
-    high_ph_backexchange_arr = np.array(gen_list_of_backexchange(list_of_dist_files=high_ph_fpath_list,
-                                                                 list_of_seq=seq_array,
-                                                                 d2o_frac=high_ph_d2o_frac,
-                                                                 d2o_purity=high_ph_d2o_pur))
-
-    print('heho')
-
-    out_dict = dict()
-    out_dict['low_ph_backexchange_array'] = low_ph_backexchange_arr
-    out_dict['high_ph_backexchange_array'] = high_ph_backexchange_arr
-
-    corr_include_indices = []
-    no_corr_indices = []
-    for ind, (low_ph_bkexch_, high_ph_bkexch_) in enumerate(zip(low_ph_backexchange_arr, high_ph_backexchange_arr)):
-        if check_saturation_bool[ind]:
-            if bkexchange_bounds[0] <= low_ph_bkexch_ <= bkexchange_bounds[1]:
-                if bkexchange_bounds[0] <= high_ph_bkexch_ <= bkexchange_bounds[1]:
-                    corr_include_indices.append(ind)
-                else:
-                    no_corr_indices.append(ind)
-            else:
-                no_corr_indices.append(ind)
-        else:
-            no_corr_indices.append(ind)
-
-    corr_include_indices = np.array(corr_include_indices)
-    no_corr_indices = np.array(no_corr_indices)
-
-    low_ph_bkexch_corr = low_ph_backexchange_arr[corr_include_indices]
-    high_ph_bkexch_corr = high_ph_backexchange_arr[corr_include_indices]
-
-    low_ph_bkexch_nocorr = low_ph_backexchange_arr[no_corr_indices]
-    high_ph_bkexch_nocorr = high_ph_backexchange_arr[no_corr_indices]
-
-    linreg = linregress(x=low_ph_bkexch_corr,
-                        y=high_ph_bkexch_corr)
-
-    low_ph_bkexch_linreg = low_ph_backexchange_arr * linreg[0] + linreg[1]
-
-    plot_backexchange_correlation(low_ph_bkexch_corr,
-                                  high_ph_bkexch_corr,
-                                  low_ph_nocorr_backexch=low_ph_bkexch_nocorr,
-                                  high_ph_nocorr_backexch=high_ph_bkexch_nocorr,
-                                  corr_slope=linreg[0],
-                                  corr_intercept=linreg[1],
-                                  corr_r=linreg[2],
-                                  output_path=plot_output_path)
-
-    write_low_high_backexchange_array(low_ph_protein_name=merge_sample_df['protein_name_low_ph'].values,
-                                      high_ph_protein_name=merge_sample_df['protein_name_high_ph'].values,
-                                      low_ph_backexchange_array=low_ph_backexchange_arr,
-                                      high_ph_backexchange_array=high_ph_backexchange_arr,
-                                      corr_include_indices=corr_include_indices,
-                                      low_ph_linreg_bkexchange=low_ph_bkexch_linreg,
-                                      output_path=output_path)
-
-    return out_dict
-
-
 def check_for_exchange_saturation(dist_list, mass_rate_threshold=0.03):
     """
 
@@ -219,8 +111,10 @@ def write_low_high_backexchange_array(low_ph_protein_name,
                                       high_ph_protein_name,
                                       low_ph_backexchange_array,
                                       high_ph_backexchange_array,
+                                      low_ph_saturation,
+                                      high_ph_saturation,
                                       corr_include_indices,
-                                      low_ph_linreg_bkexchange,
+                                      low_ph_backexchange_new,
                                       output_path):
     """
 
@@ -236,37 +130,238 @@ def write_low_high_backexchange_array(low_ph_protein_name,
     corr_include_arr = np.zeros(len(low_ph_backexchange_array))
     corr_include_arr[corr_include_indices] = 1
 
-    header = 'low_ph_protein_name,high_ph_protein_name,low_ph_backexchange,high_ph_backexchange,corr_include,low_ph_backexchange_linreg\n'
+    header = 'low_ph_protein_name,high_ph_protein_name,low_ph_backexchange,high_ph_backexchange,low_ph_saturation,high_ph_saturation,corr_include,low_ph_backexchange_new\n'
     data_string = ''
 
-    for ind, (low_prot_name, high_prot_name, low_backexchange, high_backexchange, corr_include_num, low_ph_linreg) in enumerate(zip(low_ph_protein_name,
-                                                                                                   high_ph_protein_name,
-                                                                                                   low_ph_backexchange_array,
-                                                                                                   high_ph_backexchange_array,
-                                                                                                                     corr_include_arr,
-                                                                                                                                    low_ph_linreg_bkexchange)):
+    for num in range(len(corr_include_arr)):
 
-        data_string += '{},{},{},{},{},{}\n'.format(low_prot_name, high_prot_name, low_backexchange, high_backexchange, corr_include_num, low_ph_linreg)
+        data_string += '{},{},{},{},{},{},{},{}\n'.format(low_ph_protein_name[num],
+                                                          high_ph_protein_name[num],
+                                                          low_ph_backexchange_array[num],
+                                                          high_ph_backexchange_array[num],
+                                                          low_ph_saturation[num],
+                                                          high_ph_saturation[num],
+                                                          corr_include_arr[num],
+                                                          low_ph_backexchange_new[num])
 
     with open(output_path, 'w') as outfile:
         outfile.write(header + data_string)
         outfile.close()
 
 
+def write_low_high_backexchange_correlation(slope,
+                                            intercept,
+                                            rvalue,
+                                            pvalue,
+                                            std_slope_error,
+                                            std_intercept_error,
+                                            output_path):
+
+    header = 'slope,intercept,rvalue,pvalue,std_slope_error,std_intercept_error\n'
+    data_string = '{},{},{},{},{},{}\n'.format(slope,
+                                               intercept,
+                                               rvalue,
+                                               pvalue,
+                                               std_slope_error,
+                                               std_intercept_error)
+
+    with open(output_path, 'w') as outfile:
+        outfile.write(header + data_string)
+        outfile.close()
+
+
+def gen_low_high_ph_bkexchange_(merge_sample_list_fpath: str,
+                                low_ph_d2o_frac: float,
+                                low_ph_d2o_pur: float,
+                                high_ph_d2o_frac: float,
+                                high_ph_d2o_pur: float,
+                                bkexchange_ub: float,
+                                bkexchange_lb: float,
+                                saturation_mass_rate_threshold: float,
+                                plot_output_path: str = None,
+                                bkexchange_corr_output_path: str = None,
+                                bkexchange_output_path: str = None,
+                                return_flag: bool = False):
+    """
+
+    :param merge_sample_list_fpath:
+    :param low_ph_d2o_frac:
+    :param low_ph_d2o_pur:
+    :param high_ph_d2o_frac:
+    :param high_ph_d2o_pur:
+    :param bkexchange_ub:
+    :param bkexchange_lb:
+    :param plot_output_path:
+    :param bkexchange_corr_output_path:
+    :param bkexchange_output_path:
+    :param return_flag:
+    :return:
+    """
+
+    merge_sample_df = pd.read_csv(merge_sample_list_fpath)
+
+    seq_array = merge_sample_df['sequence'].values
+
+    high_ph_fpath_list = merge_sample_df['high_ph_data_fpath'].values
+    low_ph_fpath_list = merge_sample_df['low_ph_data_fpath'].values
+
+    check_saturation_bool_high = [check_saturation_from_file(fpath=x,
+                                                             mass_rate_threshold=saturation_mass_rate_threshold,
+                                                             dist_indices=[-1, -2]) for x in high_ph_fpath_list]
+
+    check_saturation_bool_low = [check_saturation_from_file(fpath=x,
+                                                            mass_rate_threshold=saturation_mass_rate_threshold,
+                                                            dist_indices=[-1, -2]) for x in low_ph_fpath_list]
+
+    check_saturation_bool = []
+    for bool_low, bool_high in zip(check_saturation_bool_low, check_saturation_bool_high):
+        if bool_low:
+            if bool_high:
+                check_saturation_bool.append(True)
+            else:
+                check_saturation_bool.append(False)
+        else:
+            check_saturation_bool.append(False)
+
+    low_ph_backexchange_arr = np.array(gen_list_of_backexchange(list_of_dist_files=low_ph_fpath_list,
+                                                                list_of_seq=seq_array,
+                                                                d2o_frac=low_ph_d2o_frac,
+                                                                d2o_purity=low_ph_d2o_pur))
+    high_ph_backexchange_arr = np.array(gen_list_of_backexchange(list_of_dist_files=high_ph_fpath_list,
+                                                                 list_of_seq=seq_array,
+                                                                 d2o_frac=high_ph_d2o_frac,
+                                                                 d2o_purity=high_ph_d2o_pur))
+
+    out_dict = dict()
+    out_dict['low_ph_backexchange_array'] = low_ph_backexchange_arr
+    out_dict['high_ph_backexchange_array'] = high_ph_backexchange_arr
+
+    corr_include_indices = []
+    no_corr_indices = []
+    for ind, (low_ph_bkexch_, high_ph_bkexch_) in enumerate(zip(low_ph_backexchange_arr, high_ph_backexchange_arr)):
+        if check_saturation_bool[ind]:
+            if bkexchange_lb <= low_ph_bkexch_ <= bkexchange_ub:
+                if bkexchange_lb <= high_ph_bkexch_ <= bkexchange_ub:
+                    corr_include_indices.append(ind)
+                else:
+                    no_corr_indices.append(ind)
+            else:
+                no_corr_indices.append(ind)
+        else:
+            no_corr_indices.append(ind)
+
+    corr_include_indices = np.array(corr_include_indices)
+    no_corr_indices = np.array(no_corr_indices)
+
+    low_ph_bkexch_corr = low_ph_backexchange_arr[corr_include_indices]
+    high_ph_bkexch_corr = high_ph_backexchange_arr[corr_include_indices]
+
+    low_ph_bkexch_nocorr = low_ph_backexchange_arr[no_corr_indices]
+    high_ph_bkexch_nocorr = high_ph_backexchange_arr[no_corr_indices]
+
+    linreg = linregress(x=low_ph_bkexch_corr,
+                        y=high_ph_bkexch_corr)
+
+    # generate low ph backexchange if saturation not achieved
+    low_ph_bkexch_new_arr = np.zeros(len(low_ph_backexchange_arr))
+    for ind, (low_ph_bkexch, high_ph_bkexch, low_ph_satur) in enumerate(zip(low_ph_backexchange_arr, high_ph_backexchange_arr, check_saturation_bool_low)):
+        if low_ph_satur:
+            low_ph_bkexch_new_arr[ind] = low_ph_bkexch
+        else:
+            new_low_ph_bkexch = (high_ph_bkexch - linreg[1])/linreg[0]
+            low_ph_bkexch_new_arr[ind] = new_low_ph_bkexch
+
+    plot_backexchange_correlation(low_ph_bkexch_corr,
+                                  high_ph_bkexch_corr,
+                                  low_ph_nocorr_backexch=low_ph_bkexch_nocorr,
+                                  high_ph_nocorr_backexch=high_ph_bkexch_nocorr,
+                                  corr_slope=linreg[0],
+                                  corr_intercept=linreg[1],
+                                  corr_r=linreg[2],
+                                  output_path=plot_output_path)
+
+    write_low_high_backexchange_correlation(slope=linreg[0],
+                                            intercept=linreg[1],
+                                            rvalue=linreg[2],
+                                            pvalue=linreg[3],
+                                            std_slope_error=linreg[4],
+                                            std_intercept_error=linreg[5],
+                                            output_path=bkexchange_corr_output_path)
+
+    write_low_high_backexchange_array(low_ph_protein_name=merge_sample_df['protein_name_low_ph'].values,
+                                      high_ph_protein_name=merge_sample_df['protein_name_high_ph'].values,
+                                      low_ph_backexchange_array=low_ph_backexchange_arr,
+                                      high_ph_backexchange_array=high_ph_backexchange_arr,
+                                      low_ph_saturation=check_saturation_bool_low,
+                                      high_ph_saturation=check_saturation_bool_high,
+                                      corr_include_indices=corr_include_indices,
+                                      low_ph_backexchange_new=low_ph_bkexch_new_arr,
+                                      output_path=bkexchange_output_path)
+
+    if return_flag:
+        return out_dict
+
+
+def gen_parser_args():
+    """
+    generate parser
+    :return: parser
+    """
+
+    parser = argparse.ArgumentParser(prog='GEN BACKEXCHANGE HIGH LOW', description='Generate backexchange for high and low phs')
+    parser.add_argument('-s', '--samplepath', help='merge sample list file path .csv')
+    parser.add_argument('-ldf', '--lowdfrac', help='low d2o fraction')
+    parser.add_argument('-ldp', '--lowdpur', help='low d2o purity')
+    parser.add_argument('-hdf', '--highdfrac', help='high d2o fraction')
+    parser.add_argument('-hdp', '--highdpur', help='high d2o purity')
+    parser.add_argument('-smr', '--saturmassrate', help='saturation mass rate threshold')
+    parser.add_argument('-blb', '--bklowbound', help='backexchange low bound for correlation')
+    parser.add_argument('-bub', '--bkupbound', help='backexchange upper bound for correlation')
+    parser.add_argument('-bco', '--bkcorrout', help='backexchange correlation csv output path')
+    parser.add_argument('-bcp', '--bkplotout', help='backexchange correlation plot path')
+    parser.add_argument('-bko', '--bkoutput', help='backexchange high low csv output path')
+    return parser
+
+
+def run_from_parser():
+
+    parser = gen_parser_args()
+
+    options = parser.parse_args()
+
+    gen_low_high_ph_bkexchange_(merge_sample_list_fpath=options.samplepath,
+                                low_ph_d2o_frac=options.lowdfrac,
+                                low_ph_d2o_pur=options.lowdpur,
+                                high_ph_d2o_frac=options.highdfrac,
+                                high_ph_d2o_pur=options.highdpur,
+                                bkexchange_ub=options.bklowbound,
+                                bkexchange_lb=options.bkupbound,
+                                saturation_mass_rate_threshold=options.saturmassrate,
+                                plot_output_path=options.plotout,
+                                bkexchange_corr_output_path=options.bkcorrout,
+                                bkexchange_output_path=options.bkoutput,
+                                return_flag=False)
+
+
 if __name__ == '__main__':
 
-    merge_sample_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/merged_data/merge_sample_list.csv'
+    run_from_parser()
 
-    output_dir = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/merged_data'
-
-    d2o_frac = 0.95
-    d2o_pur = 0.95
-
-    gen_low_high_ph_bkexchange_(merge_sample_list_fpath=merge_sample_fpath,
-                                low_ph_d2o_frac=d2o_frac,
-                                low_ph_d2o_pur=d2o_pur,
-                                high_ph_d2o_frac=d2o_frac,
-                                high_ph_d2o_pur=d2o_pur,
-                                bkexchange_bounds=[0.15, 0.30],
-                                output_path=output_dir+'/merge_backexchange_v3.csv',
-                                plot_output_path=output_dir+'/merge_backexchange_v3.pdf')
+    # merge_sample_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/merged_data/merge_sample_list.csv'
+    #
+    # output_dir = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/merged_data'
+    #
+    # d2o_frac = 0.95
+    # d2o_pur = 0.95
+    #
+    # gen_low_high_ph_bkexchange_(merge_sample_list_fpath=merge_sample_fpath,
+    #                             low_ph_d2o_frac=d2o_frac,
+    #                             low_ph_d2o_pur=d2o_pur,
+    #                             high_ph_d2o_frac=d2o_frac,
+    #                             high_ph_d2o_pur=d2o_pur,
+    #                             bkexchange_lb=0.15,
+    #                             bkexchange_ub=0.30,
+    #                             saturation_mass_rate_threshold=0.03,
+    #                             plot_output_path=output_dir + '/merge_bkexchange_plot.pdf',
+    #                             bkexchange_corr_output_path=output_dir + '/merge_backexchange_corr.csv',
+    #                             bkexchange_output_path=output_dir + '/merge_backexchange_output.csv')
