@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import glob
 from dataclasses import dataclass
+import argparse
 
 
 @dataclass
@@ -159,31 +160,67 @@ def generate_match_sample_list(low_ph_top_dir,
         outfile.close()
 
 
+def gen_parser_args():
+
+    parser = argparse.ArgumentParser(prog='MERGE SAMPLE', description='Generate Sample list for merging low and high ph data')
+    parser.add_argument('-ltd', '--lowtopdir', help='low ph top directory for hxms files')
+    parser.add_argument('-llv', '--lowlevel', help='level in which to find low ph hxms files in low top directory')
+    parser.add_argument('-htd', '--hightopdir', help='high ph top directory for hxms files')
+    parser.add_argument('-hlv', '--lowlevel', help='level in which to find high ph hxms files in high top directory')
+    parser.add_argument('-lds', '--lowdelimstr', help='low ph hxms files delim string')
+    parser.add_argument('-hds', '--highdelimstr', help='high ph hxms files delim string')
+    parser.add_argument('-lli', '-lowlibinfo', help='low ph library info .json')
+    parser.add_argument('-hli', '--highlibinfo', help='high ph library info .json')
+    parser.add_argument('-rtw', '--rtwindow', help='rt window inclusion')
+    parser.add_argument('-o', '--outputpath', help='merging list output path .csv')
+
+    return parser
+
+
+def run_from_parser():
+
+    parser_ = gen_parser_args()
+    options = parser_.parse_args()
+
+    generate_match_sample_list(low_ph_top_dir=options.ltd,
+                               high_ph_top_dir=options.htd,
+                               low_ph_level_to_files=options.llv,
+                               high_ph_level_to_files=options.hlv,
+                               low_ph_file_id_str=options.lds,
+                               high_ph_file_id_str=options.hds,
+                               low_ph_lib_info_fpath=options.lli,
+                               high_ph_lib_info_fpath=options.hli,
+                               rt_search_window=options.rtw,
+                               output_path=options.o)
+
+
 if __name__ == '__main__':
 
-    ph6_libinfo_fpath = '/Users/smd4193/OneDrive - Northwestern University/MS_data/2021_lib15_ph6/config_rt_wide_window_extraction_all_prots_tic_cumsum_warp/resources/library_info/library_info.json'
-    ph7_libinfo_fpath = '/Users/smd4193/OneDrive - Northwestern University/MS_data/2021_lib15_ph7/resources/library_info/library_info.json'
+    run_from_parser()
 
-    low_ph_dir = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/lib15_ph6'
-    high_ph_dir = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/lib15_ph7'
-
-    low_ph_level = 1
-    high_ph_level = 1
-
-    rt_search_window = 0.5
-
-    low_ph_file_id_str = '*winner.cpickle.zlib.csv'
-    high_ph_file_id_str = '*winner.cpickle.zlib.csv'
-
-    output_path = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/merged_data/merge_sample_list.csv'
-
-    generate_match_sample_list(low_ph_top_dir=low_ph_dir,
-                               high_ph_top_dir=high_ph_dir,
-                               low_ph_level_to_files=low_ph_level,
-                               high_ph_level_to_files=high_ph_level,
-                               low_ph_file_id_str=low_ph_file_id_str,
-                               high_ph_file_id_str=high_ph_file_id_str,
-                               low_ph_lib_info_fpath=ph6_libinfo_fpath,
-                               high_ph_lib_info_fpath=ph7_libinfo_fpath,
-                               rt_search_window=rt_search_window,
-                               output_path=output_path)
+    # ph6_libinfo_fpath = '/Users/smd4193/OneDrive - Northwestern University/MS_data/2021_lib15_ph6/config_rt_wide_window_extraction_all_prots_tic_cumsum_warp/resources/library_info/library_info.json'
+    # ph7_libinfo_fpath = '/Users/smd4193/OneDrive - Northwestern University/MS_data/2021_lib15_ph7/resources/library_info/library_info.json'
+    #
+    # low_ph_dir = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/lib15_ph6'
+    # high_ph_dir = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/lib15_ph7'
+    #
+    # low_ph_level = 1
+    # high_ph_level = 1
+    #
+    # rt_search_window = 0.5
+    #
+    # low_ph_file_id_str = '*winner.cpickle.zlib.csv'
+    # high_ph_file_id_str = '*winner.cpickle.zlib.csv'
+    #
+    # output_path = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/merged_data/merge_sample_list.csv'
+    #
+    # generate_match_sample_list(low_ph_top_dir=low_ph_dir,
+    #                            high_ph_top_dir=high_ph_dir,
+    #                            low_ph_level_to_files=low_ph_level,
+    #                            high_ph_level_to_files=high_ph_level,
+    #                            low_ph_file_id_str=low_ph_file_id_str,
+    #                            high_ph_file_id_str=high_ph_file_id_str,
+    #                            low_ph_lib_info_fpath=ph6_libinfo_fpath,
+    #                            high_ph_lib_info_fpath=ph7_libinfo_fpath,
+    #                            rt_search_window=rt_search_window,
+    #                            output_path=output_path)
