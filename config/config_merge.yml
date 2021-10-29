@@ -29,6 +29,10 @@ high_ph_d2o_pur: 0.95
 high_ph_backexchange_correction_fpath:
 
 
+# merge rt window search
+merge_rt_window: 1.0
+
+
 # output directory path
 output_dirpath: "/projects/p31346/suggie/hx_rates_workfolder/merge_output"
 
