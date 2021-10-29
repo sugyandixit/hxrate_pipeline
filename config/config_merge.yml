@@ -32,6 +32,15 @@ high_ph_backexchange_correction_fpath:
 # merge rt window search
 merge_rt_window: 1.0
 
+# saturate mass rate threshold to check if the path has reached maximum deuteration
+saturation_mass_rate: 0.03
+
+
+# backexchange bounds for correlation
+backexhange_low_bound: 0.15
+backexchange_up_bound: 0.30
+
+
 
 # output directory path
 output_dirpath: "/projects/p31346/suggie/hx_rates_workfolder/merge_output"
