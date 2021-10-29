@@ -9,12 +9,15 @@ benchmark_dpath = config['output_dirpath'] + '/benchmark'
 
 # set the python scripts path
 scripts_dirpath = config['path_to_repo'] + '/scripts/hx_rate'
-gen_time_specific_bkexch_path = scripts_dirpath + '/gen_time_specific_bkexch.py'
+gen_sample_csv_python_path = scripts_dirpath + '/gen_sample_csv.py'
 gen_merge_sample_csv_python_path = scripts_dirpath + '/generate_sample_csv_for_merging.py'
 
 
 rule all:
-    input:  config['output_dirpath'] + '/merge_sample.csv'
+    input:
+        merge_sample_csv = config['output_dirpath'] + '/merge_sample.csv',
+        low_ph_sample_csv = config['output_dirpath'] + '/low_ph_sample.csv',
+        high_ph_sample_csv = config['output_dirpath'] + '/high_ph_sample.csv'
 
 
 rule generate_merge_sample_csv:
@@ -37,3 +40,37 @@ rule generate_merge_sample_csv:
         benchmark_dpath + '/generate_merge_sample_csv.benchmark.txt'
     shell:
         'python ' + gen_merge_sample_csv_python_path + ' -ltd {params.low_ph_topdir} -llv {params.low_ph_level_to_file} -htd {params.high_ph_topdir} -hlv {params.high_ph_level_to_file} -lds {params.low_ph_delim_str} -hds {params.high_ph_delim_str} -lli {input.low_ph_libinfo_file} -hli {input.high_ph_libinfo_file} -rtw {params.rt_search_window} -o {output}'
+
+
+rule generate_sample_csv_low_ph:
+    input:
+        json_file = config['low_ph_library_info']
+    params:
+        topdir = config['low_ph_hxms_fpath_dir'],
+        delim_string = config['low_ph_hxms_fpath_delim_str'],
+        level_to_file = config['low_ph_level_to_fpaths']
+    resources:
+        threads = 1
+    output:
+        config['output_dirpath']+'/low_ph_sample.csv'
+    benchmark:
+        benchmark_dpath + '/low_ph_generate_sample_csv.benchmark.txt'
+    shell:
+        'python ' + gen_sample_csv_python_path + ' -t {params.topdir} -l {params.level_to_file} -d {params.delim_string} -j {input.json_file} -o {output}'
+
+
+rule generate_sample_csv_high_ph:
+    input:
+        json_file = config['high_ph_library_info']
+    params:
+        topdir = config['high_ph_hxms_fpath_dir'],
+        delim_string = config['high_ph_hxms_fpath_delim_str'],
+        level_to_file = config['high_ph_level_to_fpaths']
+    resources:
+        threads = 1
+    output:
+        config['output_dirpath']+'/high_ph_sample.csv'
+    benchmark:
+        benchmark_dpath + '/high_ph_generate_sample_csv.benchmark.txt'
+    shell:
+        'python ' + gen_sample_csv_python_path + ' -t {params.topdir} -l {params.level_to_file} -d {params.delim_string} -j {input.json_file} -o {output}'
