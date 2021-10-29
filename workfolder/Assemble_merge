@@ -1,0 +1,39 @@
+# this workflow processes the hx rate fitting
+# rule 1: generates
+
+# set the config file path
+configfile: '../config/config_merge.yml'
+
+# set benchmark dirpath
+benchmark_dpath = config['output_dirpath'] + '/benchmark'
+
+# set the python scripts path
+scripts_dirpath = config['path_to_repo'] + '/scripts/hx_rate'
+gen_time_specific_bkexch_path = scripts_dirpath + '/gen_time_specific_bkexch.py'
+gen_merge_sample_csv_python_path = scripts_dirpath + '/generate_sample_csv_for_merging.py'
+
+
+rule all:
+    input:  config['output_dirpath'] + '/merge_sample.csv'
+
+
+rule generate_merge_sample_csv:
+    input:
+        low_ph_libinfo_file = config['low_ph_library_info'],
+        high_ph_libinfo_file = config['high_ph_library_info']
+    params:
+        low_ph_topdir = config['low_ph_hxms_fpath_dir'],
+        low_ph_delim_str = config['low_ph_hxms_fpath_delim_str'],
+        low_ph_level_to_file = config['low_ph_level_to_fpaths'],
+        high_ph_topdir = config['high_ph_hxms_fpath_dir'],
+        high_ph_delim_str = config['high_ph_hxms_fpath_delim_str'],
+        high_ph_level_to_file = config['high_ph_level_to_fpaths'],
+        rt_search_window = config['merge_rt_window']
+    resources:
+        threads = 1
+    output:
+        config['output_dirpath']+'/merge_sample.csv'
+    benchmark:
+        benchmark_dpath + '/generate_merge_sample_csv.benchmark.txt'
+    shell:
+        'python ' + gen_merge_sample_csv_python_path + ' -ltd {params.low_ph_topdir} -llv {params.low_ph_level_to_file} -htd {params.high_ph_topdir} -hlv {params.high_ph_level_to_file} -lds {params.low_ph_delim_str} -hds {params.high_ph_delim_str} -lli {input.low_ph_libinfo_file} -hli {input.high_ph_libinfo_file} -rtw {params.rt_search_window} -o {output}'
