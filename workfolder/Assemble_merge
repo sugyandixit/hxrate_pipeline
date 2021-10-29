@@ -11,13 +11,16 @@ benchmark_dpath = config['output_dirpath'] + '/benchmark'
 scripts_dirpath = config['path_to_repo'] + '/scripts/hx_rate'
 gen_sample_csv_python_path = scripts_dirpath + '/gen_sample_csv.py'
 gen_merge_sample_csv_python_path = scripts_dirpath + '/generate_sample_csv_for_merging.py'
+gen_time_specific_bkexch_path = scripts_dirpath + '/gen_time_specific_bkexch.py'
+gen_backexch_corr_low_high_python_path = scripts_dirpath + '/gen_backexchange_corr_low_high_ph.py'
 
 
 rule all:
     input:
         merge_sample_csv = config['output_dirpath'] + '/merge_sample.csv',
-        low_ph_sample_csv = config['output_dirpath'] + '/low_ph_sample.csv',
-        high_ph_sample_csv = config['output_dirpath'] + '/high_ph_sample.csv'
+        low_ph_bkexch_corr = config['output_dirpath'] + '/low_ph_bkexch_corr.csv',
+        high_ph_bkexch_corr = config['output_dirpath'] + '/high_ph_bkexch_corr.csv',
+        low_high_ph_bkexch_csv = config['output_dirpath'] + '/high_low_backexchange_list.csv'
 
 
 rule generate_merge_sample_csv:
@@ -74,3 +77,89 @@ rule generate_sample_csv_high_ph:
         benchmark_dpath + '/high_ph_generate_sample_csv.benchmark.txt'
     shell:
         'python ' + gen_sample_csv_python_path + ' -t {params.topdir} -l {params.level_to_file} -d {params.delim_string} -j {input.json_file} -o {output}'
+
+
+
+if config['backexchange_correction_fpath'] is None:
+    rule gen_tp_specific_bkexch_low_ph:
+        input:
+            sample_csv_fpath = config['output_dirpath']+'/low_ph_sample.csv'
+        params:
+            rate_tol = config['rate_tol'],
+            frac_threshold = config['frac_threshold'],
+            frac_threshold_bound = config['frac_threshold_bound'],
+            start_bound = config['start_bound'],
+            end_bound = config['end_bound'],
+            max_rate = config['max_rate'],
+            min_num_paths = config['min_num_paths'],
+            change_frac_threshold = config['change_frac_threshold']
+        output:
+            corr_fpath = config['output_dirpath'] + '/low_ph_bkexch_corr.csv',
+            corr_plot_path = config['output_dirpath'] + '/low_ph_bkexch_corr.pdf'
+        benchmark:
+            benchmark_dpath + '/gen_tp_specific_bkexch_low_ph.benchmark.txt'
+        shell:
+            'python ' + gen_time_specific_bkexch_path + ' -s {input.sample_csv_fpath} -r {params.rate_tol} -f {params.frac_threshold} -b {params.frac_threshold_bound} -i {params.start_bound} -e {params.end_bound} -m {params.max_rate} -n {params.min_num_paths} -c {params.change_frac_threshold} -p {output.corr_plot_path} -o {output.corr_fpath}'
+
+
+    rule gen_tp_specific_bkexch_high_ph:
+        input:
+            sample_csv_fpath = config['output_dirpath']+'/high_ph_sample.csv'
+        params:
+            rate_tol = config['rate_tol'],
+            frac_threshold = config['frac_threshold'],
+            frac_threshold_bound = config['frac_threshold_bound'],
+            start_bound = config['start_bound'],
+            end_bound = config['end_bound'],
+            max_rate = config['max_rate'],
+            min_num_paths = config['min_num_paths'],
+            change_frac_threshold = config['change_frac_threshold']
+        output:
+            corr_fpath = config['output_dirpath'] + '/high_ph_bkexch_corr.csv',
+            corr_plot_path = config['output_dirpath'] + '/high_ph_bkexch_corr.pdf'
+        benchmark:
+            benchmark_dpath + '/gen_tp_specific_bkexch_high_ph.benchmark.txt'
+        shell:
+            'python ' + gen_time_specific_bkexch_path + ' -s {input.sample_csv_fpath} -r {params.rate_tol} -f {params.frac_threshold} -b {params.frac_threshold_bound} -i {params.start_bound} -e {params.end_bound} -m {params.max_rate} -n {params.min_num_paths} -c {params.change_frac_threshold} -p {output.corr_plot_path} -o {output.corr_fpath}'
+else:
+    rule copy_bkexch_corr_low:
+        input:
+            input_corr_fpath = config['backexchange_correction_fpath']
+        output:
+            config['output_dirpath'] + '/low_ph_bkexch_corr.csv'
+        benchmark:
+            benchmark_dpath + '/copy_bkexch_corr_low.benchmark.txt'
+        shell:
+            "cp {input.input_corr_fpath} {output}"
+
+
+    rule copy_bkexch_corr_high:
+        input:
+            input_corr_fpath = config['backexchange_correction_fpath']
+        output:
+            config['output_dirpath'] + '/high_ph_bkexch_corr.csv'
+        benchmark:
+            benchmark_dpath + '/copy_bkexch_corr_high.benchmark.txt'
+        shell:
+            "cp {input.input_corr_fpath} {output}"
+
+
+rule gen_backexchange_corr_low_high:
+    input:
+        input_merge_sample_csv = config['output_dirpath']+'/merge_sample.csv'
+    params:
+        low_ph_d2o_frac = config['low_ph_d2o_frac'],
+        low_ph_d2o_pur = config['low_ph_d2o_pur'],
+        high_ph_d2o_frac = config['high_ph_d2o_frac'],
+        high_ph_d2o_pur = config['high_ph_d2o_pur'],
+        sautration_mass_rate_threshold = config['saturation_mass_rate'],
+        bkexch_low_bound = config['backexhange_low_bound'],
+        bkexch_up_bound = config['backexchange_up_bound']
+    output:
+        bkexch_corr_path = config['output_dirpath'] + '/high_low_backexchange_corr.csv',
+        bkexch_corr_plot = config['output_dirpath'] + '/high_low_backexchange_corr.pdf',
+        bkexch_high_low_csv_path = config['output_dirpath'] + '/high_low_backexchange_list.csv'
+    benchmark:
+        benchmark_dpath + '/gen_backexchange_corr_low_high.benchmark.txt'
+    shell:
+        'python ' + gen_backexch_corr_low_high_python_path + ' -s {input.input_merge_sample_csv} -ldf {params.low_ph_d2o_frac} -ldp {params.low_ph_d2o_pur} -hdf {params.high_ph_d2o_frac} -hdp {params.high_ph_d2o_pur} -smr {params.sautration_mass_rate_threshold} -blb {params.bkexch_low_bound} -bub {params.bkexch_up_bound} -bco {output.bkexch_corr_path} -bcp {output.bkexch_corr_plot} -bko {output.bkexch_high_low_csv_path}'
