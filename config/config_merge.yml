@@ -1,0 +1,62 @@
+# config file
+
+# path to the repo
+path_to_repo: "/projects/p31346/suggie/hxrate"
+
+###############################################
+
+# low ph info
+low_ph_library_info: ""
+low_ph_hxms_fpath_delim_str: "_winner.cpickle.zlib.csv"
+low_ph_hxms_fpath_dir: ""
+low_ph_level_to_fpaths: 1
+
+low_ph_d2o_frac: 0.95
+low_ph_d2o_pur: 0.95
+
+low_ph_backexchange_correction_fpath: ""
+
+
+# high ph info
+high_ph_library_info: ""
+high_ph_hxms_fpath_delim_str: "_winner.cpickle.zlib.csv"
+high_ph_hxms_fpath_dir: ""
+high_ph_level_to_fpaths: 1
+
+high_ph_d2o_frac: 0.95
+high_ph_d2o_pur: 0.95
+
+high_ph_backexchange_correction_fpath: ""
+
+
+# output directory path
+output_dirpath: "/projects/p31346/suggie/hx_rates_workfolder/merge_output"
+
+
+
+##########################################
+##########################################
+#backexchange correction parameters
+
+# backexchange correction bool
+backexchange_correction: True
+rate_tol: 0.05
+frac_threshold: 0.50
+frac_threshold_bound: 0.80
+start_bound: 1
+end_bound: 4
+max_rate: 0.5
+min_num_paths: 1
+change_frac_threshold: 0.02
+
+##########################################
+##########################################
+
+# rate fitting parameters
+opt_iter: 50
+opt_temp: 0.0003
+opt_step_size: 0.02
+
+# rate fitting multiprocessing utility
+multi_proc: True
+number_of_cores: 6
