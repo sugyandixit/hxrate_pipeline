@@ -93,7 +93,7 @@ if config['backexchange_correction']:
             benchmark:
                 benchmark_dpath + '/{name}_fit_hx_rate.benchmark.txt',
             shell:
-                'python ' + hx_rate_fit_python_path + ' -i {input.hx_dist_fpath} -s {params.prot_seq} -n {params.prot_name} -df {params.d2o_frac} -dp {params.d2o_purity} -ot {params.opt_temp} -os {params.opt_step_size} -oi {params.opt_iter} -bf {input.bkexch_corr_fpath} -mp {params.multi_proc} -nc {params.num_cores} -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -od {output.iso_dist_file}'
+                'python ' + hx_rate_fit_python_path + ' -i {input.hx_dist_fpath} -s {params.prot_seq} -n {params.prot_name} -df {params.d2o_frac} -dp {params.d2o_purity} -ot {params.opt_temp} -os {params.opt_step_size} -oi {params.opt_iter} -bcf {input.bkexch_corr_fpath} -mp {params.multi_proc} -nc {params.num_cores} -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -od {output.iso_dist_file}'
 
     else:
 
@@ -122,7 +122,7 @@ if config['backexchange_correction']:
             benchmark:
                 benchmark_dpath + '/{name}_fit_hx_rate.benchmark.txt',
             shell:
-                'python ' + hx_rate_fit_python_path + ' -i {input.hx_dist_fpath} -s {params.prot_seq} -n {params.prot_name} -df {params.d2o_frac} -dp {params.d2o_purity} -ot {params.opt_temp} -os {params.opt_step_size} -oi {params.opt_iter} -ub {params.user_backexchange} -bf {input.bkexch_corr_fpath} -mp {params.multi_proc} -nc {params.num_cores} -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -od {output.iso_dist_file}'
+                'python ' + hx_rate_fit_python_path + ' -i {input.hx_dist_fpath} -s {params.prot_seq} -n {params.prot_name} -df {params.d2o_frac} -dp {params.d2o_purity} -ot {params.opt_temp} -os {params.opt_step_size} -oi {params.opt_iter} -ub {params.user_backexchange} -bcf {input.bkexch_corr_fpath} -mp {params.multi_proc} -nc {params.num_cores} -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -od {output.iso_dist_file}'
 
 
 
@@ -155,7 +155,7 @@ else:
             benchmark:
                 benchmark_dpath + '/{name}_fit_hx_rate.benchmark.txt',
             shell:
-                'python ' + hx_rate_fit_python_path + ' -i {input.hx_dist_fpath} -s {params.prot_seq} -n {params.prot_name} -df {params.d2o_frac} -dp {params.d2o_purity} -ot {params.opt_temp} -os {params.opt_step_size} -oi {params.opt_iter} -bf {input.bkexch_corr_fpath} -mp {params.multi_proc} -nc {params.num_cores} -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -od {output.iso_dist_file}'
+                'python ' + hx_rate_fit_python_path + ' -i {input.hx_dist_fpath} -s {params.prot_seq} -n {params.prot_name} -df {params.d2o_frac} -dp {params.d2o_purity} -ot {params.opt_temp} -os {params.opt_step_size} -oi {params.opt_iter} -bcf {input.bkexch_corr_fpath} -mp {params.multi_proc} -nc {params.num_cores} -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -od {output.iso_dist_file}'
 
     else:
 
@@ -184,5 +184,5 @@ else:
             benchmark:
                 benchmark_dpath + '/{name}_fit_hx_rate.benchmark.txt',
             shell:
-                'python ' + hx_rate_fit_python_path + ' -i {input.hx_dist_fpath} -s {params.prot_seq} -n {params.prot_name} -df {params.d2o_frac} -dp {params.d2o_purity} -ot {params.opt_temp} -os {params.opt_step_size} -oi {params.opt_iter} -ub {params.user_backexchange} -bf {input.bkexch_corr_fpath} -mp {params.multi_proc} -nc {params.num_cores} -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -od {output.iso_dist_file}'
+                'python ' + hx_rate_fit_python_path + ' -i {input.hx_dist_fpath} -s {params.prot_seq} -n {params.prot_name} -df {params.d2o_frac} -dp {params.d2o_purity} -ot {params.opt_temp} -os {params.opt_step_size} -oi {params.opt_iter} -ub {params.user_backexchange} -bcf {input.bkexch_corr_fpath} -mp {params.multi_proc} -nc {params.num_cores} -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -od {output.iso_dist_file}'
 
