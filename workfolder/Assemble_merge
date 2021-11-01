@@ -11,7 +11,7 @@ benchmark_dpath = config['output_dirpath'] + '/benchmark'
 scripts_dirpath = config['path_to_repo'] + '/scripts/hx_rate'
 gen_sample_csv_python_path = scripts_dirpath + '/gen_sample_csv.py'
 gen_merge_sample_csv_python_path = scripts_dirpath + '/generate_sample_csv_for_merging.py'
-gen_time_specific_bkexch_path = scripts_dirpath + '/gen_time_specific_bkexch.py'
+gen_time_specific_bkexch_path = scripts_dirpath + '/gen_time_specific_bkexch_corr.py'
 gen_backexch_corr_low_high_python_path = scripts_dirpath + '/gen_backexchange_corr_low_high_ph.py'
 
 
