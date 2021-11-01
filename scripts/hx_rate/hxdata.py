@@ -103,21 +103,22 @@ def write_backexchange_correction_array(timepoints, backexchange_correction_arra
         outfile.close()
 
 
-def load_backexhange_correction_(correction_fpath):
+def load_tp_dependent_dict(filepath):
     """
-    load the correction file path and outputs as a dictionary
-    :param correction_fpath:
-    :return:
+    load the file that has timepoint in first column and a tp dependent variable on second column and outputs a
+    dictionary
+    :param filepath: filepath
+    :return: dictionary
     """
-    df = pd.read_csv(correction_fpath)
+    df = pd.read_csv(filepath)
     timepoints = df.iloc[:, 0].values
-    correction_arr = df.iloc[:, 1].values
+    variable_arr = df.iloc[:, 1].values
 
     out_dict = dict()
 
-    for ind, (tp, corr) in enumerate(zip(timepoints, correction_arr)):
+    for ind, (tp, var_value) in enumerate(zip(timepoints, variable_arr)):
 
-        out_dict[tp] = corr
+        out_dict[tp] = var_value
 
     return out_dict
 
@@ -130,6 +131,7 @@ def write_merge_factor(merge_factor, opt_mse, opt_nfev, opt_nit, opt_success, op
     with open(output_path, 'w') as outfile:
         outfile.write(header + data_string)
         outfile.close()
+
 
 def make_new_dir(dirpath):
 
