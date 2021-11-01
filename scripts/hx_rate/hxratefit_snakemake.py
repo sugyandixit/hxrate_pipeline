@@ -20,7 +20,8 @@ def gen_parser_arguments():
     parser.add_argument('-os', '--opt_size', help='optimization_step_size', default=0.02)
     parser.add_argument('-oi', '--opt_iter', help='optimization_iteration_number', default=50)
     parser.add_argument('-ub', '--user_backexchange', help='user_backexchange', default=None)
-    parser.add_argument('-bf', '--backexchange_corr_fpath', help='backexchange_correction_fpath', default=None)
+    parser.add_argument('-bcf', '--backexchange_corr_fpath', help='backexchange_correction_fpath', default=None)
+    parser.add_argument('-baf', '--backexchange_array_fpath', help='backexchange_array filepath', default=None)
     parser.add_argument('-mp', '--multi_proc', help='multi_processing_bool', default=True)
     parser.add_argument('-nc', '--num_cores', help='number_of_cores', default=6)
     parser.add_argument('-fe', '--free_energy_values', help='free_energy_values', default=None)
@@ -56,6 +57,7 @@ def hx_rate_fitting_from_parser(parser):
                           opt_step_size=float(options.opt_size),
                           usr_backexchange=user_backexchange,
                           backexchange_corr_fpath=options.backexchange_corr_fpath,
+                          backexchange_array_fpath=options.backexchange_array_fpath,
                           multi_proc=options.multi_proc,
                           number_of_cores=int(options.num_cores),
                           hx_rate_output_path=options.output_pickle_file,
