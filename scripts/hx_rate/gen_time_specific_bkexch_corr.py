@@ -429,7 +429,7 @@ if __name__ == '__main__':
     parser_ = gen_parser_arguments()
     gen_bkexch_corr_obj_from_parser(parser_)
 
-    # sample_list_fpath_ = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/lib15_ph9_sample_tt.csv'
+    # sample_list_fpath_ = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/lib15_ph6_sample.csv'
     #
     # gen_backexchange_corr_obj_from_sample_list(sample_list_fpath=sample_list_fpath_,
     #                                            rate_tol=0.05,
