@@ -13,5 +13,11 @@ benchmark_dpath = config['output_dirpath'] + '/benchmark'
 scripts_dirpath = config['path_to_repo'] + '/scripts/hx_rate'
 hx_rate_fit_python_path = scripts_dirpath + '/hxratefit_snakemake.py'
 
-# just do separate snakefiles for now, will look into making one later
+# merge sample list filepath
+merge_sample_list_fpath = config['output_dirpath'] + '/merge_sample.csv'
+
+# hi low ph list filepath
+merge_ph_list_fpath = config['output_dirpath'] + '/high_low_backexchange_list.csv'
+
+
 
