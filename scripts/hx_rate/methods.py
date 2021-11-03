@@ -266,7 +266,8 @@ def center_of_mass_(data_array):
 
 
 def correct_centroids_using_backexchange(centroids: np.ndarray,
-                                         backexchange_array: np.ndarray) -> np.ndarray:
+                                         backexchange_array: np.ndarray,
+                                         include_zero_dist: bool = False) -> np.ndarray:
     """
 
     :param centroids: uncorrected centroids
@@ -276,11 +277,13 @@ def correct_centroids_using_backexchange(centroids: np.ndarray,
 
     # generate corr centroids zero arrays and fill with corrections. timepoint 0 doesn't need any correction
     corr_centroids = np.zeros(len(centroids))
-    corr_centroids[0] = centroids[0]
 
     # apply correction to centroids based on backexchange
-    for ind, (centr, bkexch) in enumerate(zip(centroids[1:], backexchange_array[1:])):
-        corr_centroids[ind+1] = centr/(1-bkexch)
+    for ind, (centr, bkexch) in enumerate(zip(centroids, backexchange_array)):
+        corr_centroids[ind] = centr/(1-bkexch)
+
+    if include_zero_dist:
+        corr_centroids[0] = centroids[0]
 
     return corr_centroids
 
@@ -759,9 +762,11 @@ def plot_hx_rate_fitting_(prot_name: str,
     # plot center of mass exp and thr corrected using backexchange
 
     exp_isotope_centroid_array_corr = correct_centroids_using_backexchange(centroids=exp_isotope_centroid_array,
-                                                                           backexchange_array=backexchange_array)
+                                                                           backexchange_array=backexchange_array,
+                                                                           include_zero_dist=True)
     thr_isotope_centroid_array_corr = correct_centroids_using_backexchange(centroids=thr_isotope_centroid_array,
-                                                                           backexchange_array=backexchange_array)
+                                                                           backexchange_array=backexchange_array,
+                                                                           include_zero_dist=True)
 
     ax2 = fig.add_subplot(gs[second_plot_indices[3]: second_plot_indices[4], 1])
     ax2.plot(timepoints_v2, exp_isotope_centroid_array_corr, marker='o', ls='-', color='blue')
@@ -782,7 +787,7 @@ def plot_hx_rate_fitting_(prot_name: str,
     #######################################################
     # plot the error in center of mass between exp and thr distributions
 
-    com_difference = np.subtract(thr_isotope_centroid_array_corr, exp_isotope_centroid_array_corr)
+    com_difference = np.subtract(exp_isotope_centroid_array_corr, thr_isotope_centroid_array_corr)
 
     ax3 = fig.add_subplot(gs[second_plot_indices[4]: second_plot_indices[5], 1])
     ax3.scatter(np.arange(len(timepoints)), com_difference, color='black')
@@ -794,7 +799,7 @@ def plot_hx_rate_fitting_(prot_name: str,
     plt.grid(axis='x', alpha=0.25)
     plt.grid(axis='y', alpha=0.25)
     plt.xlabel('Timepoint index')
-    plt.ylabel('Centroid difference (THEO - EXP)')
+    plt.ylabel('Centroid difference (E-T)')
     #######################################################
     #######################################################
 
@@ -820,7 +825,7 @@ def plot_hx_rate_fitting_(prot_name: str,
     #######################################################
     # plot the error in center of mass between exp and thr distributions
 
-    width_difference = np.subtract(thr_isotope_width_array, exp_isotope_width_array)
+    width_difference = np.subtract(exp_isotope_width_array, thr_isotope_width_array)
 
     ax5 = fig.add_subplot(gs[second_plot_indices[6]: second_plot_indices[7], 1])
     ax5.scatter(np.arange(len(timepoints)), width_difference, color='black')
@@ -832,7 +837,7 @@ def plot_hx_rate_fitting_(prot_name: str,
     plt.grid(axis='x', alpha=0.25)
     plt.grid(axis='y', alpha=0.25)
     plt.xlabel('Timepoint index')
-    plt.ylabel('Width difference (THEO - EXP)')
+    plt.ylabel('Width difference (E-T)')
     #######################################################
     #######################################################
 
