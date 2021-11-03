@@ -5,14 +5,12 @@ import multiprocessing as mp
 import numpy as np
 from dataclasses import dataclass
 
-import pandas as pd
 from scipy.special import expit
 from scipy.optimize import fmin_powell
 from methods import isotope_dist_from_PoiBin, gen_temp_rates, gen_theoretical_isotope_dist_for_all_timepoints, \
     normalize_mass_distribution_array, hx_rate_fitting_optimization, compute_rmse_exp_thr_iso_dist, \
     gauss_fit_to_isotope_dist_array, convert_hxrate_object_to_dict, plot_hx_rate_fitting_, gen_corr_backexchange, gen_backexchange_correction_from_backexchange_array
 from hxdata import load_data_from_hdx_ms_dist_, write_pickle_object, write_hx_rate_output, write_isotope_dist_timepoints, load_tp_dependent_dict
-import time
 
 
 @dataclass
@@ -696,10 +694,11 @@ def fit_rate_from_to_file(prot_name: str,
 if __name__ == '__main__':
     pass
 
-    # prot_name = 'PDB1Z96_12.30242'
-    # prot_sequence = 'HMDPGLNSKIAQLVSMGFDPLEAAQALDAANGDLDVAASFLL'
-    # hx_dist_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/lib15_ph6/PDB1Z96_12.30242_winner.cpickle.zlib.csv'
-    # bk_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/merged_data_ph6_ph7/EEHEE_rd4_0642.pdb_9.047_EEHEE_rd4_0642.pdb_9.11541/EEHEE_rd4_0642.pdb_9.047_EEHEE_rd4_0642.pdb_9.11541_merged_backexchange_correction.csv'
+    # prot_name = 'PDB6BZK_5.29094'
+    # prot_sequence = 'HMGSKTIQEKEQELKNLKDNVELERLKNERHDHDEEAERKALEDKLADKQEHLDGALRY'
+    # hx_dist_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/lib15_ph7/PDB6BZK_5.29094_winner.cpickle.zlib.csv'
+    # bk_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/lib15_ph7_sample.csv_backexchange_correction_2.csv'
+    # output_dir = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bkexch_corr_output/output_lib15_ph7/PDB6BZK_5.29094/test_hx_rate_fit'
     #
     # fit_rate_from_to_file(prot_name=prot_name,
     #                       sequence=prot_sequence,
@@ -712,7 +711,7 @@ if __name__ == '__main__':
     #                       multi_proc=True,
     #                       number_of_cores=6,
     #                       backexchange_corr_fpath=bk_corr_fpath,
-    #                       hx_rate_output_path=hx_dist_fpath + '_rate.pickle',
-    #                       hx_rate_csv_output_path=hx_dist_fpath + '_rate.csv',
-    #                       hx_rate_plot_path=hx_dist_fpath + '_rate.pdf',
-    #                       hx_isotope_dist_output_path=hx_dist_fpath + '_rate_iso_dist.csv')
+    #                       hx_rate_output_path=output_dir + '/_rate.pickle',
+    #                       hx_rate_csv_output_path=output_dir + '/_rate.csv',
+    #                       hx_rate_plot_path=output_dir + '/_rate.pdf',
+    #                       hx_isotope_dist_output_path=output_dir + '/_rate_iso_dist.csv')
