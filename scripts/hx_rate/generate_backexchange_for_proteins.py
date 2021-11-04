@@ -1,4 +1,3 @@
-import numpy as np
 from hxdata import load_data_from_hdx_ms_dist_, write_backexchange_array, load_tp_dependent_dict
 from methods import normalize_mass_distribution_array
 from hx_rate_fit import calc_back_exchange
