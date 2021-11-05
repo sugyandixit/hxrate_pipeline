@@ -241,8 +241,8 @@ def gen_low_high_ph_bkexchange_(merge_sample_list_fpath: str,
                                 bkexchange_ub: float,
                                 bkexchange_lb: float,
                                 saturation_mass_rate_threshold: float,
-                                lowph_backexchange_correction_filepath: str = None,
-                                highph_backexchange_correction_filepath: str = None,
+                                lowph_backexchange_correction_filepath: str,
+                                highph_backexchange_correction_filepath: str,
                                 plot_output_path: str = None,
                                 bkexchange_corr_output_path: str = None,
                                 bkexchange_output_path: str = None,
@@ -313,6 +313,10 @@ def gen_low_high_ph_bkexchange_(merge_sample_list_fpath: str,
 
     corr_include_indices = np.array(corr_include_indices)
     no_corr_indices = np.array(no_corr_indices)
+
+    print('\ncorr include indices')
+    print(corr_include_indices)
+    print('\n')
 
     low_ph_bkexch_corr = low_ph_bkexch_satur['backexchange_array'][corr_include_indices]
     high_ph_bkexch_corr = high_ph_bkexch_satur['backexchange_array'][corr_include_indices]
@@ -386,6 +390,8 @@ def gen_parser_args():
     parser.add_argument('-ldp', '--lowdpur', help='low d2o purity')
     parser.add_argument('-hdf', '--highdfrac', help='high d2o fraction')
     parser.add_argument('-hdp', '--highdpur', help='high d2o purity')
+    parser.add_argument('-hbc', '--highbkexcorr', help='high ph backexchange correction fielpath')
+    parser.add_argument('-lbc', '--lowbkexcorr', help='low ph backexchange correction filepath')
     parser.add_argument('-smr', '--saturmassrate', help='saturation mass rate threshold')
     parser.add_argument('-blb', '--bklowbound', help='backexchange low bound for correlation')
     parser.add_argument('-bub', '--bkupbound', help='backexchange upper bound for correlation')
@@ -402,14 +408,16 @@ def run_from_parser():
     options = parser.parse_args()
 
     gen_low_high_ph_bkexchange_(merge_sample_list_fpath=options.samplepath,
-                                low_ph_d2o_frac=options.lowdfrac,
-                                low_ph_d2o_pur=options.lowdpur,
-                                high_ph_d2o_frac=options.highdfrac,
-                                high_ph_d2o_pur=options.highdpur,
-                                bkexchange_ub=options.bklowbound,
-                                bkexchange_lb=options.bkupbound,
-                                saturation_mass_rate_threshold=options.saturmassrate,
-                                plot_output_path=options.plotout,
+                                low_ph_d2o_frac=float(options.lowdfrac),
+                                low_ph_d2o_pur=float(options.lowdpur),
+                                high_ph_d2o_frac=float(options.highdfrac),
+                                high_ph_d2o_pur=float(options.highdpur),
+                                lowph_backexchange_correction_filepath=options.lowbkexcorr,
+                                highph_backexchange_correction_filepath=options.highbkexcorr,
+                                bkexchange_ub=float(options.bklowbound),
+                                bkexchange_lb=float(options.bkupbound),
+                                saturation_mass_rate_threshold=float(options.saturmassrate),
+                                plot_output_path=options.bkplotout,
                                 bkexchange_corr_output_path=options.bkcorrout,
                                 bkexchange_output_path=options.bkoutput,
                                 return_flag=False)
@@ -417,28 +425,28 @@ def run_from_parser():
 
 if __name__ == '__main__':
 
-    run_from_parser()
+    # run_from_parser()
 
-    # merge_sample_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/merged_data/merge_sample_list.csv'
-    #
-    # output_dir = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/merged_data'
-    #
-    # high_ph_bkexch_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/lib15_ph7_sample.csv_backexchange_correction_2.csv'
-    # low_ph_bkexch_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/lib15_ph6_sample.csv_backexchange_correction_2.csv'
-    #
-    # d2o_frac = 0.95
-    # d2o_pur = 0.95
-    #
-    # gen_low_high_ph_bkexchange_(merge_sample_list_fpath=merge_sample_fpath,
-    #                             low_ph_d2o_frac=d2o_frac,
-    #                             low_ph_d2o_pur=d2o_pur,
-    #                             high_ph_d2o_frac=d2o_frac,
-    #                             high_ph_d2o_pur=d2o_pur,
-    #                             bkexchange_lb=0.15,
-    #                             bkexchange_ub=0.45,
-    #                             saturation_mass_rate_threshold=0.020,
-    #                             lowph_backexchange_correction_filepath=low_ph_bkexch_corr_fpath,
-    #                             highph_backexchange_correction_filepath=high_ph_bkexch_corr_fpath,
-    #                             plot_output_path=output_dir + '/merge_bkexchange_plot_v5.pdf',
-    #                             bkexchange_corr_output_path=output_dir + '/merge_backexchange_corr_v5.csv',
-    #                             bkexchange_output_path=output_dir + '/merge_backexchange_output_v5.csv')
+    merge_sample_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/merged_data/merge_sample_list.csv'
+
+    output_dir = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/merged_data/quest_merge_6_7'
+
+    high_ph_bkexch_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/merged_data/quest_merge_6_7/high_ph_bkexch_corr.csv'
+    low_ph_bkexch_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/merged_data/quest_merge_6_7/low_ph_bkexch_corr.csv'
+
+    d2o_frac = 0.95
+    d2o_pur = 0.95
+
+    gen_low_high_ph_bkexchange_(merge_sample_list_fpath=merge_sample_fpath,
+                                low_ph_d2o_frac=d2o_frac,
+                                low_ph_d2o_pur=d2o_pur,
+                                high_ph_d2o_frac=d2o_frac,
+                                high_ph_d2o_pur=d2o_pur,
+                                bkexchange_lb=0.15,
+                                bkexchange_ub=0.45,
+                                saturation_mass_rate_threshold=0.020,
+                                lowph_backexchange_correction_filepath=low_ph_bkexch_corr_fpath,
+                                highph_backexchange_correction_filepath=high_ph_bkexch_corr_fpath,
+                                plot_output_path=output_dir + '/merge_bkexchange_plot.pdf',
+                                bkexchange_corr_output_path=output_dir + '/merge_backexchange_corr.csv',
+                                bkexchange_output_path=output_dir + '/merge_backexchange_output.csv')
