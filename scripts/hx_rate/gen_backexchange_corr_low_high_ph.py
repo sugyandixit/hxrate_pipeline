@@ -314,10 +314,6 @@ def gen_low_high_ph_bkexchange_(merge_sample_list_fpath: str,
     corr_include_indices = np.array(corr_include_indices)
     no_corr_indices = np.array(no_corr_indices)
 
-    print('\ncorr include indices')
-    print(corr_include_indices)
-    print('\n')
-
     low_ph_bkexch_corr = low_ph_bkexch_satur['backexchange_array'][corr_include_indices]
     high_ph_bkexch_corr = high_ph_bkexch_satur['backexchange_array'][corr_include_indices]
 
@@ -414,8 +410,8 @@ def run_from_parser():
                                 high_ph_d2o_pur=float(options.highdpur),
                                 lowph_backexchange_correction_filepath=options.lowbkexcorr,
                                 highph_backexchange_correction_filepath=options.highbkexcorr,
-                                bkexchange_ub=float(options.bklowbound),
-                                bkexchange_lb=float(options.bkupbound),
+                                bkexchange_ub=float(options.bkupbound),
+                                bkexchange_lb=float(options.bklowbound),
                                 saturation_mass_rate_threshold=float(options.saturmassrate),
                                 plot_output_path=options.bkplotout,
                                 bkexchange_corr_output_path=options.bkcorrout,
@@ -425,28 +421,28 @@ def run_from_parser():
 
 if __name__ == '__main__':
 
-    # run_from_parser()
+    run_from_parser()
 
-    merge_sample_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/merged_data/merge_sample_list.csv'
-
-    output_dir = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/merged_data/quest_merge_6_7'
-
-    high_ph_bkexch_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/merged_data/quest_merge_6_7/high_ph_bkexch_corr.csv'
-    low_ph_bkexch_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/merged_data/quest_merge_6_7/low_ph_bkexch_corr.csv'
-
-    d2o_frac = 0.95
-    d2o_pur = 0.95
-
-    gen_low_high_ph_bkexchange_(merge_sample_list_fpath=merge_sample_fpath,
-                                low_ph_d2o_frac=d2o_frac,
-                                low_ph_d2o_pur=d2o_pur,
-                                high_ph_d2o_frac=d2o_frac,
-                                high_ph_d2o_pur=d2o_pur,
-                                bkexchange_lb=0.15,
-                                bkexchange_ub=0.45,
-                                saturation_mass_rate_threshold=0.020,
-                                lowph_backexchange_correction_filepath=low_ph_bkexch_corr_fpath,
-                                highph_backexchange_correction_filepath=high_ph_bkexch_corr_fpath,
-                                plot_output_path=output_dir + '/merge_bkexchange_plot.pdf',
-                                bkexchange_corr_output_path=output_dir + '/merge_backexchange_corr.csv',
-                                bkexchange_output_path=output_dir + '/merge_backexchange_output.csv')
+    # merge_sample_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/merged_data/quest_merge_6_7/merge_sample.csv_v2.csv'
+    #
+    # output_dir = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/merged_data/quest_merge_6_7'
+    #
+    # high_ph_bkexch_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/merged_data/quest_merge_6_7/high_ph_bkexch_corr.csv'
+    # low_ph_bkexch_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/merged_data/quest_merge_6_7/low_ph_bkexch_corr.csv'
+    #
+    # d2o_frac = 0.95
+    # d2o_pur = 0.95
+    #
+    # gen_low_high_ph_bkexchange_(merge_sample_list_fpath=merge_sample_fpath,
+    #                             low_ph_d2o_frac=d2o_frac,
+    #                             low_ph_d2o_pur=d2o_pur,
+    #                             high_ph_d2o_frac=d2o_frac,
+    #                             high_ph_d2o_pur=d2o_pur,
+    #                             bkexchange_lb=0.15,
+    #                             bkexchange_ub=0.45,
+    #                             saturation_mass_rate_threshold=0.020,
+    #                             lowph_backexchange_correction_filepath=low_ph_bkexch_corr_fpath,
+    #                             highph_backexchange_correction_filepath=high_ph_bkexch_corr_fpath,
+    #                             plot_output_path=output_dir + '/merge_bkexchange_plot_v2.pdf',
+    #                             bkexchange_corr_output_path=output_dir + '/merge_backexchange_corr_v2.csv',
+    #                             bkexchange_output_path=output_dir + '/merge_backexchange_output_v2.csv')
