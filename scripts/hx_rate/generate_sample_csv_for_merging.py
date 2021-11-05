@@ -166,10 +166,10 @@ def gen_parser_args():
     parser.add_argument('-ltd', '--lowtopdir', help='low ph top directory for hxms files')
     parser.add_argument('-llv', '--lowlevel', help='level in which to find low ph hxms files in low top directory')
     parser.add_argument('-htd', '--hightopdir', help='high ph top directory for hxms files')
-    parser.add_argument('-hlv', '--lowlevel', help='level in which to find high ph hxms files in high top directory')
+    parser.add_argument('-hlv', '--highlevel', help='level in which to find high ph hxms files in high top directory')
     parser.add_argument('-lds', '--lowdelimstr', help='low ph hxms files delim string')
     parser.add_argument('-hds', '--highdelimstr', help='high ph hxms files delim string')
-    parser.add_argument('-lli', '-lowlibinfo', help='low ph library info .json')
+    parser.add_argument('-lli', '--lowlibinfo', help='low ph library info .json')
     parser.add_argument('-hli', '--highlibinfo', help='high ph library info .json')
     parser.add_argument('-rtw', '--rtwindow', help='rt window inclusion')
     parser.add_argument('-o', '--outputpath', help='merging list output path .csv')
@@ -182,16 +182,16 @@ def run_from_parser():
     parser_ = gen_parser_args()
     options = parser_.parse_args()
 
-    generate_match_sample_list(low_ph_top_dir=options.ltd,
-                               high_ph_top_dir=options.htd,
-                               low_ph_level_to_files=options.llv,
-                               high_ph_level_to_files=options.hlv,
-                               low_ph_file_id_str=options.lds,
-                               high_ph_file_id_str=options.hds,
-                               low_ph_lib_info_fpath=options.lli,
-                               high_ph_lib_info_fpath=options.hli,
-                               rt_search_window=options.rtw,
-                               output_path=options.o)
+    generate_match_sample_list(low_ph_top_dir=options.lowtopdir,
+                               high_ph_top_dir=options.hightopdir,
+                               low_ph_level_to_files=options.lowlevel,
+                               high_ph_level_to_files=options.highlevel,
+                               low_ph_file_id_str=options.lowdelimstr,
+                               high_ph_file_id_str=options.highdelimstr,
+                               low_ph_lib_info_fpath=options.lowlibinfo,
+                               high_ph_lib_info_fpath=options.highlibinfo,
+                               rt_search_window=float(options.rtwindow),
+                               output_path=options.outputpath)
 
 
 if __name__ == '__main__':
