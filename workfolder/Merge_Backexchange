@@ -8,6 +8,10 @@ configfile: '../config/config_merge.yml'
 
 # set benchmark dirpath
 benchmark_dpath = config['output_dirpath'] + '/benchmark'
+sample_dpath = config['output_dirpath'] + '/sample'
+backexchange_dpath = config['output_dirpath'] + '/backexchange'
+merge_dpath = config['output_dirpath'] + '/merge_distribution'
+hxrate_dpath = config['output_dirpath'] + '/hxrate_output'
 
 # set the python scripts path
 scripts_dirpath = config['path_to_repo'] + '/scripts/hx_rate'
@@ -15,69 +19,84 @@ hx_rate_fit_python_path = scripts_dirpath + '/hxratefit_snakemake.py'
 merge_data_high_low_python = scripts_dirpath + '/merge_high_low_ph_data.py'
 gen_backexch_array_python = scripts_dirpath + '/generate_backexchange_for_proteins.py'
 
-# merge sample list filepath
-merge_sample_list_fpath = config['output_dirpath'] + '/merge_sample.csv'
-
 # hi low ph list filepath
 merge_ph_list_fpath = config['output_dirpath'] + '/high_low_backexchange_list.csv'
-
-merge_df = pd.read_csv(merge_sample_list_fpath)
-low_name_list = list(merge_df['protein_name_low_ph'].values)
-high_name_list = list(merge_df['protein_name_high_ph'].values)
-seq_list = list(merge_df['sequence'].values)
-prot_name_list = list(merge_df['protein_name'].values)
-
-name_seq_dict = dict()
-
-for num in range(len(prot_name_list)):
-    name_seq_dict[low_name_list[num]] = seq_list[num]
-
 
 hi_low_bkex_df = pd.read_csv(merge_ph_list_fpath)
 low_name_list_ = list(hi_low_bkex_df['low_ph_protein_name'].values)
 high_name_list_ = list(hi_low_bkex_df['high_ph_protein_name'].values)
-low_ph_bkexch_list = list(hi_low_bkex_df['low_ph_backexchange_new'].values)
-high_ph_bkexch_list = list(hi_low_bkex_df['high_ph_backexchange'].values)
 
-high_ph_bkexc_name_dict = dict()
-low_ph_bkexch_name_dict = dict()
+out_name_list = []
+low_name_dict = dict()
+high_name_dict = dict()
+high_ph_bkexc_dict = dict()
+low_ph_bkexch_dict = dict()
+seq_dict = dict()
 
-for num2 in range(len(low_ph_bkexch_list)):
-    low_ph_bkexch_name_dict[low_name_list_[num2]] = low_ph_bkexch_list[num2]
-    high_ph_bkexc_name_dict[high_name_list_[num2]] = high_ph_bkexch_list[num2]
-
-
-
-# need the backexchange array to do the fitting
+for num2 in range(len(low_name_list_)):
+    low_high_name = low_name_list_[num2] + '_' + high_name_list_[num2]
+    out_name_list.append(low_high_name)
+    high_ph_bkexc_dict[low_high_name] = hi_low_bkex_df['high_ph_backexchange'].values[num2]
+    low_ph_bkexch_dict[low_high_name] = hi_low_bkex_df['low_ph_backexchange_new'].values[num2]
+    seq_dict[low_high_name] = hi_low_bkex_df['sequence'].values[num2]
+    low_name_dict[low_high_name] = low_name_list_[num2]
+    high_name_dict[low_high_name] = high_name_list_[num2]
 
 rule all:
-
-    input:  expand(config['output_dirpath'] + '/{prot_name}/{low_ph_name}_{high_ph_name}_merge_hxms_dist.csv', prot_name=prot_name_list, low_ph_name=low_name_list, high_ph_name=high_name_list)
+    input:  expand(hxrate_dpath + '/{low_high_name}/{low_high_name}_hx_rate_fit.pickle', low_high_name=out_name_list)
 
 
 rule merge_data_high_low:
-
     input:
-        lowph_fpath = config['low_ph_hxms_fpath_dir'] + config['low_ph_level_to_fpaths']*'/{low_ph_name}' + config['hx_ms_fpath_delim_string'],
-        highph_fpath = config['high_ph_hxms_fpath_dir'] + config['high_ph_level_to_fpaths']*'/{high_ph_name}' + config['hx_ms_fpath_delim_string'],
-        lowph_corr_fpath = config['output_dirpath'] + '/low_ph_bkexch_corr.csv',
-        highph_corr_fpath = config['output_dirpath'] + '/high_ph_bkexch_corr.csv'
+        lowph_fpath = lambda wildcards: config['low_ph_hxms_fpath_dir'] + config['low_ph_level_to_fpaths']*'/'+low_name_dict[wildcards.low_high_name] + config['low_ph_hxms_fpath_delim_str'],
+        highph_fpath = lambda wildcards: config['high_ph_hxms_fpath_dir'] + config['high_ph_level_to_fpaths']*'/'+high_name_dict[wildcards.low_high_name] + config['high_ph_hxms_fpath_delim_str'],
+        lowph_corr_fpath = backexchange_dpath + '/low_ph_bkexch_corr.csv',
+        highph_corr_fpath = backexchange_dpath + '/high_ph_bkexch_corr.csv'
     params:
-        prot_seq = lambda wildcards: name_seq_dict[wildcards.low_ph_name],
+        prot_seq = lambda wildcards: seq_dict[wildcards.low_high_name],
         lowph_d2o_frac = config['low_ph_d2o_frac'],
         lowph_d2o_pur = config['low_ph_d2o_pur'],
         highph_d2o_frac = config['high_ph_d2o_frac'],
         highph_d2o_pur = config['high_ph_d2o_pur'],
-        low_ph_bkexch = lambda wildcards: low_ph_bkexch_name_dict[wildcards.low_ph_name],
-        high_ph_bkexch = lambda wildcards: high_ph_bkexc_name_dict[wildcards.high_ph_name]
+        low_ph_bkexch = lambda wildcards: low_ph_bkexch_dict[wildcards.low_high_name],
+        high_ph_bkexch = lambda wildcards: high_ph_bkexc_dict[wildcards.low_high_name]
     output:
-        mergebkex_output = config['output_dirpath'] + '/{prot_name}/{low_ph_name}_{high_ph_name}_merge_backexchange.csv',
-        mergebkex_corr_output = config['output_dirpath'] + '/{prot_name}/{low_ph_name}_{high_ph_name}_merge_backexchange_correction.csv',
-        merge_dist_output = config['output_dirpath'] + '/{prot_name}/{low_ph_name}_{high_ph_name}_merge_hxms_dist.csv',
-        merge_factor_output = config['output_dirpath'] + '/{prot_name}/{low_ph_name}_{high_ph_name}_merge_factor.csv',
-        merge_plot_output = config['output_dirpath'] + '/{prot_name}/{low_ph_name}_{high_ph_name}_merge_hxms_dist_plot.pdf',
+        mergebkex_output = merge_dpath + '/{low_high_name}/{low_high_name}_merge_backexchange.csv',
+        mergebkex_corr_output = merge_dpath + '/{low_high_name}/{low_high_name}_merge_backexchange_correction.csv',
+        merge_dist_output = merge_dpath + '/{low_high_name}/{low_high_name}_merge_hxms_dist.csv',
+        merge_factor_output = merge_dpath + '/{low_high_name}/{low_high_name}_merge_factor.csv',
+        merge_plot_output = merge_dpath + '/{low_high_name}/{low_high_name}_merge_hxms_dist_plot.pdf'
+    benchmark:
+        benchmark_dpath + '/{low_high_name}_merge_data_high_low.benchmark.txt'
     shell:
         'python ' + merge_data_high_low_python + ' -seq {params.prot_seq} -ldata {input.lowph_fpath} -ldf {params.lowph_d2o_frac} -ldp {params.lowph_d2o_pur} -lbk {params.low_ph_bkexch} -lbkc {input.lowph_corr_fpath} -hdata {input.highph_fpath} -hdf {params.highph_d2o_frac} -hdp {params.highph_d2o_pur} -hbk {params.high_ph_bkexch} -hbkc {input.highph_corr_fpath} -mbk {output.mergebkex_output} -mbkc {output.mergebkex_corr_output} -mdp {output.merge_dist_output} -mpp {output.merge_plot_output} -mfp {output.merge_factor_output}'
+
+
+rule fit_hx_rates:
+    input:
+        hx_dist_fpath = merge_dpath + '/{low_high_name}/{low_high_name}_merge_hxms_dist.csv',
+        backexch_array_file = merge_dpath + '/{low_high_name}/{low_high_name}_merge_backexchange.csv'
+    params:
+        prot_seq = lambda wildcards: seq_dict[wildcards.low_high_name],
+        prot_name = '{low_high_name}',
+        d2o_frac = config['high_ph_d2o_frac'],
+        d2o_pur = config['high_ph_d2o_pur'],
+        opt_iter = config['opt_iter'],
+        opt_temp = config['opt_temp'],
+        opt_step_size = config['opt_step_size'],
+        multi_proc = config['multi_proc'],
+        num_cores = config['number_of_cores']
+    resources:
+        threads = config['number_of_cores']
+    output:
+        pk_file = hxrate_dpath + '/{low_high_name}/{low_high_name}_hx_rate_fit.pickle',
+        rate_csv_file = hxrate_dpath + '/{low_high_name}/{low_high_name}_hx_rate.csv',
+        iso_dist_file = hxrate_dpath + '/{low_high_name}/{low_high_name}_hx_rate_theo_dist.csv',
+        plot_file = hxrate_dpath + '/{low_high_name}/{low_high_name}_hx_rate.pdf'
+    benchmark:
+        benchmark_dpath + '/{low_high_name}_fit_hx_rate.benchmark.txt'
+    shell:
+        'python ' + hx_rate_fit_python_path + ' -i {input.hx_dist_fpath} -s {params.prot_seq} -n {params.prot_name} -df {params.d2o_frac} -dp {params.d2o_pur} -ot {params.opt_temp} -os {params.opt_step_size} -oi {params.opt_iter} -baf {input.backexch_array_file} -mp {params.multi_proc} -nc {params.num_cores} -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -od {output.iso_dist_file}'
 
 
 
