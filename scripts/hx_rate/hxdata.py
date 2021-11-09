@@ -62,7 +62,7 @@ def write_hx_rate_output(hx_rates, output_path):
 
 def write_isotope_dist_timepoints(timepoints, isotope_dist_array, output_path):
 
-    timepoint_str = ','.join([str(x) for x in timepoints])
+    timepoint_str = ','.join(['%.4f' % x for x in timepoints])
     header = 'ind,' + timepoint_str + '\n'
     data_string = ''
     for ind, arr in enumerate(isotope_dist_array.T):
@@ -85,7 +85,7 @@ def write_backexchange_array(timepoints, backexchange_array, output_path):
     header = 'timepoints,backexchange\n'
     data_string = ''
     for tp, backexchange in zip(timepoints, backexchange_array):
-        data_string += '{},{}\n'.format(tp, backexchange)
+        data_string += '{:.4f},{}\n'.format(tp, backexchange)
 
     with open(output_path, 'w') as outfile:
         outfile.write(header + data_string)
@@ -96,7 +96,7 @@ def write_backexchange_correction_array(timepoints, backexchange_correction_arra
     data_string = ''
     header = 'time,avg_dm_rate\n'
     for ind, (time, avg_mass_rate) in enumerate(zip(timepoints, backexchange_correction_array)):
-        data_string += '{},{}\n'.format(time, avg_mass_rate)
+        data_string += '{:.4f},{}\n'.format(time, avg_mass_rate)
 
     with open(output_path, 'w') as outfile:
         outfile.write(header + data_string)
