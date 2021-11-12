@@ -20,7 +20,7 @@ merge_data_high_low_python = scripts_dirpath + '/merge_high_low_ph_data.py'
 gen_backexch_array_python = scripts_dirpath + '/generate_backexchange_for_proteins.py'
 
 # hi low ph list filepath
-merge_ph_list_fpath = config['output_dirpath'] + '/high_low_backexchange_list.csv'
+merge_ph_list_fpath = backexchange_dpath + '/high_low_backexchange_list.csv'
 
 hi_low_bkex_df = pd.read_csv(merge_ph_list_fpath)
 low_name_list_ = list(hi_low_bkex_df['low_ph_protein_name'].values)
@@ -97,39 +97,3 @@ rule fit_hx_rates:
         benchmark_dpath + '/{low_high_name}_fit_hx_rate.benchmark.txt'
     shell:
         'python ' + hx_rate_fit_python_path + ' -i {input.hx_dist_fpath} -s {params.prot_seq} -n {params.prot_name} -df {params.d2o_frac} -dp {params.d2o_pur} -ot {params.opt_temp} -os {params.opt_step_size} -oi {params.opt_iter} -baf {input.backexch_array_file} -mp {params.multi_proc} -nc {params.num_cores} -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -od {output.iso_dist_file}'
-
-
-
-
-    # rule generate_backexchange_array_for_low_ph_data:
-    #
-    #     input:
-    #         hxms_fpath = config['low_ph_hxms_fpath_dir'] + config['low_ph_level_to_fpaths']*'/{low_ph_name}' + config['hx_ms_fpath_delim_string'],
-    #         bkexch_corr_fpath = config['output_dirpath'] + '/low_ph_bkexch_corr.csv',
-    #     params:
-    #         prot_seq = lambda wildcards: name_seq_dict[wildcards.prot_name],
-    #         d2o_frac = config['low_ph_d2o_frac'],
-    #         d2o_pur = config['low_ph_d2o_pur'],
-    #         backexch_value = lambda wildcards: low_ph_bkexch_name_dict[wildcards.low_ph_name]
-    #     output:
-    #         backexchange_output = config['output_dirpath'] + '/{prot_name}/{low_ph_name}_backexchange_array.csv'
-    #     shell:
-    #         'python ' + gen_backexch_array_python + ' -s {params.prot_seq} -i {input.hxms_fpath} -df {params.d2o_frac} -dp {params.d2o_pur} -ub {params.backexch_value} -bcf {input.bkexch_corr_fpath} -o {output.backexchange_output}'
-    #
-    #
-    # rule generate_backexchange_array_for_high_ph_data:
-    #
-    #     input:
-    #         hxms_fpath = config['high_ph_hxms_fpath_dir'] + config['high_ph_level_to_fpaths']*'/{high_ph_name}' + config['hx_ms_fpath_delim_string'],
-    #         bkexch_corr_fpath = config['output_dirpath'] + '/high_ph_bkexch_corr.csv',
-    #     params:
-    #         prot_seq = lambda wildcards: name_seq_dict[wildcards.prot_name],
-    #         d2o_frac = config['high_ph_d2o_frac'],
-    #         d2o_pur = config['high_ph_d2o_pur'],
-    #         backexch_value = lambda wildcards: high_ph_bkexc_name_dict[wildcards.high_ph_name]
-    #     output:
-    #         backexchange_output = config['output_dirpath'] + '/{prot_name}/{high_ph_name}_backexchange_array.csv'
-    #     shell:
-    #         'python ' + gen_backexch_array_python + ' -s {params.prot_seq} -i {input.hxms_fpath} -df {params.d2o_frac} -dp {params.d2o_pur} -ub {params.backexch_value} -bcf {input.bkexch_corr_fpath} -o {output.backexchange_output}'
-    #
-
