@@ -132,18 +132,18 @@ def calc_back_exchange(sequence: str,
             backexchange_obj.backexchange_value = 1 - expit(opt)[0]
 
         else:
-            print('\n SETTING USER BACK EXCHANGE ... ')
+            print('\nSETTING USER BACK EXCHANGE ... ')
             backexchange_obj.backexchange_value = usr_backexchange
 
         # generate timepoint specific backexchange array
-        backexchange_obj.gen_tp_backexchange_array(timepoints=timepoints_array)
+        backexchange_obj.gen_tp_backexchange_array(timepoints=timepoints_array, )
 
     else:
-        print('\n SETTING BACK EXCHANGE VALUE FROM THE BACKEXCHANGE ARRAY ... ')
+        print('\nSETTING BACK EXCHANGE VALUE FROM THE BACKEXCHANGE ARRAY ... ')
         backexchange_obj.backexchange_value = backexchange_array[-1]
         backexchange_obj.backexchange_array = backexchange_array
 
-        print('\n GENERATING BACKEXCHANGE CORRECTION DICTIONARY ... ')
+        print('\nGENERATING BACKEXCHANGE CORRECTION DICTIONARY ... ')
         backexchange_obj.gen_backexchange_correction_dict(timepoints=timepoints_array)
 
     backexchange_obj.theoretical_isotope_dist = isotope_dist_from_PoiBin(sequence=sequence,
@@ -474,8 +474,7 @@ def fit_rate_with_backexchange_adjust(prot_name: str,
             opt_cost = 10
             init_rate_final_ind = -1
 
-            for ind, init_rate in enumerate(init_rates_list[:1]):
-
+            for ind, init_rate in enumerate(init_rates_list[:]):  # [:1] is for debugging purpose only!!
                 opt_ = hx_rate_fitting_optimization(exp_isotope_dist_array=norm_mass_distribution_array,
                                                     sequence=sequence,
                                                     timepoints=time_points,
@@ -509,6 +508,7 @@ def fit_rate_with_backexchange_adjust(prot_name: str,
 
         # get the difference of the slowest rate and 3rd slowest.
         rate_diff = sort_rates[2] - sort_rates[0]
+        # rate_diff = 2.0  # for debugging purpose
 
         # if the rate difference is smaller than 1.6, hxrate optimization ends
         if rate_diff < slow_rates_max_diff:
@@ -532,13 +532,15 @@ def fit_rate_with_backexchange_adjust(prot_name: str,
                                                    d2o_purity=d2o_purity,
                                                    usr_backexchange=backexchange_value,
                                                    backexchange_array=None,
-                                                   backexchange_corr_dict=backexchange_correction_dict)
+                                                   backexchange_corr_dict=hxrate.back_exchange.backexchange_correction_dict)
+
+    inv_back_exchange_array_final = np.subtract(1, hxrate.back_exchange.backexchange_array)
 
     # generate theoretical isotope distribution array
     hxrate.thr_isotope_dist_array = gen_theoretical_isotope_dist_for_all_timepoints(sequence=sequence,
                                                                                     timepoints=time_points,
                                                                                     rates=np.exp(hxrate.hx_rates),
-                                                                                    inv_backexchange_array=inv_back_exchange_array,
+                                                                                    inv_backexchange_array=inv_back_exchange_array_final,
                                                                                     d2o_fraction=d2o_fraction,
                                                                                     d2o_purity=d2o_purity,
                                                                                     num_bins=num_bins_,
@@ -694,23 +696,24 @@ def fit_rate_from_to_file(prot_name: str,
 if __name__ == '__main__':
     pass
 
-    # prot_name = 'PDB6BZK_5.29094'
-    # prot_sequence = 'HMGSKTIQEKEQELKNLKDNVELERLKNERHDHDEEAERKALEDKLADKQEHLDGALRY'
-    # hx_dist_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/lib15_ph7/PDB6BZK_5.29094_winner.cpickle.zlib.csv'
+    # prot_name = 'PDB2J8P_10.00732_PDB2J8P_7.55242'
+    # prot_sequence = 'HMHMTPQDHEKAALIMQVLQLTADQIAMLPPEQRQSILILKEQIQKSTGAP'
+    # hx_dist_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/merged_data_ph6_ph9/quest_output/merge_distribution/PDB2J8P_10.00732_PDB2J8P_7.55242/PDB2J8P_10.00732_PDB2J8P_7.55242_merge_hxms_dist.csv'
     # bk_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/lib15_ph7_sample.csv_backexchange_correction_2.csv'
-    # output_dir = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bkexch_corr_output/output_lib15_ph7/PDB6BZK_5.29094/test_hx_rate_fit'
+    # bk_array_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/merged_data_ph6_ph9/quest_output/merge_distribution/PDB2J8P_10.00732_PDB2J8P_7.55242/PDB2J8P_10.00732_PDB2J8P_7.55242_merge_backexchange.csv'
+    # output_dir = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/merged_data_ph6_ph9/quest_output/hxrate_output/PDB2J8P_10.00732_PDB2J8P_7.55242/test_hxratefit'
     #
     # fit_rate_from_to_file(prot_name=prot_name,
     #                       sequence=prot_sequence,
     #                       hx_ms_dist_fpath=hx_dist_fpath,
     #                       d2o_fraction=0.95,
     #                       d2o_purity=0.95,
-    #                       opt_iter=20,
+    #                       opt_iter=1,
     #                       opt_temp=0.0003,
     #                       opt_step_size=0.02,
-    #                       multi_proc=True,
+    #                       multi_proc=False,
     #                       number_of_cores=6,
-    #                       backexchange_corr_fpath=bk_corr_fpath,
+    #                       backexchange_array_fpath=bk_array_fpath,
     #                       hx_rate_output_path=output_dir + '/_rate.pickle',
     #                       hx_rate_csv_output_path=output_dir + '/_rate.csv',
     #                       hx_rate_plot_path=output_dir + '/_rate.pdf',
