@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import molmass
 import matplotlib.gridspec as gridspec
+import psutil as psutil
 from scipy.optimize import basinhopping, curve_fit
 from sklearn.metrics import mean_squared_error
 from scipy.ndimage import center_of_mass
@@ -518,6 +519,13 @@ def mse_exp_thr_isotope_dist_all_timepoints(exp_isotope_dist_array: np.ndarray,
     return rmse
 
 
+def basin_hop_print_func(x, f, accepted):
+    print('%s,%.4f,%d' % (psutil.Process().pid, f, int(accepted)))
+
+def basin_hop_header_print_func():
+    print('\nprocess_id,function_value,accepted')
+
+
 def hx_rate_fitting_optimization(init_rate_guess: np.ndarray,
                                  exp_isotope_dist_array: np.ndarray,
                                  sequence: str,
@@ -553,7 +561,7 @@ def hx_rate_fitting_optimization(init_rate_guess: np.ndarray,
 
     minimizer_kwargs_ = {'method': 'BFGS',
                          'options': {'maxiter': 1,
-                                     'disp': True}}
+                                     'disp': False}}
 
     opt_ = basinhopping(lambda rates: mse_exp_thr_isotope_dist_all_timepoints(exp_isotope_dist_array=exp_isotope_dist_array,
                                                                               sequence=sequence,
@@ -570,7 +578,8 @@ def hx_rate_fitting_optimization(init_rate_guess: np.ndarray,
                         T=opt_temp,
                         stepsize=opt_step_size,
                         minimizer_kwargs=minimizer_kwargs_,
-                        disp=True)
+                        disp=False,
+                        callback=basin_hop_print_func)
 
     if return_tuple:
         return opt_, init_rate_guess
