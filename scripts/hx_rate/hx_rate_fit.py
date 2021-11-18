@@ -9,7 +9,9 @@ from scipy.special import expit
 from scipy.optimize import fmin_powell
 from methods import isotope_dist_from_PoiBin, gen_temp_rates, gen_theoretical_isotope_dist_for_all_timepoints, \
     normalize_mass_distribution_array, hx_rate_fitting_optimization, compute_rmse_exp_thr_iso_dist, \
-    gauss_fit_to_isotope_dist_array, convert_hxrate_object_to_dict, plot_hx_rate_fitting_, gen_corr_backexchange, gen_backexchange_correction_from_backexchange_array
+    gauss_fit_to_isotope_dist_array, convert_hxrate_object_to_dict, plot_hx_rate_fitting_, gen_corr_backexchange, \
+    gen_backexchange_correction_from_backexchange_array, basin_hop_header_print_func
+from backexchange import calc_back_exchange
 from hxdata import load_data_from_hdx_ms_dist_, write_pickle_object, write_hx_rate_output, write_isotope_dist_timepoints, load_tp_dependent_dict
 
 
@@ -41,124 +43,6 @@ class HXRate(object):
     thr_isotope_dist_gauss_fit: list = None
     fit_rmse_each_timepoint: np.ndarray = None
     total_fit_rmse: float = None
-
-
-@dataclass
-class BackExchange(object):
-    """
-    class container to store backexchange data
-    """
-    backexchange_value: float = None
-    fit_rmse: float = None
-    theoretical_isotope_dist: np.ndarray = None
-    backexchange_correction_dict: dict = None
-    backexchange_array: np.ndarray = None
-
-    def gen_tp_backexchange_array(self, timepoints):
-        """
-        generate timepoint specific backexchange array
-        :param timepoints:
-        :return:
-        """
-        if self.backexchange_correction_dict is None:
-            self.backexchange_array = np.array([self.backexchange_value for _ in range(len(timepoints))])
-        else:
-            tp_backexchange_corr_array = np.zeros(len(timepoints))
-            for ind, tp in enumerate(timepoints):
-                tp_backexchange_corr_array[ind] = self.backexchange_correction_dict[tp]
-            self.backexchange_array = gen_corr_backexchange(mass_rate_array=tp_backexchange_corr_array,
-                                                            fix_backexchange_value=self.backexchange_value)
-
-    def gen_backexchange_correction_dict(self, timepoints):
-        """
-        generate backexchange correction dict
-        :return:
-        """
-        backexch_corr = gen_backexchange_correction_from_backexchange_array(backexchange_array=self.backexchange_array)
-        corr_dict = dict()
-        for ind, (tp, bkex_corr) in enumerate(zip(timepoints, backexch_corr)):
-            corr_dict[tp] = bkex_corr
-        self.backexchange_correction_dict = corr_dict
-
-
-def calc_back_exchange(sequence: str,
-                       experimental_isotope_dist: np.ndarray,
-                       timepoints_array: np.ndarray,
-                       d2o_fraction: float,
-                       d2o_purity: float,
-                       bkex_tp: float = 1e9,
-                       usr_backexchange: float = None,
-                       backexchange_array: np.ndarray = None,
-                       backexchange_corr_dict: dict = None) -> object:
-    """
-    calculate back exchange from the experimental isotope distribution
-    :param sequence: protein sequence
-    :param experimental_isotope_dist: experimental isotope distribution to be used for backexchange calculation
-    :param d2o_fraction: d2o fraction
-    :param d2o_purity: d2o purity
-    :param timepoint: hdx timepoint in seconds. default to 1e9 for full deuteration
-    :param usr_backexchange: if usr backexchange provided, will generate backexchange object based on that backexchange
-    value
-    :param backexchange_array: provide backexchange array
-    :return: backexchange data object
-    """
-    # set high rates for calculating back exchange
-    rates = gen_temp_rates(sequence=sequence,
-                           rate_value=1e4)
-
-    # set the number of bins for isotope distribtuion
-    num_bins = len(experimental_isotope_dist)
-
-    # initiate Backexchange Object
-    backexchange_obj = BackExchange(backexchange_array=backexchange_array,
-                                    backexchange_correction_dict=backexchange_corr_dict)
-
-    if backexchange_array is None:
-        if usr_backexchange is None:
-            print('\nCALCULATING BACK EXCHANGE ... ')
-
-            opt = fmin_powell(lambda x: compute_rmse_exp_thr_iso_dist(exp_isotope_dist=experimental_isotope_dist,
-                                                                      thr_isotope_dist=isotope_dist_from_PoiBin(sequence=sequence,
-                                                                                                                timepoint=bkex_tp,
-                                                                                                                inv_backexchange=expit(x),
-                                                                                                                rates=rates,
-                                                                                                                d2o_fraction=d2o_fraction,
-                                                                                                                d2o_purity=d2o_purity,
-                                                                                                                num_bins=num_bins),
-                                                                      squared=False),
-                              x0=0.05,
-                              disp=True)
-
-            backexchange_obj.backexchange_value = 1 - expit(opt)[0]
-
-        else:
-            print('\nSETTING USER BACK EXCHANGE ... ')
-            backexchange_obj.backexchange_value = usr_backexchange
-
-        # generate timepoint specific backexchange array
-        backexchange_obj.gen_tp_backexchange_array(timepoints=timepoints_array, )
-
-    else:
-        print('\nSETTING BACK EXCHANGE VALUE FROM THE BACKEXCHANGE ARRAY ... ')
-        backexchange_obj.backexchange_value = backexchange_array[-1]
-        backexchange_obj.backexchange_array = backexchange_array
-
-        print('\nGENERATING BACKEXCHANGE CORRECTION DICTIONARY ... ')
-        backexchange_obj.gen_backexchange_correction_dict(timepoints=timepoints_array)
-
-    backexchange_obj.theoretical_isotope_dist = isotope_dist_from_PoiBin(sequence=sequence,
-                                                                         timepoint=bkex_tp,
-                                                                         inv_backexchange=1 - backexchange_obj.backexchange_value,
-                                                                         rates=rates,
-                                                                         d2o_fraction=d2o_fraction,
-                                                                         d2o_purity=d2o_purity,
-                                                                         num_bins=num_bins)
-
-    backexchange_obj.fit_rmse = compute_rmse_exp_thr_iso_dist(exp_isotope_dist=experimental_isotope_dist,
-                                                              thr_isotope_dist=backexchange_obj.theoretical_isotope_dist,
-                                                              squared=False)
-
-    return backexchange_obj
 
 
 def fit_rate_without_backexchange_adjust(prot_name: str,
@@ -239,6 +123,8 @@ def fit_rate_without_backexchange_adjust(prot_name: str,
 
     if multi_proc:
 
+        basin_hop_header_print_func()
+
         # set the max number of cores to be equal to the number of initial rate guesses
         if number_of_cores > len(init_rates_list):
             number_of_cores = len(init_rates_list)
@@ -277,6 +163,8 @@ def fit_rate_without_backexchange_adjust(prot_name: str,
         init_rate_used = tuple_results_list[min_fun_ind][1]
 
     else:
+
+        basin_hop_header_print_func()
 
         opt_cost = 10
         init_rate_final_ind = -1
@@ -432,6 +320,8 @@ def fit_rate_with_backexchange_adjust(prot_name: str,
 
         if multi_proc:
 
+            basin_hop_header_print_func()
+
             # set the max number of cores to be equal to the number of initial rate guesses
             if number_of_cores > len(init_rates_list):
                 number_of_cores = len(init_rates_list)
@@ -470,6 +360,8 @@ def fit_rate_with_backexchange_adjust(prot_name: str,
             init_rate_used = tuple_results_list[min_fun_ind][1]
 
         else:
+
+            basin_hop_header_print_func()
 
             opt_cost = 10
             init_rate_final_ind = -1
@@ -696,25 +588,25 @@ def fit_rate_from_to_file(prot_name: str,
 if __name__ == '__main__':
     pass
 
-    # prot_name = 'PDB2J8P_10.00732_PDB2J8P_7.55242'
-    # prot_sequence = 'HMHMTPQDHEKAALIMQVLQLTADQIAMLPPEQRQSILILKEQIQKSTGAP'
-    # hx_dist_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/merged_data_ph6_ph9/quest_output/merge_distribution/PDB2J8P_10.00732_PDB2J8P_7.55242/PDB2J8P_10.00732_PDB2J8P_7.55242_merge_hxms_dist.csv'
+    prot_name = 'PDB2GI9_5.94094_PDB2GI9_3.76699'
+    prot_sequence = 'HMMQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDGEWTYDDATKTFTVTE'
+    hx_dist_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/merged_data_ph6_ph9/quest_output/merge_distribution/PDB2GI9_5.94094_PDB2GI9_3.76699/PDB2GI9_5.94094_PDB2GI9_3.76699_merge_hxms_dist.csv'
     # bk_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/lib15_ph7_sample.csv_backexchange_correction_2.csv'
-    # bk_array_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/merged_data_ph6_ph9/quest_output/merge_distribution/PDB2J8P_10.00732_PDB2J8P_7.55242/PDB2J8P_10.00732_PDB2J8P_7.55242_merge_backexchange.csv'
-    # output_dir = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/merged_data_ph6_ph9/quest_output/hxrate_output/PDB2J8P_10.00732_PDB2J8P_7.55242/test_hxratefit'
-    #
-    # fit_rate_from_to_file(prot_name=prot_name,
-    #                       sequence=prot_sequence,
-    #                       hx_ms_dist_fpath=hx_dist_fpath,
-    #                       d2o_fraction=0.95,
-    #                       d2o_purity=0.95,
-    #                       opt_iter=1,
-    #                       opt_temp=0.0003,
-    #                       opt_step_size=0.02,
-    #                       multi_proc=False,
-    #                       number_of_cores=6,
-    #                       backexchange_array_fpath=bk_array_fpath,
-    #                       hx_rate_output_path=output_dir + '/_rate.pickle',
-    #                       hx_rate_csv_output_path=output_dir + '/_rate.csv',
-    #                       hx_rate_plot_path=output_dir + '/_rate.pdf',
-    #                       hx_isotope_dist_output_path=output_dir + '/_rate_iso_dist.csv')
+    bk_array_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/merged_data_ph6_ph9/quest_output/merge_distribution/PDB2GI9_5.94094_PDB2GI9_3.76699/PDB2GI9_5.94094_PDB2GI9_3.76699_merge_backexchange.csv'
+    output_dir = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/merged_data_ph6_ph9/quest_output/hxrate_output/PDB2GI9_5.94094_PDB2GI9_3.76699/test_out'
+
+    fit_rate_from_to_file(prot_name=prot_name,
+                          sequence=prot_sequence,
+                          hx_ms_dist_fpath=hx_dist_fpath,
+                          d2o_fraction=0.95,
+                          d2o_purity=0.95,
+                          opt_iter=50,
+                          opt_temp=0.0003,
+                          opt_step_size=0.02,
+                          multi_proc=True,
+                          number_of_cores=6,
+                          backexchange_array_fpath=bk_array_fpath,
+                          hx_rate_output_path=output_dir + '/_rate.pickle',
+                          hx_rate_csv_output_path=output_dir + '/_rate.csv',
+                          hx_rate_plot_path=output_dir + '/_rate.pdf',
+                          hx_isotope_dist_output_path=output_dir + '/_rate_iso_dist.csv')
