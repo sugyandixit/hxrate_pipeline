@@ -9,7 +9,6 @@ from scipy.ndimage import center_of_mass
 from dataclasses import dataclass
 from scipy.stats import linregress
 import os
-# from numba import jit
 
 # global variables
 r_constant = 0.0019872036
@@ -332,6 +331,7 @@ def calc_hx_prob(timepoint: float,
     :param d2o_fraction: d2o fraction
     :return: array of probabilities
     """
+
     prob = (1.0 - np.exp(-rate_constant * timepoint)) * (d2o_fraction * d2o_purity * inv_back_exchange)
     return prob
 
