@@ -46,8 +46,14 @@ class BayesRateFit(object):
         # gen 1 - backexchange array
         inv_backexchange_array = np.subtract(1, back_exchange_array)
 
-        # gen how many rates for opt
-        num_rates = len(gen_temp_rates(sequence=sequence))
+        # generate a temporary rates to determine what residues can't exchange
+        temp_rates = gen_temp_rates(sequence=sequence, rate_value=1)
+
+        # get the indices of residues that don't exchange
+        zero_indices = np.where(temp_rates == 0)[0]
+
+        # calculate the number of residues that can exchange
+        num_rates = len(temp_rates) - len(zero_indices)
 
         # number of bins in exp distribution
         num_bins = len(exp_distribution[0])
