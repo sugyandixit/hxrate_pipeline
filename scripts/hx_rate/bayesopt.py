@@ -6,17 +6,9 @@ from numpyro.infer import NUTS, MCMC
 from methods import gen_temp_rates, compute_rmse_exp_thr_iso_dist
 import jax.numpy as jnp
 import molmass
-import pickle
-
 
 # global variables
 r_constant = 0.0019872036
-
-def load_pickle(fpath):
-    with open(fpath, 'rb') as pk_file:
-        object_ = pickle.load(pk_file)
-
-    return object_
 
 
 class BayesRateFit(object):
@@ -366,20 +358,3 @@ if __name__=='__main__':
 
     pass
 
-    # read rate pickle file to get params needed for the model
-    # pickle_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/output_lib15_ph6/HEEH_rd4_0097/HEEH_rd4_0097_hx_rate_.pickle'
-    # hxrate_object = load_pickle(pickle_fpath)
-    # sequence = hxrate_object['exp_data']['protein_sequence']
-    # timepoints = hxrate_object['exp_data']['timepoints']
-    # inv_backexchange_array = np.subtract(1, hxrate_object['back_exchange']['backexchange_array'])
-    # d2o_fraction = 0.95
-    # d2o_purity = 0.95
-    # exp_dist = hxrate_object['exp_data']['exp_isotope_dist_array']
-    #
-    # ratefit = BayesRateFit(num_chains=4, num_warmups=500, num_samples=500, return_posterior_distributions=False)
-    # ratefit.fit_rate(sequence=sequence,
-    #                  timepoints=timepoints,
-    #                  exp_distribution=exp_dist,
-    #                  back_exchange_array=hxrate_object['back_exchange']['backexchange_array'],
-    #                  d2o_fraction=d2o_fraction,
-    #                  d2o_purity=d2o_purity)
