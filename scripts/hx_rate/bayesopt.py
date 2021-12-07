@@ -12,8 +12,18 @@ r_constant = 0.0019872036
 
 
 class BayesRateFit(object):
+    """
+    Bayes Rate Fit class
+    """
 
     def __init__(self, num_chains=4, num_warmups=1000, num_samples=500, return_posterior_distributions=False):
+        """
+        initialize the class with mcmc key parameters
+        :param num_chains: number of chains
+        :param num_warmups: number of warmup or burn ins
+        :param num_samples: number of samples for posterior
+        :param return_posterior_distributions: bool. If True, returns all the posterior distributions
+        """
 
         self.num_chains = num_chains
         self.num_warmups = num_warmups
@@ -22,19 +32,41 @@ class BayesRateFit(object):
         self.output = None
 
     def fit_rate(self, sequence, timepoints, exp_distribution, back_exchange_array, d2o_fraction, d2o_purity):
+        """
+        fit rate using mcmc opt and generate key outputs in the self.output attribute
+        :param sequence: protein sequence
+        :param timepoints: timepoints array
+        :param exp_distribution: experimental distribution array
+        :param back_exchange_array: backexchange array
+        :param d2o_fraction: d2o fraction
+        :param d2o_purity: d2o purity
+        :return: None
+        """
 
+        # gen 1 - backexchange array
         inv_backexchange_array = np.subtract(1, back_exchange_array)
+
+        # gen how many rates for opt
         num_rates = len(gen_temp_rates(sequence=sequence))
 
+        # number of bins in exp distribution
         num_bins = len(exp_distribution[0])
 
+        # flatten experimental distribution and keep the non zero elements
         flat_exp_dist = np.concatenate(exp_distribution)
         non_zero_exp_dist_indices = np.nonzero(flat_exp_dist)[0]
         flat_exp_dist_non_zero = flat_exp_dist[non_zero_exp_dist_indices]
 
+        # initialize the kernel for MCMC
         nuts_kernel = NUTS(model=rate_fit_model)
+
+        # initialize MCMC
         mcmc = MCMC(nuts_kernel, num_warmup=self.num_warmups, num_samples=self.num_samples, num_chains=self.num_chains)
+
+        # gen random key
         rng_key = random.PRNGKey(0)
+
+        # run mcmc
         mcmc.run(rng_key=rng_key,
                  num_rates=num_rates,
                  sequence=sequence,
@@ -47,10 +79,13 @@ class BayesRateFit(object):
                  nonzero_indices=non_zero_exp_dist_indices,
                  extra_fields=('potential_energy',))
 
+        # generate posterior samples but sort the rates in the posterior distribution
         posterior_samples_by_chain = sort_posterior_rates_in_samples(posterior_samples_by_chain=mcmc.get_samples(group_by_chain=True))
 
+        # generate summary from the posterior samples
         summary_ = numpyro.diagnostics.summary(samples=posterior_samples_by_chain)
 
+        # gen dictionary for output with key outputs
         self.output = dict()
 
         if self.return_posterior_distributions:
@@ -302,6 +337,19 @@ def rate_fit_model(num_rates,
                       num_bins,
                       obs_dist_nonzero_flat,
                       nonzero_indices):
+    """
+    rate fit model for opt
+    :param num_rates: number of rates
+    :param sequence: protein sequence
+    :param timepoints: timepoints array
+    :param inv_backexchange_array:  1- backexchange array
+    :param d2o_fraction: d2o fraction
+    :param d2o_purity: d2o purity
+    :param num_bins: number of bins in integrated mz data
+    :param obs_dist_nonzero_flat: observed experimental distribution flattened and with non zero values
+    :param nonzero_indices: indices in exp distribution with non zero values
+    :return: numpyro sample object
+    """
 
     with numpyro.plate(name='rates', size=num_rates):
 
