@@ -209,8 +209,9 @@ def convert_hxrate_object_to_dict(hxrate_object):
     hxrate_object.exp_data.gauss_fit = exp_gauss_list
 
     thr_gauss_list = []
-    for gauss_obj_ in hxrate_object.thr_isotope_dist_gauss_fit:
-        thr_gauss_list.append(vars(gauss_obj_))
+    if hxrate_object.thr_isotope_dist_gauss_fit is not None:
+        for gauss_obj_ in hxrate_object.thr_isotope_dist_gauss_fit:
+            thr_gauss_list.append(vars(gauss_obj_))
 
     # replace with dict list
     hxrate_object.thr_isotope_dist_gauss_fit = thr_gauss_list
@@ -858,6 +859,312 @@ def plot_hx_rate_fitting_(prot_name: str,
     ax6 = fig.add_subplot(gs[second_plot_indices[7]:, 1])
     plt.plot(np.arange(len(hx_rates_log10)), np.sort(hx_rates_log10), marker='o', ls='-', color='red',
              markerfacecolor='red', markeredgecolor='black')
+    plt.xticks(range(0, len(hx_rates_log10) + 2, 2))
+    ax6.set_xticklabels(range(0, len(hx_rates_log10) + 2, 2))
+    ax6.spines['right'].set_visible(False)
+    ax6.spines['top'].set_visible(False)
+    plt.grid(axis='x', alpha=0.25)
+    plt.grid(axis='y', alpha=0.25)
+    plt.xlabel('Residues (Ranked from slowest to fastest exchanging)')
+    plt.ylabel('Rate: log k (1/s)')
+    #######################################################
+    #######################################################
+
+    # adjust some plot properties and add title
+    plt.subplots_adjust(hspace=1.2, wspace=0.1, top=0.96)
+
+    title_1 = 'Fit RMSE: %.4f | Backexchange: %.2f %% | D2O Purity: %.1f %% | D2O_Fraction: %.1f %%' %(fit_rmse_total,
+                                                                                                       backexchange*100,
+                                                                                                       d2o_purity*100,
+                                                                                                       d2o_fraction*100)
+
+    plot_title = prot_name + ' (' + title_1 + ')'
+
+    plt.suptitle(plot_title)
+
+    plt.figtext(0.498, 0.968, "EXP", color='blue', ha='right', fontsize=8)
+    plt.figtext(0.502, 0.968, "FIT", color='red', ha='left', fontsize=8)
+
+    plt.savefig(output_path, bbox_inches="tight")
+    plt.close()
+
+
+
+def plot_hx_rate_fitting_bayes(prot_name: str,
+                               hx_rates: np.ndarray,
+                               hx_rates_error: np.ndarray,
+                               exp_isotope_dist: np.ndarray,
+                               thr_isotope_dist: np.ndarray,
+                               exp_isotope_centroid_array: np.ndarray,
+                               thr_isotope_centroid_array: np.ndarray,
+                               exp_isotope_width_array: np.ndarray,
+                               thr_isotope_width_array: np.ndarray,
+                               timepoints: np.ndarray,
+                               fit_rmse_timepoints: np.ndarray,
+                               fit_rmse_total: float,
+                               backexchange: float,
+                               backexchange_array: np.ndarray,
+                               d2o_fraction: float,
+                               d2o_purity: float,
+                               output_path: str):
+    """
+    generate several plots for visualizing the hx rate fitting output
+    :param prot_name: protein name
+    :param hx_rates: in ln scale
+    :param exp_isotope_dist: exp isotope dist array
+    :param thr_isotope_dist: thr isotope dist array from hx rates
+    :param exp_isotope_centroid_array: exp isotope centroid in an array
+    :param thr_isotope_centroid_array: thr isotope centroid in an array
+    :param exp_isotope_width_array: exp isotope width in an array
+    :param thr_isotope_width_array: thr isotope width in an array
+    :param timepoints: time points
+    :param fit_rmse_timepoints: fit rmse for each timepoint
+    :param fit_rmse_total: total fit rmse
+    :param backexchange: backexchange value
+    :param backexchange_array: backexchange array
+    :param d2o_fraction: d2o fraction
+    :param d2o_purity: d2o purity
+    :param output_path: plot saveing output path
+    :return:
+    """
+
+    # define figure size
+    num_columns = 2
+    num_rows = len(timepoints)
+    fig_size = (25, 1.0 * num_rows)
+
+    font_size = 10
+
+    fig = plt.figure(figsize=fig_size)
+    gs = fig.add_gridspec(nrows=num_rows, ncols=num_columns)
+
+    plt.rcParams.update({'font.size': font_size})
+
+    if fit_rmse_timepoints is None:
+        fit_rmse_tp = np.zeros(len(timepoints))
+    else:
+        fit_rmse_tp = fit_rmse_timepoints
+
+    #######################################################
+    #######################################################
+    # start plotting the exp and thr isotope dist
+    for num, (timepoint, exp_dist, thr_dist, exp_centroid, bkexch) in enumerate(zip(timepoints, exp_isotope_dist, thr_isotope_dist, exp_isotope_centroid_array, backexchange_array)):
+
+        if fit_rmse_timepoints is None:
+            rmse_tp = compute_rmse_exp_thr_iso_dist(exp_isotope_dist=exp_dist,
+                                                    thr_isotope_dist=thr_dist,
+                                                    squared=False)
+            fit_rmse_tp[num] = rmse_tp
+        else:
+            rmse_tp = fit_rmse_tp[num]
+
+        # plot exp and thr isotope dist
+        ax = fig.add_subplot(gs[num, 0])
+        plt.plot(exp_dist, color='blue', marker='o', ls='-', markersize=3)
+        plt.plot(thr_dist, color='red')
+        ax.set_yticks([])
+        ax.spines['right'].set_visible(False)
+        ax.spines['top'].set_visible(False)
+        # ax.spines['left'].set_visible(False)
+        plt.xticks(range(0, len(exp_dist) + 5, 5))
+        ax.set_xticklabels(range(0, len(exp_dist) + 5, 5))
+        plt.grid(axis='x', alpha=0.25)
+        ax.tick_params(length=3, pad=3)
+
+        # put the rmse on the right side of the plot and delta centroid
+        if num == 0:
+            delta_centroid = 0.0
+        else:
+            prev_centroid = exp_isotope_centroid_array[num - 1]
+            delta_centroid = exp_centroid - prev_centroid
+
+        # delta_centroid_text = 'dmz=%.2f' % delta_centroid
+
+        plt.text(1.0, 1.2, "fit rmse = %.4f\nd_mz = %.2f\nbkexch = %.2f" % (rmse_tp, delta_centroid, bkexch*100),
+                 horizontalalignment="right",
+                 verticalalignment="top",
+                 transform=ax.transAxes)
+
+        # put timepoint on  the left side of the plot
+        plt.text(0.01, 1.2, '%s t %i' % (num, timepoint),
+                 horizontalalignment="left",
+                 verticalalignment="top",
+                 transform=ax.transAxes)
+
+        # put the centroid information by the peak max
+        plt.text(
+            exp_centroid,
+            1.1,
+            "%.1f" % exp_centroid,
+            horizontalalignment="center",
+            verticalalignment="bottom",
+            fontsize=8)
+    #######################################################
+    #######################################################
+
+    # 8 plots on the second row
+    num_plots_second_row = 8
+    second_plot_row_thickness = int(len(timepoints)/num_plots_second_row)
+    second_plot_indices = [(num*second_plot_row_thickness) for num in range(num_plots_second_row)]
+
+    #######################################################
+    #######################################################
+    # plot timepoint specific backexchange
+    ax0 = fig.add_subplot(gs[second_plot_indices[0]: second_plot_indices[1], 1])
+
+    plt.scatter(x=np.arange(len(timepoints))[1:], y=backexchange_array[1:]*100, color='black')
+    ax0.spines['right'].set_visible(False)
+    ax0.spines['top'].set_visible(False)
+    plt.xticks(range(-1, len(timepoints) + 1, 1))
+    ax0.set_xticklabels(range(-1, len(timepoints) + 1, 1))
+    plt.grid(axis='x', alpha=0.25)
+    plt.grid(axis='y', alpha=0.25)
+    plt.xlabel('Timepoint index')
+    plt.ylabel('Back Exchange (%)')
+    ax0.tick_params(length=3, pad=3)
+
+    #######################################################
+    #######################################################
+    # plot fit rmse
+
+    ax1 = fig.add_subplot(gs[second_plot_indices[1]: second_plot_indices[2], 1])
+    plt.scatter(np.arange(len(timepoints)), fit_rmse_tp, color='black')
+    ax1.spines['right'].set_visible(False)
+    ax1.spines['top'].set_visible(False)
+    plt.xticks(range(0, len(timepoints) + 1, 1))
+    ax1.set_xticklabels(range(0, len(timepoints) + 1, 1))
+    if max(fit_rmse_tp) <= 0.15:
+        y_ticks = np.round(np.linspace(0, 0.15, num=16), 2)
+        plt.yticks(y_ticks)
+        ax1.set_yticklabels(y_ticks)
+    else:
+        plt.axhline(y=0.15, ls='--', color='black')
+    plt.grid(axis='x', alpha=0.25)
+    plt.grid(axis='y', alpha=0.25)
+    plt.xlabel('Timepoint index')
+    plt.ylabel('Fit RMSE')
+    ax1.tick_params(length=3, pad=3)
+
+    #######################################################
+    #######################################################
+
+    #######################################################
+    #######################################################
+    # plot center of mass exp and thr
+
+    timepoints_v2 = np.array([x for x in timepoints])
+    timepoints_v2[0] = timepoints_v2[2] - timepoints_v2[1]
+
+    ax2 = fig.add_subplot(gs[second_plot_indices[2]: second_plot_indices[3], 1])
+    ax2.plot(timepoints_v2, exp_isotope_centroid_array, marker='o', ls='-', color='blue')
+    ax2.plot(timepoints_v2, thr_isotope_centroid_array, marker='o', ls='-', color='red')
+    ax2.set_xscale('log')
+    ax2.set_xticks(timepoints_v2)
+    ax2.set_xticklabels([])
+    ax2.spines['right'].set_visible(False)
+    ax2.spines['top'].set_visible(False)
+    plt.grid(axis='x', alpha=0.25)
+    plt.grid(axis='y', alpha=0.25)
+    plt.xlabel('log(timepoint)')
+    plt.ylabel('Centroid')
+    #######################################################
+    #######################################################
+
+    #######################################################
+    #######################################################
+    # plot center of mass exp and thr corrected using backexchange
+
+    exp_isotope_centroid_array_corr = correct_centroids_using_backexchange(centroids=exp_isotope_centroid_array,
+                                                                           backexchange_array=backexchange_array,
+                                                                           include_zero_dist=True)
+    thr_isotope_centroid_array_corr = correct_centroids_using_backexchange(centroids=thr_isotope_centroid_array,
+                                                                           backexchange_array=backexchange_array,
+                                                                           include_zero_dist=True)
+
+    ax2 = fig.add_subplot(gs[second_plot_indices[3]: second_plot_indices[4], 1])
+    ax2.plot(timepoints_v2, exp_isotope_centroid_array_corr, marker='o', ls='-', color='blue')
+    ax2.plot(timepoints_v2, thr_isotope_centroid_array_corr, marker='o', ls='-', color='red')
+    ax2.set_xscale('log')
+    ax2.set_xticks(timepoints_v2)
+    ax2.set_xticklabels([])
+    ax2.spines['right'].set_visible(False)
+    ax2.spines['top'].set_visible(False)
+    plt.grid(axis='x', alpha=0.25)
+    plt.grid(axis='y', alpha=0.25)
+    plt.xlabel('log(timepoint)')
+    plt.ylabel('Corrected Centroid')
+    #######################################################
+    #######################################################
+
+    #######################################################
+    #######################################################
+    # plot the error in center of mass between exp and thr distributions
+
+    com_difference = np.subtract(exp_isotope_centroid_array_corr, thr_isotope_centroid_array_corr)
+
+    ax3 = fig.add_subplot(gs[second_plot_indices[4]: second_plot_indices[5], 1])
+    ax3.scatter(np.arange(len(timepoints)), com_difference, color='black')
+    plt.axhline(y=0, ls='--', color='black', alpha=0.50)
+    ax3.spines['right'].set_visible(False)
+    ax3.spines['top'].set_visible(False)
+    plt.xticks(range(0, len(timepoints) + 1, 1))
+    ax3.set_xticklabels(range(0, len(timepoints) + 1, 1))
+    plt.grid(axis='x', alpha=0.25)
+    plt.grid(axis='y', alpha=0.25)
+    plt.xlabel('Timepoint index')
+    plt.ylabel('Centroid difference (E-T)')
+    #######################################################
+    #######################################################
+
+    #######################################################
+    #######################################################
+    # plot the width of exp and thr distributions
+
+    ax4 = fig.add_subplot(gs[second_plot_indices[5]: second_plot_indices[6], 1])
+    ax4.scatter(np.arange(len(timepoints)), exp_isotope_width_array, color='blue')
+    ax4.scatter(np.arange(len(timepoints)), thr_isotope_width_array, color='red')
+    ax4.spines['right'].set_visible(False)
+    ax4.spines['top'].set_visible(False)
+    plt.xticks(range(0, len(timepoints) + 1, 1))
+    ax4.set_xticklabels(range(0, len(timepoints) + 1, 1))
+    plt.grid(axis='x', alpha=0.25)
+    plt.grid(axis='y', alpha=0.25)
+    plt.xlabel('Timepoint index')
+    plt.ylabel('Width')
+    #######################################################
+    #######################################################
+
+    #######################################################
+    #######################################################
+    # plot the error in center of mass between exp and thr distributions
+
+    width_difference = np.subtract(exp_isotope_width_array, thr_isotope_width_array)
+
+    ax5 = fig.add_subplot(gs[second_plot_indices[6]: second_plot_indices[7], 1])
+    ax5.scatter(np.arange(len(timepoints)), width_difference, color='black')
+    plt.axhline(y=0, ls='--', color='black', alpha=0.50)
+    ax5.spines['right'].set_visible(False)
+    ax5.spines['top'].set_visible(False)
+    plt.xticks(range(0, len(timepoints) + 1, 1))
+    ax5.set_xticklabels(range(0, len(timepoints) + 1, 1))
+    plt.grid(axis='x', alpha=0.25)
+    plt.grid(axis='y', alpha=0.25)
+    plt.xlabel('Timepoint index')
+    plt.ylabel('Width difference (E-T)')
+    #######################################################
+    #######################################################
+
+    #######################################################
+    #######################################################
+    # plot the rates in log10 scale
+    hx_rates_log10 = np.log10(np.exp(hx_rates))
+    hx_rates_error_log10 = np.log10(np.exp(hx_rates_error))
+
+    ax6 = fig.add_subplot(gs[second_plot_indices[7]:, 1])
+    plt.errorbar(x=np.arange(len(hx_rates_log10)), y=hx_rates_log10, yerr=hx_rates_error_log10, marker='o', ls='-',
+                 color='red', markerfacecolor='red', markeredgecolor='black')
+    # plt.plot(np.arange(len(hx_rates_log10)), hx_rates_log10[sort_ind], marker='o', ls='-', color='red',
+    #          markerfacecolor='red', markeredgecolor='black')
     plt.xticks(range(0, len(hx_rates_log10) + 2, 2))
     ax6.set_xticklabels(range(0, len(hx_rates_log10) + 2, 2))
     ax6.spines['right'].set_visible(False)
