@@ -316,9 +316,8 @@ def hx_rate_fitting_from_parser(parser):
 
     options = parser.parse_args()
 
-    if options.user_backexchange is None:
-        user_backexchange = None
-    else:
+    user_backexchange = None
+    if options.user_backexchange is not None:
         user_backexchange = float(options.user_backexchange)
 
     fit_rate_from_to_file(prot_name=options.prot_name,
@@ -329,6 +328,11 @@ def hx_rate_fitting_from_parser(parser):
                           usr_backexchange=user_backexchange,
                           backexchange_corr_fpath=options.backexchange_corr_fpath,
                           backexchange_array_fpath=options.backexchange_array_fpath,
+                          adjust_backexchange=options.adjust_backexchange,
+                          num_chains=int(options.num_chains),
+                          num_warmups=int(options.num_warmups),
+                          num_samples=int(options.num_samples),
+                          return_posterior_distribution=options.return_posterior,
                           hx_rate_output_path=options.output_pickle_file,
                           hx_rate_csv_output_path=options.output_rate_csv,
                           hx_isotope_dist_output_path=options.output_iso_dist,
