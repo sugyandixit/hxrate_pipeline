@@ -11,7 +11,7 @@ benchmark_dpath = config['output_dirpath'] + '/benchmark'
 
 # set the python scripts path
 scripts_dirpath = config['path_to_repo'] + '/scripts/hx_rate'
-hx_rate_fit_python_path = scripts_dirpath + '/hxratefit_snakemake.py'
+hx_rate_fit_python_path = scripts_dirpath + '/hx_rate_fit.py'
 gen_time_specific_bkexch_path = scripts_dirpath + '/gen_time_specific_bkexch_corr.py'
 
 sample_csv_fpath = config['output_dirpath'] + '/sample.csv'
