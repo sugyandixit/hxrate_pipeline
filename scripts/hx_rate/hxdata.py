@@ -60,6 +60,35 @@ def write_hx_rate_output(hx_rates, output_path):
         outfile.close()
 
 
+def write_hx_rate_output_bayes(hxrate_mean_array,
+                               hxrate_median_array,
+                               hxrate_std_array,
+                               hxrate_5percent_array,
+                               hxrate_95percent_array,
+                               neff_array,
+                               r_hat_array,
+                               output_path):
+
+    header = 'ind,rate_mean,rate_median,rate_std,rate_5%,rate_95%,n_eff,r_hat\n'
+    data_string = ''
+
+    for num in range(len(hxrate_mean_array)):
+
+        data_string += '{},{},{},{},{},{},{},{}\n'.format(num,
+                                                          hxrate_mean_array[num],
+                                                          hxrate_median_array[num],
+                                                          hxrate_std_array[num],
+                                                          hxrate_95percent_array[num],
+                                                          hxrate_5percent_array[num],
+                                                          neff_array[num],
+                                                          r_hat_array[num])
+
+    with open(output_path, 'w') as outfile:
+        outfile.write(header + data_string)
+        outfile.close()
+
+
+
 def write_isotope_dist_timepoints(timepoints, isotope_dist_array, output_path):
 
     timepoint_str = ','.join(['%.4f' % x for x in timepoints])
