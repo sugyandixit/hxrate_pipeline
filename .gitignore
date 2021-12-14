@@ -13,6 +13,7 @@ __pycache__/
 *
 !config
 !config/config.yml
+!config/config_old.yml
 !config/config_merge.yml
 !params
 !params/*
