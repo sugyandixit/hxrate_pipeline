@@ -1,6 +1,6 @@
 # command line operation of hx rate fitting
 import argparse
-from hx_rate_fit import fit_rate_from_to_file
+from hx_rate_fit_old import fit_rate_from_to_file
 
 
 def gen_parser_arguments():
