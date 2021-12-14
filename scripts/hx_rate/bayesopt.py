@@ -408,7 +408,7 @@ def sort_posterior_rates_in_samples(posterior_samples_by_chain):
     return posterior_samples_by_chain
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
 
     pass
 
