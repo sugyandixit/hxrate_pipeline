@@ -67,122 +67,50 @@ if config['backexchange_correction']:
             shell:
                 "cp {input.input_corr_fpath} {output}"
 
-    if config['usr_backexchange'] is None:
 
-        rule fit_hx_rate:
-            input:
-                hx_dist_fpath = config['hx_ms_dist_fpaths_top_dir'] + config['level_to_fpaths']*'/{name}' + config['hx_ms_fpath_delim_string'],
-                bkexch_corr_fpath = config['output_dirpath'] + '/bkexch_corr.csv'
-            params:
-                prot_seq = lambda wildcards: name_seq_dict[wildcards.name],
-                prot_name = '{name}',
-                d2o_frac = config['d2o_fraction'],
-                d2o_purity = config['d2o_purity'],
-                opt_iter = config['opt_iter'],
-                opt_temp = config['opt_temp'],
-                opt_step_size = config['opt_step_size'],
-                multi_proc = config['multi_proc'],
-                num_cores = config['number_of_cores']
-            resources:
-                threads = config['number_of_cores']
-            output:
-                pk_file = config['output_dirpath'] + '/{name}/{name}_hx_rate_fit.pickle',
-                rate_csv_file = config['output_dirpath'] + '/{name}/{name}_hx_rate.csv',
-                iso_dist_file = config['output_dirpath'] + '/{name}/{name}_hx_rate_theo_dist.csv',
-                plot_file = config['output_dirpath'] + '/{name}/{name}_hx_rate.pdf'
-            benchmark:
-                benchmark_dpath + '/{name}_fit_hx_rate.benchmark.txt',
-            shell:
-                'python ' + hx_rate_fit_python_path + ' -i {input.hx_dist_fpath} -s {params.prot_seq} -n {params.prot_name} -df {params.d2o_frac} -dp {params.d2o_purity} -ot {params.opt_temp} -os {params.opt_step_size} -oi {params.opt_iter} -bcf {input.bkexch_corr_fpath} -mp {params.multi_proc} -nc {params.num_cores} -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -od {output.iso_dist_file}'
-
-    else:
-
-        rule fit_hx_rate:
-            input:
-                hx_dist_fpath = config['hx_ms_dist_fpaths_top_dir'] + config['level_to_fpaths']*'/{name}' + config['hx_ms_fpath_delim_string'],
-                bkexch_corr_fpath = config['output_dirpath'] + '/bkexch_corr.csv'
-            params:
-                prot_seq = lambda wildcards: name_seq_dict[wildcards.name],
-                prot_name = '{name}',
-                d2o_frac = config['d2o_fraction'],
-                d2o_purity = config['d2o_purity'],
-                user_backexchange = config['usr_backexchange'],
-                opt_iter = config['opt_iter'],
-                opt_temp = config['opt_temp'],
-                opt_step_size = config['opt_step_size'],
-                multi_proc = config['multi_proc'],
-                num_cores = config['number_of_cores']
-            resources:
-                threads = config['number_of_cores']
-            output:
-                pk_file = config['output_dirpath'] + '/{name}/{name}_hx_rate_fit.pickle',
-                rate_csv_file = config['output_dirpath'] + '/{name}/{name}_hx_rate.csv',
-                iso_dist_file = config['output_dirpath'] + '/{name}/{name}_hx_rate_theo_dist.csv',
-                plot_file = config['output_dirpath'] + '/{name}/{name}_hx_rate.pdf'
-            benchmark:
-                benchmark_dpath + '/{name}_fit_hx_rate.benchmark.txt',
-            shell:
-                'python ' + hx_rate_fit_python_path + ' -i {input.hx_dist_fpath} -s {params.prot_seq} -n {params.prot_name} -df {params.d2o_frac} -dp {params.d2o_purity} -ot {params.opt_temp} -os {params.opt_step_size} -oi {params.opt_iter} -ub {params.user_backexchange} -bcf {input.bkexch_corr_fpath} -mp {params.multi_proc} -nc {params.num_cores} -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -od {output.iso_dist_file}'
-
-
-
+    rule fit_hx_rate:
+        input:
+            hx_dist_fpath = config['hx_ms_dist_fpaths_top_dir'] + config['level_to_fpaths']*'/{name}' + config['hx_ms_fpath_delim_string'],
+            bkexch_corr_fpath = config['output_dirpath'] + '/bkexch_corr.csv'
+        params:
+            prot_seq = lambda wildcards: name_seq_dict[wildcards.name],
+            prot_name = '{name}',
+            d2o_frac = config['d2o_fraction'],
+            d2o_purity = config['d2o_purity'],
+            num_chains = config['num_chains'],
+            num_warmups = config['num_warmups'],
+            num_samples = config['num_samples'],
+            adjust_backexchange = config['adjust_backexchange']
+        output:
+            pk_file = config['output_dirpath'] + '/{name}/{name}_hx_rate_fit.pickle',
+            rate_csv_file = config['output_dirpath'] + '/{name}/{name}_hx_rate.csv',
+            iso_dist_file = config['output_dirpath'] + '/{name}/{name}_hx_rate_theo_dist.csv',
+            plot_file = config['output_dirpath'] + '/{name}/{name}_hx_rate.pdf'
+        benchmark:
+            benchmark_dpath + '/{name}_fit_hx_rate.benchmark.txt'
+        shell:
+            'python ' + hx_rate_fit_python_path + ' -p {params.prot_name} -s {params.prot_seq} -i {input.hx_dist_fpath} -df {params.d2o_frac} -dp {params.d2o_purity} -bcf {input.bkexch_corr_fpath} -adb {params.adjust_backexchange} -nc {params.num_chains} -nw {params.num_warmups} -ns {params.num_samples} -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -od {output.iso_dist_file}'
 
 else:
 
-    if config['usr_backexchange'] is None:
-
-        rule fit_hx_rate:
-            input:
-                hx_dist_fpath = config['hx_ms_dist_fpaths_top_dir'] + config['level_to_fpaths']*'/{name}' + config['hx_ms_fpath_delim_string'],
-                bkexch_corr_fpath = config['output_dirpath'] + '/bkexch_corr.csv'
-            params:
-                prot_seq = lambda wildcards: name_seq_dict[wildcards.name],
-                prot_name = '{name}',
-                d2o_frac = config['d2o_fraction'],
-                d2o_purity = config['d2o_purity'],
-                opt_iter = config['opt_iter'],
-                opt_temp = config['opt_temp'],
-                opt_step_size = config['opt_step_size'],
-                multi_proc = config['multi_proc'],
-                num_cores = config['number_of_cores']
-            resources:
-                threads = config['number_of_cores']
-            output:
-                pk_file = config['output_dirpath'] + '/{name}/{name}_hx_rate_fit.pickle',
-                rate_csv_file = config['output_dirpath'] + '/{name}/{name}_hx_rate.csv',
-                iso_dist_file = config['output_dirpath'] + '/{name}/{name}_hx_rate_theo_dist.csv',
-                plot_file = config['output_dirpath'] + '/{name}/{name}_hx_rate.pdf'
-            benchmark:
-                benchmark_dpath + '/{name}_fit_hx_rate.benchmark.txt',
-            shell:
-                'python ' + hx_rate_fit_python_path + ' -i {input.hx_dist_fpath} -s {params.prot_seq} -n {params.prot_name} -df {params.d2o_frac} -dp {params.d2o_purity} -ot {params.opt_temp} -os {params.opt_step_size} -oi {params.opt_iter} -bcf {input.bkexch_corr_fpath} -mp {params.multi_proc} -nc {params.num_cores} -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -od {output.iso_dist_file}'
-
-    else:
-
-        rule fit_hx_rate:
-            input:
-                hx_dist_fpath = config['hx_ms_dist_fpaths_top_dir'] + config['level_to_fpaths']*'/{name}' + config['hx_ms_fpath_delim_string'],
-                bkexch_corr_fpath = config['output_dirpath'] + '/bkexch_corr.csv'
-            params:
-                prot_seq = lambda wildcards: name_seq_dict[wildcards.name],
-                prot_name = '{name}',
-                d2o_frac = config['d2o_fraction'],
-                d2o_purity = config['d2o_purity'],
-                user_backexchange = config['usr_backexchange'],
-                opt_iter = config['opt_iter'],
-                opt_temp = config['opt_temp'],
-                opt_step_size = config['opt_step_size'],
-                multi_proc = config['multi_proc'],
-                num_cores = config['number_of_cores']
-            resources:
-                threads = config['number_of_cores']
-            output:
-                pk_file = config['output_dirpath'] + '/{name}/{name}_hx_rate_fit.pickle',
-                rate_csv_file = config['output_dirpath'] + '/{name}/{name}_hx_rate.csv',
-                iso_dist_file = config['output_dirpath'] + '/{name}/{name}_hx_rate_theo_dist.csv',
-                plot_file = config['output_dirpath'] + '/{name}/{name}_hx_rate.pdf'
-            benchmark:
-                benchmark_dpath + '/{name}_fit_hx_rate.benchmark.txt',
-            shell:
-                'python ' + hx_rate_fit_python_path + ' -i {input.hx_dist_fpath} -s {params.prot_seq} -n {params.prot_name} -df {params.d2o_frac} -dp {params.d2o_purity} -ot {params.opt_temp} -os {params.opt_step_size} -oi {params.opt_iter} -ub {params.user_backexchange} -bcf {input.bkexch_corr_fpath} -mp {params.multi_proc} -nc {params.num_cores} -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -od {output.iso_dist_file}'
-
+    rule fit_hx_rate:
+        input:
+            hx_dist_fpath = config['hx_ms_dist_fpaths_top_dir'] + config['level_to_fpaths']*'/{name}' + config['hx_ms_fpath_delim_string'],
+        params:
+            prot_seq = lambda wildcards: name_seq_dict[wildcards.name],
+            prot_name = '{name}',
+            d2o_frac = config['d2o_fraction'],
+            d2o_purity = config['d2o_purity'],
+            num_chains = config['num_chains'],
+            num_warmups = config['num_warmups'],
+            num_samples = config['num_samples'],
+            adjust_backexchange = config['adjust_backexchange']
+        output:
+            pk_file = config['output_dirpath'] + '/{name}/{name}_hx_rate_fit.pickle',
+            rate_csv_file = config['output_dirpath'] + '/{name}/{name}_hx_rate.csv',
+            iso_dist_file = config['output_dirpath'] + '/{name}/{name}_hx_rate_theo_dist.csv',
+            plot_file = config['output_dirpath'] + '/{name}/{name}_hx_rate.pdf'
+        benchmark:
+            benchmark_dpath + '/{name}_fit_hx_rate.benchmark.txt'
+        shell:
+            'python ' + hx_rate_fit_python_path + ' -p {params.prot_name} -s {params.prot_seq} -i {input.hx_dist_fpath} -df {params.d2o_frac} -dp {params.d2o_purity} -adb {params.adjust_backexchange} -nc {params.num_chains} -nw {params.num_warmups} -ns {params.num_samples} -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -od {output.iso_dist_file}'
