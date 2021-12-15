@@ -317,8 +317,8 @@ def hx_rate_fitting_from_parser(parser):
     options = parser.parse_args()
 
     user_backexchange = None
-    if options.user_backexchange is not None:
-        user_backexchange = float(options.user_backexchange)
+    if options.user_bkexchange is not None:
+        user_backexchange = float(options.user_bkexchange)
 
     fit_rate_from_to_file(prot_name=options.prot_name,
                           sequence=options.sequence,
