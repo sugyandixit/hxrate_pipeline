@@ -320,14 +320,14 @@ def hx_rate_fitting_from_parser(parser):
     if options.user_bkexchange is not None:
         user_backexchange = float(options.user_bkexchange)
 
-    fit_rate_from_to_file(prot_name=options.prot_name,
+    fit_rate_from_to_file(prot_name=options.protname,
                           sequence=options.sequence,
                           hx_ms_dist_fpath=options.hxdist,
                           d2o_fraction=float(options.d2o_frac),
-                          d2o_purity=float(options.d2o_purity),
+                          d2o_purity=float(options.d2o_pur),
                           usr_backexchange=user_backexchange,
-                          backexchange_corr_fpath=options.backexchange_corr_fpath,
-                          backexchange_array_fpath=options.backexchange_array_fpath,
+                          backexchange_corr_fpath=options.bkexchange_corr_fpath,
+                          backexchange_array_fpath=options.bkexchange_array_fpath,
                           adjust_backexchange=options.adjust_backexchange,
                           num_chains=int(options.num_chains),
                           num_warmups=int(options.num_warmups),
