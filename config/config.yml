@@ -35,9 +35,6 @@ change_frac_threshold: 0.02
 # If not provided, the workflow will create it automatically if backexchange correction is turned on
 backexchange_correction_fpath:
 
-# user can set their own backexchange
-usr_backexchange:
-
 ##########################################
 ##########################################
 
