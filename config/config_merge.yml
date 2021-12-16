@@ -66,10 +66,7 @@ change_frac_threshold: 0.02
 ##########################################
 
 # rate fitting parameters
-opt_iter: 50
-opt_temp: 0.0003
-opt_step_size: 0.02
-
-# rate fitting multiprocessing utility
-multi_proc: True
-number_of_cores: 6
+adjust_backexchange: True
+num_chains: 4
+num_warmups: 100
+num_samples: 500
