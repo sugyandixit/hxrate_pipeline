@@ -4,7 +4,7 @@
 import pandas as pd
 
 # set the config file path
-configfile: '../config/config_merge.yml'
+configfile: '../config/config_merge_old.yml'
 
 # set benchmark dirpath
 benchmark_dpath = config['output_dirpath'] + '/benchmark'
