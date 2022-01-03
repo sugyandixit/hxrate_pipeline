@@ -4,11 +4,9 @@ import argparse
 import pandas as pd
 
 
-def gen_sample_list(hxms_dist_fpath_top_dir, level_to_fpath, file_delimiting_string, library_info_fpath, output_path):
+def gen_sample_list(hxms_dist_fpath_top_dir, file_delimiting_string, library_info_fpath, output_path):
 
-    level_str = '/*'*int(level_to_fpath)
-
-    hx_ms_dist_file_list = glob.glob(hxms_dist_fpath_top_dir+level_str+file_delimiting_string)
+    hx_ms_dist_file_list = glob.glob(hxms_dist_fpath_top_dir+'/*'+file_delimiting_string)
 
     library_info_df = pd.read_json(library_info_fpath)
 
@@ -40,9 +38,8 @@ def gen_parser_arguments():
     parser = argparse.ArgumentParser(prog='SAMPLE CSV', description='Generate Sample list for running hx rate fitting')
     parser.add_argument('-t', '--topdir', help='top directory to look for hx ms dist file paths',
                         default='../../workfolder/input_hx_dist')
-    parser.add_argument('-l', '--level', help='level to look for the hx ms dist file paths',
-                        default=1)
-    parser.add_argument('-d', '--delim', help='delimiting string to look for identifying hx ms dist file path', default='.winner.cpickle.zlib.csv')
+    parser.add_argument('-d', '--delim', help='delimiting string to look for identifying hx ms dist file path',
+                        default='.winner.cpickle.zlib.csv')
     parser.add_argument('-j', '--json', help='library info .json filepath',
                         default='../../library_info.json')
     parser.add_argument('-o', '--outpath', help='output path for sample.csv',
@@ -55,7 +52,6 @@ def gen_sample_list_from_parser(parser):
     options = parser.parse_args()
 
     gen_sample_list(hxms_dist_fpath_top_dir=options.topdir,
-                    level_to_fpath=options.level,
                     file_delimiting_string=options.delim,
                     library_info_fpath=options.json,
                     output_path=options.outpath)
