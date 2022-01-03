@@ -5,6 +5,14 @@ import pandas as pd
 
 
 def gen_sample_list(hxms_dist_fpath_top_dir, file_delimiting_string, library_info_fpath, output_path):
+    """
+    generate sample list
+    :param hxms_dist_fpath_top_dir: top directory where the hx dist files are located
+    :param file_delimiting_string: delimiting string anything after prot name
+    :param library_info_fpath: library info .json filepath
+    :param output_path: output path for sample.csv
+    :return: None
+    """
 
     hx_ms_dist_file_list = glob.glob(hxms_dist_fpath_top_dir+'/*'+file_delimiting_string)
 
