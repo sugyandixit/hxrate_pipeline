@@ -1,3 +1,5 @@
+import os.path
+
 from hxdata import load_data_from_hdx_ms_dist_
 from methods import gauss_fit_to_isotope_dist_array, normalize_mass_distribution_array
 import pandas as pd
@@ -185,6 +187,42 @@ def gen_list_of_mass_rate_obj(sample_csv_fpath: str,
             list_of_mass_rate_obj.append(mass_rate_obj)
         except:
             print('skipping file %s' % hx_ms_dist_fpath)
+
+    return list_of_mass_rate_obj
+
+
+def gen_list_of_mass_rate_obj_v2(list_of_hxms_dist_fpaths: list,
+                                 hxms_dist_fpath_delim_str: str,
+                                 rate_tol: float,
+                                 frac_threshold: float,
+                                 frac_thres_ind: float = 0.0,
+                                 start_ind: int = None,
+                                 end_ind: int = None,
+                                 max_mass_rate: float = 1.0):
+    # todo: add param description
+
+    list_of_mass_rate_obj = []
+
+    for ind, hx_msdist_fpath in enumerate(list_of_hxms_dist_fpaths):
+
+        hxms_dist_fname = os.path.split(hx_msdist_fpath)[1]
+        prot_name = hxms_dist_fname.split(hxms_dist_fpath_delim_str)[0]
+
+        # todo: investigate the source of error and create better solution than a general try and except
+
+        try:
+            mass_rate_obj = gen_mass_rate_obj_from_file(protein_name=prot_name,
+                                                        hx_ms_dist_fpath=hx_msdist_fpath,
+                                                        rate_tol=rate_tol,
+                                                        frac_threshold=frac_threshold,
+                                                        frac_threshold_ind=frac_thres_ind,
+                                                        start_ind=start_ind,
+                                                        end_ind=end_ind,
+                                                        max_mass_rate=max_mass_rate)
+
+            list_of_mass_rate_obj.append(mass_rate_obj)
+        except:
+            print('skipping file %s' % hx_msdist_fpath)
 
     return list_of_mass_rate_obj
 
@@ -384,6 +422,70 @@ def gen_backexchange_corr_obj_from_sample_list(sample_list_fpath: str,
         return new_mass_rate_object_list
 
 
+def gen_backexchange_corr_obj_from_list_of_hxdist_files(list_of_hxdist_files: list,
+                                                        hxms_dist_fpath_delim_string: str,
+                                                        rate_tol: float,
+                                                        frac_threshold: float,
+                                                        frac_threshold_bound: float,
+                                                        start_bound: int,
+                                                        end_bound: int,
+                                                        max_rate: float,
+                                                        min_number_paths: int,
+                                                        change_frac_threshold: float,
+                                                        plot_rate_path: str,
+                                                        csv_out_path: str,
+                                                        return_flag: bool) -> list:
+    """
+
+    :param sample_list_fpath:
+    :param rate_tol:
+    :param frac_threshold:
+    :param frac_threshold_bound:
+    :param start_bound:
+    :param end_bound:
+    :param max_rate:
+    :param min_number_paths:
+    :param change_frac_threshold:
+    :param plot_rate_path:
+    :param pickle_out_path:
+    :param csv_out_path:
+    :param return_flag:
+    :return:
+    """
+
+    # generate a list of mass rate object from the sample list
+
+    list_of_mass_rate_obj = gen_list_of_mass_rate_obj_v2(list_of_hxms_dist_fpaths=list_of_hxdist_files,
+                                                         hxms_dist_fpath_delim_str=hxms_dist_fpath_delim_string,
+                                                         rate_tol=rate_tol,
+                                                         frac_threshold=frac_threshold,
+                                                         frac_thres_ind=frac_threshold_bound,
+                                                         start_ind=start_bound,
+                                                         end_ind=end_bound,
+                                                         max_mass_rate=max_rate)
+
+    # filter the mass rate object
+    new_mass_rate_object_list = filter_mass_rate_object(list_of_mass_rate_obj=list_of_mass_rate_obj,
+                                                        min_number_accept=min_number_paths,
+                                                        ch_frac_threshold=change_frac_threshold)
+
+    if plot_rate_path is not None:
+        plot_mass_rate_all(list_of_tp_bkexchange_obj=new_mass_rate_object_list,
+                           output_path=plot_rate_path)
+
+    if csv_out_path is not None:
+        mass_rate_array_list = [x.mass_rate_arr for x in new_mass_rate_object_list if x.accept is True]
+        protein_list = [x.protein_name for x in new_mass_rate_object_list if x.accept is True]
+        tp_array = new_mass_rate_object_list[0].timepoint_arr
+        write_backexchange_corr_to_file(protein_list=protein_list,
+                                        mass_rate_list=mass_rate_array_list,
+                                        timepoint_list=tp_array,
+                                        csv_out_path=csv_out_path)
+
+    if return_flag:
+        return new_mass_rate_object_list
+
+
 def gen_parser_arguments():
     """
     generate commandline arguements to generate backexchange correction file
@@ -424,10 +526,76 @@ def gen_bkexch_corr_obj_from_parser(parser):
                                                return_flag=options.return_flag)
 
 
+def gen_parser_arguments_v2():
+    """
+    generate commandline arguements to generate backexchange correction file
+    :return:parser
+    """
+    parser = argparse.ArgumentParser(prog='Backexchange correction',
+                                     description='Generate backexchange correction path')
+    parser.add_argument('-l', '--list_of_hxms_files', help='list of hx ms dist files')
+    parser.add_argument('-s', '--delim_string', help='delimiter string')
+    parser.add_argument('-r', '--rate_tol', help='rate tolerance', default=0.05)
+    parser.add_argument('-f', '--frac_threshold', help='fraction threshold', default=0.50)
+    parser.add_argument('-b', '--frac_threshold_bound', help='fraction threshold bound', default=0.8)
+    parser.add_argument('-i', '--start_bound', help='start bound', default=1)
+    parser.add_argument('-e', '--end_bound', help='end bound', default=4)
+    parser.add_argument('-m', '--max_tolerance', help='max rate tolerance', default=0.5)
+    parser.add_argument('-n', '--min_paths', help='minimum number of paths', default=1)
+    parser.add_argument('-c', '--change_frac_threshold', help='change fraction threshold', default=0.01)
+    parser.add_argument('-p', '--plot_path', help='plot file path', default='../../workfolder/bkexch_corr.pdf')
+    parser.add_argument('-o', '--output_path', help='correction file path', default='../../workfolder/bkexch_corr.csv')
+    parser.add_argument('-g', '--return_flag', help='return the value bool', default=False)
+
+    return parser
+
+
+def gen_bkexch_corr_obj_from_parser_v2(parser):
+    options = parser.parse_args()
+
+    gen_backexchange_corr_obj_from_list_of_hxdist_files(list_of_hxdist_files=options.list_of_hxms_files,
+                                                        hxms_dist_fpath_delim_string=options.delim_string,
+                                                        rate_tol=float(options.rate_tol),
+                                                        frac_threshold=float(options.frac_threshold),
+                                                        frac_threshold_bound=float(options.frac_threshold_bound),
+                                                        start_bound=int(options.start_bound),
+                                                        end_bound=int(options.end_bound),
+                                                        max_rate=float(options.max_tolerance),
+                                                        min_number_paths=int(options.min_paths),
+                                                        change_frac_threshold=float(options.change_frac_threshold),
+                                                        plot_rate_path=options.plot_path,
+                                                        csv_out_path=options.output_path,
+                                                        return_flag=options.return_flag)
+
+
 if __name__ == '__main__':
 
-    parser_ = gen_parser_arguments()
-    gen_bkexch_corr_obj_from_parser(parser_)
+    # parser_ = gen_parser_arguments()
+    # gen_bkexch_corr_obj_from_parser(parser_)
+
+    parser_ = gen_parser_arguments_v2()
+    gen_bkexch_corr_obj_from_parser_v2(parser_)
+
+    # sample_list_fpath_ = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/lib15_ph6_sample.csv'
+    # sample_list_df = pd.read_csv(sample_list_fpath_)
+    #
+    # filepaths_list = list(sample_list_df['hx_dist_fpath'].values)
+    #
+    # gen_backexchange_corr_obj_from_list_of_hxdist_files(list_of_hxdist_files=filepaths_list,
+    #                                                     hxms_dist_fpath_delim_string='_winner.cpickle.zlib.csv',
+    #                                                     rate_tol=0.05,
+    #                                                     frac_threshold=0.5,
+    #                                                     frac_threshold_bound=0.8,
+    #                                                     start_bound=1,
+    #                                                     end_bound=4,
+    #                                                     max_rate=0.20,
+    #                                                     min_number_paths=1,
+    #                                                     change_frac_threshold=0.01,
+    #                                                     plot_rate_path=sample_list_fpath_+'_dm_rate_3.pdf',
+    #                                                     csv_out_path=sample_list_fpath_+'_backexchange_correction_3.csv',
+    #                                                     return_flag=False)
+    #
+    # print('heho')
 
     # sample_list_fpath_ = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/lib15_ph6_sample.csv'
     #
