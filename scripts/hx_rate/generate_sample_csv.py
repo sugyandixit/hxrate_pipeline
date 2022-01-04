@@ -14,7 +14,7 @@ def gen_sample_list(hxms_dist_fpath_top_dir, file_delimiting_string, library_inf
     :return: None
     """
 
-    hx_ms_dist_file_list = glob.glob(hxms_dist_fpath_top_dir+'/*'+file_delimiting_string)
+    hx_ms_dist_file_list = glob.glob(hxms_dist_fpath_top_dir+'/*/*'+file_delimiting_string)
 
     library_info_df = pd.read_json(library_info_fpath)
 
