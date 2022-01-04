@@ -7,6 +7,7 @@ path_to_repo: "/projects/p31346/suggie/hxrate"
 
 # params to find the hx ms distribution fpaths
 hx_ms_dist_fpaths_top_dir: "/projects/p31346/suggie/hdx_ms_analysis"
+levels_to_fpaths: 2
 hx_ms_fpath_delim_string: "_winner.cpickle.zlib.csv"
 
 # library info filepath
