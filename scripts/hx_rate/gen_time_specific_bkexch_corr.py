@@ -533,7 +533,7 @@ def gen_parser_arguments_v2():
     """
     parser = argparse.ArgumentParser(prog='Backexchange correction',
                                      description='Generate backexchange correction path')
-    parser.add_argument('-l', '--list_of_hxms_files', help='list of hx ms dist files')
+    parser.add_argument('-l', '--list_of_hxms_files', nargs='+', help='list of hx ms dist files')
     parser.add_argument('-s', '--delim_string', help='delimiter string')
     parser.add_argument('-r', '--rate_tol', help='rate tolerance', default=0.05)
     parser.add_argument('-f', '--frac_threshold', help='fraction threshold', default=0.50)
