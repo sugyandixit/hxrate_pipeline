@@ -10,6 +10,8 @@ configfile: '../config/config.yml'
 
 # set benchmark dirpath
 benchmark_dpath = config['output_dirpath'] + '/benchmark'
+rate_output_path = config['output_dirpath'] + '/rates'
+backexchange_output_path = config['output_dirpath'] + '/backexchange'
 
 # set the python scripts path
 scripts_dirpath = config['path_to_repo'] + '/scripts/hx_rate'
@@ -17,10 +19,10 @@ hx_rate_fit_python_path = scripts_dirpath + '/hx_rate_fit.py'
 gen_time_specific_bkexch_path = scripts_dirpath + '/gen_time_specific_bkexch_corr.py'
 
 
-def gen_prot_name_seq_list(hxms_dist_top_dir, hxms_end_string, libinfo_fpath):
+def gen_prot_name_seq_list(hxms_dist_top_dir, hxms_end_string, levels_to_fpaths, libinfo_fpath):
 
-    libinfo_df = pd.read_csv(libinfo_fpath)
-    hx_ms_dist_file_list = glob.glob(hxms_dist_top_dir+'/*/*'+hxms_end_string)
+    libinfo_df = pd.read_json(libinfo_fpath)
+    hx_ms_dist_file_list = glob.glob(hxms_dist_top_dir+'/*'*levels_to_fpaths+hxms_end_string)
 
     name_list = []
     seq_list = []
@@ -30,7 +32,7 @@ def gen_prot_name_seq_list(hxms_dist_top_dir, hxms_end_string, libinfo_fpath):
         hxms_df = pd.read_csv(hx_ms_dist_fpath)
 
         # check whether the data frame is empty or not
-        if not hxms_df.empty():
+        if not hxms_df.empty:
 
             dpath, hx_ms_dist_fname = os.path.split(hx_ms_dist_fpath)
 
@@ -44,9 +46,7 @@ def gen_prot_name_seq_list(hxms_dist_top_dir, hxms_end_string, libinfo_fpath):
 
     return name_list, seq_list
 
-prot_name_list, prot_seq_list = gen_prot_name_seq_list(hxms_dist_top_dir=config['hx_ms_dist_fpaths_top_dir'],
-hxms_end_string=config['hx_ms_fpath_delim_string'],
-libinfo_fpath=config['library_info_json_fpath'])
+prot_name_list, prot_seq_list = gen_prot_name_seq_list(hxms_dist_top_dir=config['hx_ms_dist_fpaths_top_dir'], hxms_end_string=config['hx_ms_fpath_delim_string'], levels_to_fpaths=config['levels_to_fpaths'], libinfo_fpath=config['library_info_json_fpath'])
 
 
 name_seq_dict = dict()
@@ -54,8 +54,11 @@ for ind, (pname, pseq) in enumerate(zip(prot_name_list, prot_seq_list)):
     name_seq_dict[pname] = pseq
 
 
+hx_dist_fpaths_gen_ = config['hx_ms_dist_fpaths_top_dir'] + '/{name}'*config['levels_to_fpaths'] + config['hx_ms_fpath_delim_string']
+
+
 rule all:
-    input:  expand(config['output_dirpath'] + '/{name}/{name}_hx_rate_fit.pickle', name=prot_name_list)
+    input:  expand(rate_output_path + '/{name}/{name}_hx_rate_fit.pickle', name=prot_name_list)
 
 
 if config['backexchange_correction']:
@@ -64,7 +67,7 @@ if config['backexchange_correction']:
 
         rule gen_tp_specific_bkexch:
             input:
-                list_of_hx_fpaths = expand(config['hx_ms_dist_fpaths_top_dir'] + '/{name}/{name}' + config['hx_ms_fpath_delim_string'], name=prot_name_list)
+                list_of_hx_fpaths = list(expand(hx_dist_fpaths_gen_, name=prot_name_list))
             params:
                 delim_string = config['hx_ms_fpath_delim_string'],
                 rate_tol = config['rate_tol'],
@@ -76,8 +79,8 @@ if config['backexchange_correction']:
                 min_num_paths = config['min_num_paths'],
                 change_frac_threshold = config['change_frac_threshold']
             output:
-                corr_fpath = config['output_dirpath'] + '/bkexch_corr.csv',
-                corr_plot_path = config['output_dirpath'] + '/bkexch_corr.pdf'
+                corr_fpath = backexchange_output_path + '/bkexch_corr.csv',
+                corr_plot_path = backexchange_output_path + '/bkexch_corr.pdf'
             benchmark:
                 benchmark_dpath + '/gen_tp_specific_bkexch.benchmark.txt'
             shell:
@@ -89,7 +92,7 @@ if config['backexchange_correction']:
             input:
                 input_corr_fpath = config['backexchange_correction_fpath']
             output:
-                config['output_dirpath'] + '/bkexch_corr.csv'
+                backexchange_output_path + '/bkexch_corr.csv'
             benchmark:
                 benchmark_dpath + '/copy_bkexch_corr_fpath.benchmark.txt'
             shell:
@@ -98,8 +101,8 @@ if config['backexchange_correction']:
 
     rule fit_hx_rate:
         input:
-            hx_dist_fpath = config['hx_ms_dist_fpaths_top_dir'] + '/{name}/{name}' + config['hx_ms_fpath_delim_string'],
-            bkexch_corr_fpath = config['output_dirpath'] + '/bkexch_corr.csv'
+            hx_dist_fpath = hx_dist_fpaths_gen_,
+            bkexch_corr_fpath = backexchange_output_path + '/bkexch_corr.csv'
         params:
             prot_seq = lambda wildcards: name_seq_dict[wildcards.name],
             prot_name = '{name}',
@@ -110,10 +113,10 @@ if config['backexchange_correction']:
             num_samples = config['num_samples'],
             adjust_backexchange = config['adjust_backexchange']
         output:
-            pk_file = config['output_dirpath'] + '/{name}/{name}_hx_rate_fit.pickle',
-            rate_csv_file = config['output_dirpath'] + '/{name}/{name}_hx_rate.csv',
-            iso_dist_file = config['output_dirpath'] + '/{name}/{name}_hx_rate_theo_dist.csv',
-            plot_file = config['output_dirpath'] + '/{name}/{name}_hx_rate.pdf'
+            pk_file = rate_output_path + '/{name}/{name}_hx_rate_fit.pickle',
+            rate_csv_file = rate_output_path + '/{name}/{name}_hx_rate.csv',
+            iso_dist_file = rate_output_path + '/{name}/{name}_hx_rate_theo_dist.csv',
+            plot_file = rate_output_path + '/{name}/{name}_hx_rate.pdf'
         benchmark:
             benchmark_dpath + '/{name}_fit_hx_rate.benchmark.txt'
         shell:
@@ -123,7 +126,7 @@ else:
 
     rule fit_hx_rate:
         input:
-            hx_dist_fpath = config['hx_ms_dist_fpaths_top_dir'] + '/{name}/{name}' + config['hx_ms_fpath_delim_string']
+            hx_dist_fpath = hx_dist_fpaths_gen_
         params:
             prot_seq = lambda wildcards: name_seq_dict[wildcards.name],
             prot_name = '{name}',
@@ -134,10 +137,10 @@ else:
             num_samples = config['num_samples'],
             adjust_backexchange = config['adjust_backexchange']
         output:
-            pk_file = config['output_dirpath'] + '/{name}/{name}_hx_rate_fit.pickle',
-            rate_csv_file = config['output_dirpath'] + '/{name}/{name}_hx_rate.csv',
-            iso_dist_file = config['output_dirpath'] + '/{name}/{name}_hx_rate_theo_dist.csv',
-            plot_file = config['output_dirpath'] + '/{name}/{name}_hx_rate.pdf'
+            pk_file = rate_output_path + '/{name}/{name}_hx_rate_fit.pickle',
+            rate_csv_file = rate_output_path + '/{name}/{name}_hx_rate.csv',
+            iso_dist_file = rate_output_path + '/{name}/{name}_hx_rate_theo_dist.csv',
+            plot_file = rate_output_path + '/{name}/{name}_hx_rate.pdf'
         benchmark:
             benchmark_dpath + '/{name}_fit_hx_rate.benchmark.txt'
         shell:
