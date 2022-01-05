@@ -1,96 +1,323 @@
 # this workflow processes the hx rate fitting
 # rule 1: generates
 
+import os
+import glob
 import pandas as pd
+import numpy as np
 
 # set the config file path
 configfile: '../config/config_merge.yml'
 
 # set benchmark dirpath
 benchmark_dpath = config['output_dirpath'] + '/benchmark'
-sample_dpath = config['output_dirpath'] + '/sample'
-backexchange_dpath = config['output_dirpath'] + '/backexchange'
+backexchange_output_path = config['output_dirpath'] + '/backexchange'
 merge_dpath = config['output_dirpath'] + '/merge_distribution'
-hxrate_dpath = config['output_dirpath'] + '/hxrate_output'
+hxrate_dpath = config['output_dirpath'] + '/rates'
 
 # set the python scripts path
 scripts_dirpath = config['path_to_repo'] + '/scripts/hx_rate'
 hx_rate_fit_python_path = scripts_dirpath + '/hx_rate_fit.py'
 merge_data_high_low_python = scripts_dirpath + '/merge_high_low_ph_data.py'
 gen_backexch_array_python = scripts_dirpath + '/generate_backexchange_for_proteins.py'
+gen_time_specific_bkexch_path = scripts_dirpath + '/gen_time_specific_bkexch_corr.py'
 
-# hi low ph list filepath
-merge_ph_list_fpath = backexchange_dpath + '/high_low_backexchange_list.csv'
 
-hi_low_bkex_df = pd.read_csv(merge_ph_list_fpath)
-low_name_list_ = list(hi_low_bkex_df['low_ph_protein_name'].values)
-high_name_list_ = list(hi_low_bkex_df['high_ph_protein_name'].values)
+def gen_prot_name_seq_list(hxms_dist_top_dir, hxms_end_string, levels_to_fpaths, libinfo_fpath):
 
-out_name_list = []
-low_name_dict = dict()
-high_name_dict = dict()
-high_ph_bkexc_dict = dict()
-low_ph_bkexch_dict = dict()
-seq_dict = dict()
+    libinfo_df = pd.read_json(libinfo_fpath)
+    hx_ms_dist_file_list = glob.glob(hxms_dist_top_dir+'/*'*levels_to_fpaths+hxms_end_string)
 
-for num2 in range(len(low_name_list_)):
-    low_high_name = low_name_list_[num2] + '_' + high_name_list_[num2]
-    out_name_list.append(low_high_name)
-    high_ph_bkexc_dict[low_high_name] = hi_low_bkex_df['high_ph_backexchange'].values[num2]
-    low_ph_bkexch_dict[low_high_name] = hi_low_bkex_df['low_ph_backexchange_new'].values[num2]
-    seq_dict[low_high_name] = hi_low_bkex_df['sequence'].values[num2]
-    low_name_dict[low_high_name] = low_name_list_[num2]
-    high_name_dict[low_high_name] = high_name_list_[num2]
+    name_list = []
+    name_seq_dict_ = dict()
+
+    for ind, hx_ms_dist_fpath in enumerate(hx_ms_dist_file_list):
+
+        hxms_df = pd.read_csv(hx_ms_dist_fpath)
+
+        # check whether the data frame is empty or not
+        if not hxms_df.empty:
+
+            dpath, hx_ms_dist_fname = os.path.split(hx_ms_dist_fpath)
+
+            prot_name = hx_ms_dist_fname.strip(hxms_end_string)
+
+            if prot_name in libinfo_df['name'].values:
+
+                name_list.append(prot_name)
+                prot_seq = libinfo_df[libinfo_df['name'] == prot_name]['sequence'].values[0]
+                name_seq_dict_[prot_name] = prot_seq
+
+    return name_list, name_seq_dict_
+
+
+# gen matching protein ids
+def gen_match_protein_ids(low_ph_libinfo_fpath, high_ph_libinfo_fpath, low_ph_hxms_dir, low_ph_level_to_fpaths, low_ph_hxms_end_string, high_ph_hxms_dir, high_ph_level_to_fpaths, high_ph_hxms_end_string, rt_window):
+
+    low_ph_libinfo_df = pd.read_json(low_ph_libinfo_fpath)
+    high_ph_libinfo_df = pd.read_json(high_ph_libinfo_fpath)
+
+    # generate matching protein names from the library info first
+    low_ph_name_rt_arr = np.unique(low_ph_libinfo_df['name'].values)
+    high_ph_name_rt_arr = np.unique(high_ph_libinfo_df['name'].values)
+
+    low_ph_name_list = ['_'.join(x.split('_')[:-1]) for x in low_ph_name_rt_arr]
+    high_ph_name_list =  ['_'.join(x.split('_')[:-1]) for x in high_ph_name_rt_arr]
+
+    low_ph_name = []
+    high_ph_name = []
+    low_high_name = []
+
+    for ind, low_ph_name_ in enumerate(low_ph_name_list):
+
+        low_ph_rt_name = low_ph_name_rt_arr[ind]
+        low_ph_rt = float(low_ph_rt_name.split('_')[-1])
+        high_ph_rt_name_matches = [high_ph_name_rt_arr[ind2] for ind2, x in enumerate(high_ph_name_list) if x == low_ph_name_]
+
+        if len(high_ph_rt_name_matches) > 0:
+
+            for high_ph_rt_name in high_ph_rt_name_matches:
+
+                high_ph_rt = float(high_ph_rt_name.split('_')[-1])
+
+                if abs(high_ph_rt - low_ph_rt) <= rt_window:
+
+                    # do file operation here perhaps?
+
+                    print('Match for low ph %s and high ph %s' % (low_ph_rt_name, high_ph_rt_name))
+
+                    low_ph_fpath = glob.glob(low_ph_hxms_dir + '/*'*low_ph_level_to_fpaths+low_ph_hxms_end_string)
+                    high_ph_fpath = glob.glob(low_ph_hxms_dir + '/*'*high_ph_level_to_fpaths+high_ph_hxms_end_string)
+
+                    if len(low_ph_fpath) == 1:
+                        if len(high_ph_fpath) == 1:
+
+                            lowphdf = pd.read_csv(low_ph_fpath[0])
+                            highphdf = pd.read_csv(high_ph_fpath[0])
+
+                            if not lowphdf.empty:
+                                if not highphdf.empty:
+
+                                    low_ph_name.append(low_ph_rt_name)
+                                    high_ph_name.append(high_ph_rt_name)
+                                    low_high_name.append(low_ph_rt_name + '_' + high_ph_rt_name)
+                                else:
+                                    print('high ph file empty, not considering for matching')
+                            else:
+                                print('low ph file empty, not considering for matching')
+                        else:
+                            print('no file or duplicate files for high ph, not considering for matching')
+                    else:
+                        print('no file or duplciate files for low ph, not considering for matching')
+
+    return low_ph_name, high_ph_name, low_high_name
+
+
+lowph_prot_name_list, lowph_prot_name_seq_dict = gen_prot_name_seq_list(hxms_dist_top_dir=config['low_ph_hxms_fpath_dir'], hxms_end_string=config['low_ph_hxms_fpath_delim_str'], levels_to_fpaths=config['level_to_fpaths_low_ph'], libinfo_fpath=config['low_ph_library_info'])
+hiph_prot_name_list, highph_prot_name_seq_dict = gen_prot_name_seq_list(hxms_dist_top_dir=config['high_ph_hxms_fpath_dir'], hxms_end_string=config['high_ph_hxms_fpath_delim_str'], levels_to_fpaths=config['level_to_fpaths_high_ph'], libinfo_fpath=config['high_ph_library_info'])
+
+lowph_all_hx_dist_fpaths_gen_ = config['low_ph_hxms_fpath_dir'] + '/{lowph_name_all}'*config['level_to_fpaths_low_ph'] + config['low_ph_hxms_fpath_delim_str']
+hiph_all_hx_dist_fpaths_gen_ = config['high_ph_hxms_fpath_dir'] + '/{hiph_name_all}'*config['level_to_fpaths_high_ph'] + config['high_ph_hxms_fpath_delim_str']
+
+lowph_protname_match, highph_protname_match, low_high_name_match = gen_match_protein_ids(low_ph_libinfo_fpath=config['low_ph_library_info'], high_ph_libinfo_fpath=config['high_ph_library_info'], low_ph_hxms_dir=config['low_ph_hxms_fpath_dir'], low_ph_level_to_fpaths=config['level_to_fpaths_low_ph'], low_ph_hxms_end_string=config['low_ph_hxms_fpath_delim_str'], high_ph_hxms_dir=config['high_ph_hxms_fpath_dir'], high_ph_level_to_fpaths=config['level_to_fpaths_high_ph'], high_ph_hxms_end_string=config['high_ph_hxms_fpath_delim_str'], rt_window=config['merge_rt_window'])
+
+lowph_match_hx_dist_fpaths_gen_ = config['low_ph_hxms_fpath_dir'] + '/{lowph_name_match}'*config['level_to_fpaths_low_ph'] + config['low_ph_hxms_fpath_delim_str']
+highph_match_hx_dist_fpaths_gen_ = config['high_ph_hxms_fpath_dir'] + '/{hiph_name_match}'*config['level_to_fpaths_high_ph'] + config['high_ph_hxms_fpath_delim_str']
+
 
 rule all:
-    input:  expand(hxrate_dpath + '/{low_high_name}/{low_high_name}_hx_rate_fit.pickle', low_high_name=out_name_list)
-
-
-rule merge_data_high_low:
     input:
-        lowph_fpath = lambda wildcards: config['low_ph_hxms_fpath_dir'] + config['low_ph_level_to_fpaths']*'/'+low_name_dict[wildcards.low_high_name] + config['low_ph_hxms_fpath_delim_str'],
-        highph_fpath = lambda wildcards: config['high_ph_hxms_fpath_dir'] + config['high_ph_level_to_fpaths']*'/'+high_name_dict[wildcards.low_high_name] + config['high_ph_hxms_fpath_delim_str'],
-        lowph_corr_fpath = backexchange_dpath + '/low_ph_bkexch_corr.csv',
-        highph_corr_fpath = backexchange_dpath + '/high_ph_bkexch_corr.csv'
-    params:
-        prot_seq = lambda wildcards: seq_dict[wildcards.low_high_name],
-        lowph_d2o_frac = config['low_ph_d2o_frac'],
-        lowph_d2o_pur = config['low_ph_d2o_pur'],
-        highph_d2o_frac = config['high_ph_d2o_frac'],
-        highph_d2o_pur = config['high_ph_d2o_pur'],
-        low_ph_bkexch = lambda wildcards: low_ph_bkexch_dict[wildcards.low_high_name],
-        high_ph_bkexch = lambda wildcards: high_ph_bkexc_dict[wildcards.low_high_name]
-    output:
-        mergebkex_output = merge_dpath + '/{low_high_name}/{low_high_name}_merge_backexchange.csv',
-        mergebkex_corr_output = merge_dpath + '/{low_high_name}/{low_high_name}_merge_backexchange_correction.csv',
-        merge_dist_output = merge_dpath + '/{low_high_name}/{low_high_name}_merge_hxms_dist.csv',
-        merge_factor_output = merge_dpath + '/{low_high_name}/{low_high_name}_merge_factor.csv',
-        merge_plot_output = merge_dpath + '/{low_high_name}/{low_high_name}_merge_hxms_dist_plot.pdf'
-    benchmark:
-        benchmark_dpath + '/{low_high_name}_merge_data_high_low.benchmark.txt'
-    shell:
-        'python ' + merge_data_high_low_python + ' -seq {params.prot_seq} -ldata {input.lowph_fpath} -ldf {params.lowph_d2o_frac} -ldp {params.lowph_d2o_pur} -lbk {params.low_ph_bkexch} -lbkc {input.lowph_corr_fpath} -hdata {input.highph_fpath} -hdf {params.highph_d2o_frac} -hdp {params.highph_d2o_pur} -hbk {params.high_ph_bkexch} -hbkc {input.highph_corr_fpath} -mbk {output.mergebkex_output} -mbkc {output.mergebkex_corr_output} -mdp {output.merge_dist_output} -mpp {output.merge_plot_output} -mfp {output.merge_factor_output}'
+        low_high_ph_bkexch_csv = backexchange_output_path + '/high_low_backexchange_list.csv'
 
 
-rule fit_hx_rates:
+if config['low_ph_backexchange_correction_fpath'] is None:
+
+    rule gen_tp_specific_bkexch_low:
+        input:
+            list_of_hx_fpaths = expand(lowph_all_hx_dist_fpaths_gen_, lowph_name_all=lowph_prot_name_list)
+        params:
+            delim_string = config['low_ph_hxms_fpath_delim_str'],
+            rate_tol = config['rate_tol'],
+            frac_threshold = config['frac_threshold'],
+            frac_threshold_bound = config['frac_threshold_bound'],
+            start_bound = config['start_bound'],
+            end_bound = config['end_bound'],
+            max_rate = config['max_rate'],
+            min_num_paths = config['min_num_paths'],
+            change_frac_threshold = config['change_frac_threshold']
+        output:
+            corr_fpath = backexchange_output_path + '/low_ph_bkexch_corr.csv',
+            corr_plot_path = backexchange_output_path + '/low_ph_bkexch_corr.pdf'
+        benchmark:
+            benchmark_dpath + '/gen_tp_specific_bkexch_low.benchmark.txt'
+        shell:
+            'python ' + gen_time_specific_bkexch_path + ' -l {input.list_of_hx_fpaths} -s {params.delim_string} -r {params.rate_tol} -f {params.frac_threshold} -b {params.frac_threshold_bound} -i {params.start_bound} -e {params.end_bound} -m {params.max_rate} -n {params.min_num_paths} -c {params.change_frac_threshold} -p {output.corr_plot_path} -o {output.corr_fpath}'
+
+else:
+
+    rule copy_bkexch_corr_low_ph_fpath:
+        input:
+            input_corr_fpath = config['backexchange_correction_fpath']
+        output:
+            backexchange_output_path + '/low_ph_bkexch_corr.csv'
+        benchmark:
+            benchmark_dpath + '/copy_bkexch_corr_low_ph_fpath.benchmark.txt'
+        shell:
+            "cp {input.input_corr_fpath} {output}"
+
+
+if config['high_ph_backexchange_correction_fpath'] is None:
+
+    rule gen_tp_specific_bkexch_high:
+        input:
+            list_of_hx_fpaths = expand(hiph_all_hx_dist_fpaths_gen_, hiph_name_all=hiph_prot_name_list)
+        params:
+            delim_string = config['high_ph_hxms_fpath_delim_str'],
+            rate_tol = config['rate_tol'],
+            frac_threshold = config['frac_threshold'],
+            frac_threshold_bound = config['frac_threshold_bound'],
+            start_bound = config['start_bound'],
+            end_bound = config['end_bound'],
+            max_rate = config['max_rate'],
+            min_num_paths = config['min_num_paths'],
+            change_frac_threshold = config['change_frac_threshold']
+        output:
+            corr_fpath = backexchange_output_path + '/high_ph_bkexch_corr.csv',
+            corr_plot_path = backexchange_output_path + '/high_ph_bkexch_corr.pdf'
+        benchmark:
+            benchmark_dpath + '/gen_tp_specific_bkexch_high.benchmark.txt'
+        shell:
+            'python ' + gen_time_specific_bkexch_path + ' -l {input.list_of_hx_fpaths} -s {params.delim_string} -r {params.rate_tol} -f {params.frac_threshold} -b {params.frac_threshold_bound} -i {params.start_bound} -e {params.end_bound} -m {params.max_rate} -n {params.min_num_paths} -c {params.change_frac_threshold} -p {output.corr_plot_path} -o {output.corr_fpath}'
+
+else:
+
+    rule copy_bkexch_corr_high_ph_fpath:
+        input:
+            input_corr_fpath = config['backexchange_correction_fpath']
+        output:
+            backexchange_output_path + '/high_ph_bkexch_corr.csv'
+        benchmark:
+            benchmark_dpath + '/copy_bkexch_corr_high_ph_fpath.benchmark.txt'
+        shell:
+            "cp {input.input_corr_fpath} {output}"
+
+
+rule gen_backexchange_correlation_low_high:
+
     input:
-        hx_dist_fpath = merge_dpath + '/{low_high_name}/{low_high_name}_merge_hxms_dist.csv',
-        backexch_array_file = merge_dpath + '/{low_high_name}/{low_high_name}_merge_backexchange.csv'
+        low_ph_file_list = expand(lowph_match_hx_dist_fpaths_gen_, lowph_name_match=lowph_protname_match),
+        high_ph_file_list = expand(highph_match_hx_dist_fpaths_gen_, hiph_name_match=highph_protname_match),
+        low_backexch_corr_path = backexchange_output_path + '/low_ph_bkexch_corr.csv',
+        high_backexch_corr_path = backexchange_output_path + '/high_ph_bkexch_corr.csv'
     params:
-        prot_seq = lambda wildcards: seq_dict[wildcards.low_high_name],
-        prot_name = '{low_high_name}',
-        d2o_frac = config['high_ph_d2o_frac'],
-        d2o_pur = config['high_ph_d2o_pur'],
-        adjust_backexchange = config['adjust_backexchange'],
-        num_chains = config['num_chains'],
-        num_warmups = config['num_warmups'],
-        num_samples = config['num_samples']
+        low_ph_d2o_frac = config['low_ph_d2o_frac'],
+        low_ph_d2o_pur = config['low_ph_d2o_pur'],
+        high_ph_d2o_frac = config['high_ph_d2o_frac'],
+        high_ph_d2o_pur = config['high_ph_d2o_pur'],
+        sautration_mass_rate_threshold = config['saturation_mass_rate'],
+        bkexch_low_bound = config['backexhange_low_bound'],
+        bkexch_up_bound = config['backexchange_up_bound']
     output:
-        pk_file = hxrate_dpath + '/{low_high_name}/{low_high_name}_hx_rate_fit.pickle',
-        rate_csv_file = hxrate_dpath + '/{low_high_name}/{low_high_name}_hx_rate.csv',
-        iso_dist_file = hxrate_dpath + '/{low_high_name}/{low_high_name}_hx_rate_theo_dist.csv',
-        plot_file = hxrate_dpath + '/{low_high_name}/{low_high_name}_hx_rate.pdf'
-    benchmark:
-        benchmark_dpath + '/{low_high_name}_fit_hx_rate.benchmark.txt'
-    shell:
-        'python ' + hx_rate_fit_python_path + ' -p {params.prot_name} -s {params.prot_seq} -i {input.hx_dist_fpath} -df {params.d2o_frac} -dp {params.d2o_pur} -baf {input.backexch_array_file} -adb {params.adjust_backexchange} -nc {params.num_chains} -nw {params.num_warmups} -ns {params.num_samples} -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -od {output.iso_dist_file}'
+        bkexch_corr_path = backexchange_output_path + '/high_low_backexchange_corr.csv',
+        bkexch_corr_plot = backexchange_output_path + '/high_low_backexchange_corr.pdf',
+        bkexch_high_low_csv_path = backexchange_output_path + '/high_low_backexchange_list.csv'
+
+
+        #
+#
+# # this workflow processes the hx rate fitting
+# # rule 1: generates
+#
+# import pandas as pd
+#
+# # set the config file path
+# configfile: '../config/config_merge.yml'
+#
+# # set benchmark dirpath
+# benchmark_dpath = config['output_dirpath'] + '/benchmark'
+# sample_dpath = config['output_dirpath'] + '/sample'
+# backexchange_dpath = config['output_dirpath'] + '/backexchange'
+# merge_dpath = config['output_dirpath'] + '/merge_distribution'
+# hxrate_dpath = config['output_dirpath'] + '/hxrate_output'
+#
+# # set the python scripts path
+# scripts_dirpath = config['path_to_repo'] + '/scripts/hx_rate'
+# hx_rate_fit_python_path = scripts_dirpath + '/hx_rate_fit.py'
+# merge_data_high_low_python = scripts_dirpath + '/merge_high_low_ph_data.py'
+# gen_backexch_array_python = scripts_dirpath + '/generate_backexchange_for_proteins.py'
+#
+# # hi low ph list filepath
+# merge_ph_list_fpath = backexchange_dpath + '/high_low_backexchange_list.csv'
+#
+# hi_low_bkex_df = pd.read_csv(merge_ph_list_fpath)
+# low_name_list_ = list(hi_low_bkex_df['low_ph_protein_name'].values)
+# high_name_list_ = list(hi_low_bkex_df['high_ph_protein_name'].values)
+#
+# out_name_list = []
+# low_name_dict = dict()
+# high_name_dict = dict()
+# high_ph_bkexc_dict = dict()
+# low_ph_bkexch_dict = dict()
+# seq_dict = dict()
+#
+# for num2 in range(len(low_name_list_)):
+#     low_high_name = low_name_list_[num2] + '_' + high_name_list_[num2]
+#     out_name_list.append(low_high_name)
+#     high_ph_bkexc_dict[low_high_name] = hi_low_bkex_df['high_ph_backexchange'].values[num2]
+#     low_ph_bkexch_dict[low_high_name] = hi_low_bkex_df['low_ph_backexchange_new'].values[num2]
+#     seq_dict[low_high_name] = hi_low_bkex_df['sequence'].values[num2]
+#     low_name_dict[low_high_name] = low_name_list_[num2]
+#     high_name_dict[low_high_name] = high_name_list_[num2]
+#
+# rule all:
+#     input:  expand(hxrate_dpath + '/{low_high_name}/{low_high_name}_hx_rate_fit.pickle', low_high_name=out_name_list)
+#
+#
+# rule merge_data_high_low:
+#     input:
+#         lowph_fpath = lambda wildcards: config['low_ph_hxms_fpath_dir'] + config['low_ph_level_to_fpaths']*'/'+low_name_dict[wildcards.low_high_name] + config['low_ph_hxms_fpath_delim_str'],
+#         highph_fpath = lambda wildcards: config['high_ph_hxms_fpath_dir'] + config['high_ph_level_to_fpaths']*'/'+high_name_dict[wildcards.low_high_name] + config['high_ph_hxms_fpath_delim_str'],
+#         lowph_corr_fpath = backexchange_dpath + '/low_ph_bkexch_corr.csv',
+#         highph_corr_fpath = backexchange_dpath + '/high_ph_bkexch_corr.csv'
+#     params:
+#         prot_seq = lambda wildcards: seq_dict[wildcards.low_high_name],
+#         lowph_d2o_frac = config['low_ph_d2o_frac'],
+#         lowph_d2o_pur = config['low_ph_d2o_pur'],
+#         highph_d2o_frac = config['high_ph_d2o_frac'],
+#         highph_d2o_pur = config['high_ph_d2o_pur'],
+#         low_ph_bkexch = lambda wildcards: low_ph_bkexch_dict[wildcards.low_high_name],
+#         high_ph_bkexch = lambda wildcards: high_ph_bkexc_dict[wildcards.low_high_name]
+#     output:
+#         mergebkex_output = merge_dpath + '/{low_high_name}/{low_high_name}_merge_backexchange.csv',
+#         mergebkex_corr_output = merge_dpath + '/{low_high_name}/{low_high_name}_merge_backexchange_correction.csv',
+#         merge_dist_output = merge_dpath + '/{low_high_name}/{low_high_name}_merge_hxms_dist.csv',
+#         merge_factor_output = merge_dpath + '/{low_high_name}/{low_high_name}_merge_factor.csv',
+#         merge_plot_output = merge_dpath + '/{low_high_name}/{low_high_name}_merge_hxms_dist_plot.pdf'
+#     benchmark:
+#         benchmark_dpath + '/{low_high_name}_merge_data_high_low.benchmark.txt'
+#     shell:
+#         'python ' + merge_data_high_low_python + ' -seq {params.prot_seq} -ldata {input.lowph_fpath} -ldf {params.lowph_d2o_frac} -ldp {params.lowph_d2o_pur} -lbk {params.low_ph_bkexch} -lbkc {input.lowph_corr_fpath} -hdata {input.highph_fpath} -hdf {params.highph_d2o_frac} -hdp {params.highph_d2o_pur} -hbk {params.high_ph_bkexch} -hbkc {input.highph_corr_fpath} -mbk {output.mergebkex_output} -mbkc {output.mergebkex_corr_output} -mdp {output.merge_dist_output} -mpp {output.merge_plot_output} -mfp {output.merge_factor_output}'
+#
+#
+# rule fit_hx_rates:
+#     input:
+#         hx_dist_fpath = merge_dpath + '/{low_high_name}/{low_high_name}_merge_hxms_dist.csv',
+#         backexch_array_file = merge_dpath + '/{low_high_name}/{low_high_name}_merge_backexchange.csv'
+#     params:
+#         prot_seq = lambda wildcards: seq_dict[wildcards.low_high_name],
+#         prot_name = '{low_high_name}',
+#         d2o_frac = config['high_ph_d2o_frac'],
+#         d2o_pur = config['high_ph_d2o_pur'],
+#         adjust_backexchange = config['adjust_backexchange'],
+#         num_chains = config['num_chains'],
+#         num_warmups = config['num_warmups'],
+#         num_samples = config['num_samples']
+#     output:
+#         pk_file = hxrate_dpath + '/{low_high_name}/{low_high_name}_hx_rate_fit.pickle',
+#         rate_csv_file = hxrate_dpath + '/{low_high_name}/{low_high_name}_hx_rate.csv',
+#         iso_dist_file = hxrate_dpath + '/{low_high_name}/{low_high_name}_hx_rate_theo_dist.csv',
+#         plot_file = hxrate_dpath + '/{low_high_name}/{low_high_name}_hx_rate.pdf'
+#     benchmark:
+#         benchmark_dpath + '/{low_high_name}_fit_hx_rate.benchmark.txt'
+#     shell:
+#         'python ' + hx_rate_fit_python_path + ' -p {params.prot_name} -s {params.prot_seq} -i {input.hx_dist_fpath} -df {params.d2o_frac} -dp {params.d2o_pur} -baf {input.backexch_array_file} -adb {params.adjust_backexchange} -nc {params.num_chains} -nw {params.num_warmups} -ns {params.num_samples} -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -od {output.iso_dist_file}'
