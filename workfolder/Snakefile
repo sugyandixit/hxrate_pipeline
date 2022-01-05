@@ -25,7 +25,7 @@ def gen_prot_name_seq_list(hxms_dist_top_dir, hxms_end_string, levels_to_fpaths,
     hx_ms_dist_file_list = glob.glob(hxms_dist_top_dir+'/*'*levels_to_fpaths+hxms_end_string)
 
     name_list = []
-    seq_list = []
+    name_seq_dict_ = dict()
 
     for ind, hx_ms_dist_fpath in enumerate(hx_ms_dist_file_list):
 
@@ -42,17 +42,12 @@ def gen_prot_name_seq_list(hxms_dist_top_dir, hxms_end_string, levels_to_fpaths,
 
                 name_list.append(prot_name)
                 prot_seq = libinfo_df[libinfo_df['name'] == prot_name]['sequence'].values[0]
-                seq_list.append(prot_seq)
+                name_seq_dict_[prot_name] = prot_seq
 
-    return name_list, seq_list
-
-prot_name_list, prot_seq_list = gen_prot_name_seq_list(hxms_dist_top_dir=config['hx_ms_dist_fpaths_top_dir'], hxms_end_string=config['hx_ms_fpath_delim_string'], levels_to_fpaths=config['levels_to_fpaths'], libinfo_fpath=config['library_info_json_fpath'])
+    return name_list, name_seq_dict_
 
 
-name_seq_dict = dict()
-for ind, (pname, pseq) in enumerate(zip(prot_name_list, prot_seq_list)):
-    name_seq_dict[pname] = pseq
-
+prot_name_list, name_seq_dict = gen_prot_name_seq_list(hxms_dist_top_dir=config['hx_ms_dist_fpaths_top_dir'], hxms_end_string=config['hx_ms_fpath_delim_string'], levels_to_fpaths=config['levels_to_fpaths'], libinfo_fpath=config['library_info_json_fpath'])
 
 hx_dist_fpaths_gen_ = config['hx_ms_dist_fpaths_top_dir'] + '/{name}'*config['levels_to_fpaths'] + config['hx_ms_fpath_delim_string']
 
@@ -67,7 +62,7 @@ if config['backexchange_correction']:
 
         rule gen_tp_specific_bkexch:
             input:
-                list_of_hx_fpaths = list(expand(hx_dist_fpaths_gen_, name=prot_name_list))
+                list_of_hx_fpaths = expand(hx_dist_fpaths_gen_, name=prot_name_list)
             params:
                 delim_string = config['hx_ms_fpath_delim_string'],
                 rate_tol = config['rate_tol'],
@@ -145,7 +140,7 @@ else:
             benchmark_dpath + '/{name}_fit_hx_rate.benchmark.txt'
         shell:
             'python ' + hx_rate_fit_python_path + ' -p {params.prot_name} -s {params.prot_seq} -i {input.hx_dist_fpath} -df {params.d2o_frac} -dp {params.d2o_purity} -adb {params.adjust_backexchange} -nc {params.num_chains} -nw {params.num_warmups} -ns {params.num_samples} -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -od {output.iso_dist_file}'
-#
+
 #
 # # this workflow processes the hx rate fitting
 # # rule 1: generates
