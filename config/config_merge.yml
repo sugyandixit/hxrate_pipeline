@@ -9,6 +9,7 @@ path_to_repo: "/projects/p31346/suggie/hxrate"
 low_ph_library_info: ""
 low_ph_hxms_fpath_delim_str: "_winner.cpickle.zlib.csv"
 low_ph_hxms_fpath_dir: ""
+level_to_fpaths_low_ph: 1
 
 low_ph_d2o_frac: 0.95
 low_ph_d2o_pur: 0.95
@@ -20,6 +21,7 @@ low_ph_backexchange_correction_fpath:
 high_ph_library_info: ""
 high_ph_hxms_fpath_delim_str: "_winner.cpickle.zlib.csv"
 high_ph_hxms_fpath_dir: ""
+level_to_fpaths_high_ph: 1
 
 high_ph_d2o_frac: 0.95
 high_ph_d2o_pur: 0.95
