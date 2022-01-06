@@ -370,6 +370,107 @@ def gen_high_low_merged_from_to_file(sequence: str,
         return merged_data_dict
 
 
+def gen_high_low_merged_from_to_file_v2(sequence: str,
+                                        low_ph_data_fpath: str,
+                                        low_ph_prot_name: str,
+                                        low_d2o_frac: float,
+                                        low_d2o_purity: float,
+                                        low_user_backexchange: float or None,
+                                        low_backexchange_corr_fpath: str,
+                                        high_ph_data_fpath: str,
+                                        high_ph_prot_name: str,
+                                        high_d2o_frac: float,
+                                        high_d2o_purity: float,
+                                        high_user_backexchange: float or None,
+                                        high_backexchange_corr_fpath: str,
+                                        low_high_backexchange_list_fpath: str or None,
+                                        merged_backexchange_fpath: str or None,
+                                        merged_data_fpath: str or None,
+                                        merged_backexchange_correction_fpath: str or None,
+                                        factor_fpath: str or None,
+                                        merge_plot_fpath: str or None,
+                                        return_flag: bool = False):
+
+    # read the ph data
+    low_tp, low_dists = hxdata.load_data_from_hdx_ms_dist_(low_ph_data_fpath)
+    high_tp, high_dists = hxdata.load_data_from_hdx_ms_dist_(high_ph_data_fpath)
+
+    # get the backexchange correction array
+    if low_backexchange_corr_fpath is not None:
+        low_backexchange_corr_arr = get_backexchange_corr_arr(low_backexchange_corr_fpath)
+    else:
+        low_backexchange_corr_arr = None
+
+    if high_backexchange_corr_fpath is not None:
+        high_backexchange_corr_arr = get_backexchange_corr_arr(high_backexchange_corr_fpath)
+    else:
+        high_backexchange_corr_arr = None
+
+    if low_high_backexchange_list_fpath is not None:
+        low_high_bkexch_df = pd.read_csv(low_high_backexchange_list_fpath)
+        low_high_name = np.array([x+'_'+y for x, y in zip(low_high_bkexch_df['low_ph_protein_name'].values, low_high_bkexch_df['high_ph_protein_name'].values)])
+        low_high_bkexch_df['low_high_name'] = low_high_name
+        low_high_bkexch_prot_df = low_high_bkexch_df[low_high_bkexch_df['low_high_name'] == low_ph_prot_name + '_' + high_ph_prot_name]
+        low_user_backexchange = low_high_bkexch_prot_df['low_ph_backexchange_new'].values[0]
+        high_user_backexchange = low_high_bkexch_prot_df['high_ph_backexchange'].values[0]
+        print('low_user_backexchange: ', low_user_backexchange)
+        print('high_user_backexchange', high_user_backexchange)
+
+    merged_data_dict = gen_merged_dstirbution(sequence=sequence,
+                                              low_tp=low_tp,
+                                              low_dist=low_dists,
+                                              low_d2o_frac=low_d2o_frac,
+                                              low_d2o_purity=low_d2o_purity,
+                                              low_user_backexchange=low_user_backexchange,
+                                              low_backexchange_correction_arr=low_backexchange_corr_arr,
+                                              high_tp=high_tp,
+                                              high_dist=high_dists,
+                                              high_d2o_frac=high_d2o_frac,
+                                              high_d2o_purity=high_d2o_purity,
+                                              high_user_backexchange=high_user_backexchange,
+                                              high_backexchange_correction_arr=high_backexchange_corr_arr)
+
+    # write the merged timepoints and isotope distribution
+    if merged_data_fpath is not None:
+        hxdata.write_isotope_dist_timepoints(timepoints=merged_data_dict['merged_timepoints'],
+                                             isotope_dist_array=merged_data_dict['merged_dist'],
+                                             output_path=merged_data_fpath)
+
+    # write the merged backexchange
+    if merged_backexchange_fpath is not None:
+        hxdata.write_backexchange_array(timepoints=merged_data_dict['merged_timepoints'],
+                                        backexchange_array=merged_data_dict['merged_backexchange'],
+                                        output_path=merged_backexchange_fpath)
+
+    # write the merged backexchange correction
+    if merged_backexchange_correction_fpath is not None:
+        hxdata.write_backexchange_correction_array(timepoints=merged_data_dict['merged_timepoints'],
+                                                   backexchange_correction_array=merged_data_dict['merged_backexchange_correction_array'],
+                                                   output_path=merged_backexchange_correction_fpath)
+
+    # write factor and optimization info to a file
+    if factor_fpath is not None:
+        hxdata.write_merge_factor(merge_factor=merged_data_dict['factor_optimization']['opt_x'],
+                                  opt_mse=merged_data_dict['factor_optimization']['opt_mse'],
+                                  opt_nfev=merged_data_dict['factor_optimization']['opt_nfev'],
+                                  opt_nit=merged_data_dict['factor_optimization']['opt_nit'],
+                                  opt_success=merged_data_dict['factor_optimization']['opt_success'],
+                                  opt_message=merged_data_dict['factor_optimization']['opt_message'],
+                                  output_path=factor_fpath)
+
+    if merge_plot_fpath is not None:
+        plot_merge_centroids(low_tp=merged_data_dict['low_tp'][1:],
+                             low_centroids=merged_data_dict['low_centroids_corr'][1:],
+                             high_tp_refactored=merged_data_dict['high_tp_factor'][1:],
+                             high_centroids=merged_data_dict['high_centroids_corr'][1:],
+                             factor=merged_data_dict['factor_optimization']['opt_x'],
+                             mse=merged_data_dict['factor_optimization']['opt_mse'],
+                             output_path=merge_plot_fpath)
+
+    if return_flag:
+        return merged_data_dict
+
+
 def gen_parse_args():
 
     parser = argparse.ArgumentParser()
@@ -385,6 +486,33 @@ def gen_parse_args():
     parser.add_argument('-hdp', '--highdpur', help='high d2o purity')
     parser.add_argument('-hbk', '--highbkex', help='high ph backexchange user value')
     parser.add_argument('-hbkc', '--highbkexcorr', help='high ph backexchange correction filepath')
+    parser.add_argument('-mbk', '--mergebkex', help='merge backexchange output filepath .csv')
+    parser.add_argument('-mbkc', '--mergebkexcorr', help='merge backexchange correction output filepath .csv')
+    parser.add_argument('-mdp', '--mergedatapath', help='merge distribution output filepath .csv')
+    parser.add_argument('-mpp', '--mergeplotpath', help='merge plot output filepath .pdf')
+    parser.add_argument('-mfp', '--mergefactorpath', help='merge factor output filepath .csv')
+
+    return parser
+
+
+def gen_parse_args_v2():
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('-seq', '--sequence', help='protein sequence one letter code')
+    parser.add_argument('-ldata', '--lowphdata', help='low ph data filepath')
+    parser.add_argument('-lpn', '--lowprotname', help='low ph protein name')
+    parser.add_argument('-hpn', '--highprotname', help='high ph protein name')
+    parser.add_argument('-ldf', '--lowdfrac', help='low d2o fraction')
+    parser.add_argument('-ldp', '--lowdpur', help='low d2o purity')
+    parser.add_argument('-lbk', '--lowbkex', help='low ph backexchange user value')
+    parser.add_argument('-lbkc', '--lowbkexcorr', help='low ph backexchange correction filepath')
+    parser.add_argument('-hdata', '--highphdata', help='high ph data filepath')
+    parser.add_argument('-hdf', '--highdfrac', help='high d2o fraction')
+    parser.add_argument('-hdp', '--highdpur', help='high d2o purity')
+    parser.add_argument('-hbk', '--highbkex', help='high ph backexchange user value')
+    parser.add_argument('-hbkc', '--highbkexcorr', help='high ph backexchange correction filepath')
+    parser.add_argument('-lhblf', '--lowhighbkexchlistfile', help='low high backexchange list filepath')
     parser.add_argument('-mbk', '--mergebkex', help='merge backexchange output filepath .csv')
     parser.add_argument('-mbkc', '--mergebkexcorr', help='merge backexchange correction output filepath .csv')
     parser.add_argument('-mdp', '--mergedatapath', help='merge distribution output filepath .csv')
@@ -418,9 +546,36 @@ def run_from_parser():
                                      return_flag=False)
 
 
+def run_from_parser_v2():
+
+    parser_ = gen_parse_args_v2()
+    options = parser_.parse_args()
+
+    gen_high_low_merged_from_to_file_v2(sequence=options.sequence,
+                                        low_ph_data_fpath=options.lowphdata,
+                                        low_ph_prot_name=options.lowprotname,
+                                        low_d2o_frac=float(options.lowdfrac),
+                                        low_d2o_purity=float(options.lowdpur),
+                                        low_user_backexchange=None,
+                                        low_backexchange_corr_fpath=options.lowbkexcorr,
+                                        high_ph_data_fpath=options.highphdata,
+                                        high_ph_prot_name=options.highprotname,
+                                        high_d2o_frac=float(options.highdfrac),
+                                        high_d2o_purity=float(options.highdpur),
+                                        high_user_backexchange=None,
+                                        high_backexchange_corr_fpath=options.highbkexcorr,
+                                        low_high_backexchange_list_fpath=options.lowhighbkexchlistfile,
+                                        merged_backexchange_fpath=options.mergebkex,
+                                        merged_backexchange_correction_fpath=options.mergebkexcorr,
+                                        merged_data_fpath=options.mergedatapath,
+                                        factor_fpath=options.mergefactorpath,
+                                        merge_plot_fpath=options.mergeplotpath,
+                                        return_flag=False)
+
+
 if __name__ == '__main__':
 
-    run_from_parser()
+    run_from_parser_v2()
 
     # common_backexchange_filepath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bkexch_corr_output/common_2.csv_bkexchange.csv'
     # common_backexchange_df = pd.read_csv(common_backexchange_filepath)
