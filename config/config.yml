@@ -43,4 +43,4 @@ d2o_purity: 0.95
 adjust_backexchange: True
 num_chains: 4
 num_warmups: 100
-num_samples: 500
+num_samples: 1000
