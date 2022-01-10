@@ -18,7 +18,7 @@ class MassRate(object):
     rate_tol: float = 0.05
     frac_threshold: float = 0.50
     frac_threshold_ind: float = 0.0
-    max_mass_rate: float = 1.0
+    max_mass_rate: float = 0.20
     accept: bool = False
     frac_cal: float = None
     frac_cal_ind: float = None
