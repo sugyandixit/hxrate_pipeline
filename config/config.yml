@@ -22,14 +22,9 @@ output_dirpath: "/projects/p31346/suggie/hx_rates_workfolder/output"
 
 # backexchange correction bool
 backexchange_correction: True
-rate_tol: 0.05
-frac_threshold: 0.50
-frac_threshold_bound: 0.80
-start_bound: 1
-end_bound: 4
-max_rate: 0.5
-min_num_paths: 1
-change_frac_threshold: 0.02
+rate_tol: 0.08
+min_num_points: 1
+change_rate_threshold: 0.02
 
 # give the backexchange correction filepath if it already exists.
 # If not provided, the workflow will create it automatically if backexchange correction is turned on

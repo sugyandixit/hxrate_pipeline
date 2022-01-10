@@ -54,13 +54,8 @@ output_dirpath: "/projects/p31346/suggie/hx_rates_workfolder/merge_output"
 # backexchange correction bool
 backexchange_correction: True
 rate_tol: 0.05
-frac_threshold: 0.50
-frac_threshold_bound: 0.80
-start_bound: 1
-end_bound: 4
-max_rate: 0.2
-min_num_paths: 1
-change_frac_threshold: 0.02
+min_num_points: 1
+change_rate_threshold: 0.02
 
 ##########################################
 ##########################################
