@@ -23,7 +23,7 @@ output_dirpath: "/projects/p31346/suggie/hx_rates_workfolder/output"
 # backexchange correction bool
 backexchange_correction: True
 rate_tol: 0.08
-min_num_points: 1
+min_num_points: 3
 change_rate_threshold: 0.02
 
 # give the backexchange correction filepath if it already exists.

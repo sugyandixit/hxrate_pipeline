@@ -222,7 +222,7 @@ def gen_parser_arguments():
     parser.add_argument('-s', '--delim_string', help='delimiter string')
     parser.add_argument('-r', '--rate_tol', help='rate tolerance', default=0.08)
     parser.add_argument('-c', '--change_rate_threshold', help='change rate threshold', default=0.02)
-    parser.add_argument('-m', '--min_number_points', help='min number of points', default=5)
+    parser.add_argument('-m', '--min_number_points', help='min number of points', default=3)
     parser.add_argument('-p', '--plot_path', help='plot file path', default='../../workfolder/bkexch_corr.pdf')
     parser.add_argument('-o', '--output_path', help='correction file path', default='../../workfolder/bkexch_corr.csv')
     parser.add_argument('-g', '--return_flag', help='return the value bool', default=False)
