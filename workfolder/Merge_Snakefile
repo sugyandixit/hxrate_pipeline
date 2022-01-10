@@ -136,20 +136,15 @@ if config['low_ph_backexchange_correction_fpath'] is None:
         params:
             delim_string = config['low_ph_hxms_fpath_delim_str'],
             rate_tol = config['rate_tol'],
-            frac_threshold = config['frac_threshold'],
-            frac_threshold_bound = config['frac_threshold_bound'],
-            start_bound = config['start_bound'],
-            end_bound = config['end_bound'],
-            max_rate = config['max_rate'],
-            min_num_paths = config['min_num_paths'],
-            change_frac_threshold = config['change_frac_threshold']
+            min_num_points = config['min_num_points'],
+            change_rate_threshold = config['change_rate_threshold']
         output:
             corr_fpath = backexchange_output_path + '/low_ph_bkexch_corr.csv',
             corr_plot_path = backexchange_output_path + '/low_ph_bkexch_corr.pdf'
         benchmark:
             benchmark_dpath + '/gen_tp_specific_bkexch_low.benchmark.txt'
         shell:
-            'python ' + gen_time_specific_bkexch_path + ' -l {input.list_of_hx_fpaths} -s {params.delim_string} -r {params.rate_tol} -f {params.frac_threshold} -b {params.frac_threshold_bound} -i {params.start_bound} -e {params.end_bound} -m {params.max_rate} -n {params.min_num_paths} -c {params.change_frac_threshold} -p {output.corr_plot_path} -o {output.corr_fpath}'
+            'python ' + gen_time_specific_bkexch_path + ' -l {input.list_of_hx_fpaths} -s {params.delim_string} -r {params.rate_tol} -c {params.change_rate_threshold} -m {params.min_num_points} -p {output.corr_plot_path} -o {output.corr_fpath}'
 
 else:
 
@@ -172,20 +167,15 @@ if config['high_ph_backexchange_correction_fpath'] is None:
         params:
             delim_string = config['high_ph_hxms_fpath_delim_str'],
             rate_tol = config['rate_tol'],
-            frac_threshold = config['frac_threshold'],
-            frac_threshold_bound = config['frac_threshold_bound'],
-            start_bound = config['start_bound'],
-            end_bound = config['end_bound'],
-            max_rate = config['max_rate'],
-            min_num_paths = config['min_num_paths'],
-            change_frac_threshold = config['change_frac_threshold']
+            min_num_points = config['min_num_points'],
+            change_rate_threshold = config['change_rate_threshold']
         output:
             corr_fpath = backexchange_output_path + '/high_ph_bkexch_corr.csv',
             corr_plot_path = backexchange_output_path + '/high_ph_bkexch_corr.pdf'
         benchmark:
             benchmark_dpath + '/gen_tp_specific_bkexch_high.benchmark.txt'
         shell:
-            'python ' + gen_time_specific_bkexch_path + ' -l {input.list_of_hx_fpaths} -s {params.delim_string} -r {params.rate_tol} -f {params.frac_threshold} -b {params.frac_threshold_bound} -i {params.start_bound} -e {params.end_bound} -m {params.max_rate} -n {params.min_num_paths} -c {params.change_frac_threshold} -p {output.corr_plot_path} -o {output.corr_fpath}'
+            'python ' + gen_time_specific_bkexch_path + ' -l {input.list_of_hx_fpaths} -s {params.delim_string} -r {params.rate_tol} -c {params.change_rate_threshold} -m {params.min_num_points} -p {output.corr_plot_path} -o {output.corr_fpath}'
 
 else:
 
