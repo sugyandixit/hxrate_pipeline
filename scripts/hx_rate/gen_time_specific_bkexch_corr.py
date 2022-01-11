@@ -110,7 +110,7 @@ def gen_correction_array(filtered_tp_mass_rates_dict):
     for key, values in filtered_tp_mass_rates_dict.items():
 
         mass_rate_value_arr = np.array([x.mass_rate_value for x in values])
-        avg_mass_rate_value = np.average(mass_rate_value_arr)
+        avg_mass_rate_value = np.median(mass_rate_value_arr)
         avg_mass_rate_list.append(avg_mass_rate_value)
         timepoint_list.append(key)
 
@@ -250,14 +250,14 @@ if __name__ == '__main__':
 
     # import glob
     #
-    # hxdist_dpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/allan_lib15_ph6/hx_dist_input'
+    # hxdist_dpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib15/20211225_ph6/hx_dist_input'
     # hxms_dist_fpath_delim_str_ = '_winner_multibody.cpickle.zlib.csv'
     #
     # hx_ms_fpaths_list = glob.glob(hxdist_dpath + '/*' + hxms_dist_fpath_delim_str_)[:]
     #
     # gen_bkexch_correction_(list_of_hxms_files=hx_ms_fpaths_list,
     #                        hxms_dist_fpath_delim_str=hxms_dist_fpath_delim_str_,
-    #                        rate_threshold=0.1,
+    #                        rate_threshold=0.15,
     #                        ch_rate_threshold=0.02,
     #                        min_num_points=5,
     #                        bkexch_corr_csv_output_path=hxdist_dpath + '/bkexchcorr.csv',
