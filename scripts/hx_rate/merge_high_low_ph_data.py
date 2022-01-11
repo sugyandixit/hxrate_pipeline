@@ -177,8 +177,6 @@ def gen_merged_dstirbution(sequence: str,
     low_gauss_fit_list = methods.gauss_fit_to_isotope_dist_array(low_dist)
     high_gauss_fit_list = methods.gauss_fit_to_isotope_dist_array(high_dist)
 
-    final_dist = low_dist[-1]
-
     # get backexchange array
     low_backexchange_array = generate_backexchange_array(exp_dist=low_dist[-1],
                                                          timepoints=low_tp,
@@ -201,15 +199,26 @@ def gen_merged_dstirbution(sequence: str,
 
     # generate centroids with backexhcnage corrections
     low_centroids_corr = methods.correct_centroids_using_backexchange(centroids=low_centroids,
-                                                                      backexchange_array=low_backexchange_array)
+                                                                      backexchange_array=low_backexchange_array,
+                                                                      include_zero_dist=True)
     high_centroids_corr = methods.correct_centroids_using_backexchange(centroids=high_centroids,
-                                                                       backexchange_array=high_backexchange_array)
+                                                                       backexchange_array=high_backexchange_array,
+                                                                       include_zero_dist=True)
 
     # get the factor by using the optimization function. exclude zero timepoints
-    opt_ = optimize_factor_for_alignment(low_tp=low_tp[1:],
-                                         low_centroids=low_centroids_corr[1:],
-                                         high_tp=high_tp[1:],
-                                         high_centroids=high_centroids_corr[1:])
+    factor_init_guess_list = [10, 100, 500, 1000, 10000]
+    opt_list = []
+    for ind, factor_init_value in enumerate(factor_init_guess_list):
+        opt_dict = optimize_factor_for_alignment(low_tp=low_tp[1:],
+                                                 low_centroids=low_centroids_corr[1:],
+                                                 high_tp=high_tp[1:],
+                                                 high_centroids=high_centroids_corr[1:],
+                                                 opt_init_guess=factor_init_value)
+        opt_list.append(opt_dict)
+
+    mse_array = np.array([x['opt_mse'] for x in opt_list])
+    min_mse_ind = np.argmin(mse_array)
+    opt_ = opt_list[min_mse_ind]
 
     # generate the high ph timepoints with factor applied
     high_tp_factor = high_tp * opt_['opt_x']
@@ -576,6 +585,42 @@ def run_from_parser_v2():
 if __name__ == '__main__':
 
     run_from_parser_v2()
+
+    # sequence = 'HMKTVEVNGVKYDFDNPEQAREMAERIAKSLGLQVRLEGDTFKIE'
+    #
+    # low_ph_data_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib15/20211225_ph6/hx_dist_input/EEHEE_rd4_0642.pdb_15.04889_winner_multibody.cpickle.zlib.csv'
+    # high_ph_data_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib15/20211223_ph9/hxdist_input/EEHEE_rd4_0642.pdb_15.16751_winner_multibody.cpickle.zlib.csv'
+    #
+    # d2o_frac = 0.95
+    # d2o_pur = 0.95
+    #
+    # low_bkexch_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib15/20211225_ph6/hx_dist_input/bkexchcorr.csv'
+    # high_bkexch_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib15/20211223_ph9/hxdist_input/bkexchcorr.csv'
+    #
+    # high_low_bkexch_list = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib15/20211225_ph6_20211223_ph9/backexchange/backexchange/high_low_backexchange_list.csv'
+    #
+    # output_path = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib15/20211225_ph6_20211223_ph9/merge_distribution/EEHEE_rd4_0642.pdb_15.04889_EEHEE_rd4_0642.pdb_15.16751/test'
+    #
+    # gen_high_low_merged_from_to_file_v2(sequence=sequence,
+    #                                     low_ph_data_fpath=low_ph_data_fpath,
+    #                                     low_ph_prot_name='EEHEE_rd4_0642.pdb_15.04889',
+    #                                     low_d2o_frac=d2o_frac,
+    #                                     low_d2o_purity=d2o_pur,
+    #                                     low_user_backexchange=None,
+    #                                     low_backexchange_corr_fpath=low_bkexch_corr_fpath,
+    #                                     high_ph_data_fpath=high_ph_data_fpath,
+    #                                     high_ph_prot_name='EEHEE_rd4_0642.pdb_15.16751',
+    #                                     high_d2o_frac=d2o_frac,
+    #                                     high_d2o_purity=d2o_pur,
+    #                                     high_user_backexchange=None,
+    #                                     high_backexchange_corr_fpath=high_bkexch_corr_fpath,
+    #                                     low_high_backexchange_list_fpath=high_low_bkexch_list,
+    #                                     merged_backexchange_fpath=output_path + '/merge_bkexch_.csv',
+    #                                     merged_data_fpath=output_path + '/merge_data_.csv',
+    #                                     merged_backexchange_correction_fpath=output_path + '/merge_bkexch_corr_.csv',
+    #                                     factor_fpath=output_path + '/merge_bkexch_factor_.csv',
+    #                                     merge_plot_fpath=output_path + '/merge_data_plot.pdf',
+    #                                     return_flag=False)
 
     # common_backexchange_filepath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bkexch_corr_output/common_2.csv_bkexchange.csv'
     # common_backexchange_df = pd.read_csv(common_backexchange_filepath)
