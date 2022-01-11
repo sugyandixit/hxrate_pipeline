@@ -150,7 +150,7 @@ else:
 
     rule copy_bkexch_corr_low_ph_fpath:
         input:
-            input_corr_fpath = config['backexchange_correction_fpath']
+            input_corr_fpath = config['low_ph_backexchange_correction_fpath']
         output:
             backexchange_output_path + '/low_ph_bkexch_corr.csv'
         benchmark:
@@ -181,7 +181,7 @@ else:
 
     rule copy_bkexch_corr_high_ph_fpath:
         input:
-            input_corr_fpath = config['backexchange_correction_fpath']
+            input_corr_fpath = config['high_ph_backexchange_correction_fpath']
         output:
             backexchange_output_path + '/high_ph_bkexch_corr.csv'
         benchmark:
