@@ -125,16 +125,18 @@ def check_saturation_from_file(fpath,
                                                timepoints_array=tp,
                                                d2o_fraction=d2o_frac,
                                                d2o_purity=d2o_pur)
+    if len(norm_dist_list) > 2:
+        dist_to_check = norm_dist_list[dist_indices]
+        gauss_fit_list = methods.gauss_fit_to_isotope_dist_array(isotope_dist=dist_to_check)
+        centroid_list = [x.centroid for x in gauss_fit_list]
+        backexchange_for_check = bkexchange_object.backexchange_array[dist_indices]
+        corr_centroid_list = methods.correct_centroids_using_backexchange(centroids=np.array(centroid_list),
+                                                                          backexchange_array=backexchange_for_check)
 
-    dist_to_check = norm_dist_list[dist_indices]
-    gauss_fit_list = methods.gauss_fit_to_isotope_dist_array(isotope_dist=dist_to_check)
-    centroid_list = [x.centroid for x in gauss_fit_list]
-    backexchange_for_check = bkexchange_object.backexchange_array[dist_indices]
-    corr_centroid_list = methods.correct_centroids_using_backexchange(centroids=np.array(centroid_list),
-                                                                      backexchange_array=backexchange_for_check)
-
-    satur_bool = check_for_exchange_saturation(centroid_list=corr_centroid_list,
-                                               mass_rate_threshold=mass_rate_threshold)
+        satur_bool = check_for_exchange_saturation(centroid_list=corr_centroid_list,
+                                                   mass_rate_threshold=mass_rate_threshold)
+    else:
+        satur_bool = False
 
     outdict = dict()
     outdict['backexchange_value'] = bkexchange_object.backexchange_value
