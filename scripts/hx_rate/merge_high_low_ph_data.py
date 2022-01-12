@@ -28,12 +28,11 @@ def gen_mse_with_factor_shift(factor: float,
     # shift the tp by some factor
     high_tp_refac = high_tp * factor
 
-    # convert the time to log space
-    log_low_tp = np.log(low_tp)
-    log_high_tp = np.log(high_tp_refac)
+    log_low_tp = np.log10(low_tp)
+    log_high_tp_refac = np.log10(high_tp_refac)
 
     # generate index where to slice the timepoint for comparison that is common on both high and low data
-    tp_diff = np.subtract(log_low_tp[-1], log_high_tp)
+    tp_diff = np.subtract(log_low_tp[-1], log_high_tp_refac)
     high_ind = 0
     for ind, diff in enumerate(tp_diff):
         if diff < 0:
@@ -48,7 +47,7 @@ def gen_mse_with_factor_shift(factor: float,
         low_centroids_comp = low_centroids
     else:
         # generate a new time axis that's common for both high and low ph data
-        new_axis = log_high_tp[:high_ind]
+        new_axis = log_high_tp_refac[:high_ind]
         high_centroids_comp = high_centroids[:high_ind]
 
         # create an interpolation function for low data
@@ -70,8 +69,7 @@ def optimize_factor_for_alignment(low_tp: np.ndarray,
                                   low_centroids: np.ndarray,
                                   high_tp: np.ndarray,
                                   high_centroids: np.ndarray,
-                                  opt_method: str = 'Powell',
-                                  opt_init_guess: float = 10.0) -> dict:
+                                  opt_init_guess: float = 1.0) -> dict:
     """
 
     :param low_tp: non zero low ph timepoints
@@ -87,12 +85,11 @@ def optimize_factor_for_alignment(low_tp: np.ndarray,
 
     opt = minimize(fun=gen_mse_with_factor_shift,
                    x0=np.array([opt_init_guess]),
-                   args=(low_tp, low_centroids, high_tp, high_centroids),
-                   method=opt_method)
+                   args=(low_tp, low_centroids, high_tp, high_centroids))
 
     # store important info in a dictionary for output
     out_dict = dict()
-    out_dict['opt_method'] = opt_method
+    # out_dict['opt_method'] = opt_method
     out_dict['opt_init_guess'] = opt_init_guess
     out_dict['opt_mse'] = opt.fun
     out_dict['opt_nfev'] = opt.nfev
@@ -154,7 +151,8 @@ def gen_merged_dstirbution(sequence: str,
                            high_d2o_frac: float,
                            high_d2o_purity: float,
                            high_user_backexchange: float,
-                           high_backexchange_correction_arr: np.ndarray) -> dict:
+                           high_backexchange_correction_arr: np.ndarray,
+                           factor_init_list: list = [1, 10, 100, 1000, 10000]) -> dict:
     """
 
     :param sequence:
@@ -204,11 +202,8 @@ def gen_merged_dstirbution(sequence: str,
     high_centroids_corr = methods.correct_centroids_using_backexchange(centroids=high_centroids,
                                                                        backexchange_array=high_backexchange_array,
                                                                        include_zero_dist=True)
-
-    # get the factor by using the optimization function. exclude zero timepoints
-    factor_init_guess_list = [10, 100, 500, 1000, 10000]
     opt_list = []
-    for ind, factor_init_value in enumerate(factor_init_guess_list):
+    for factor_init_value in factor_init_list:
         opt_dict = optimize_factor_for_alignment(low_tp=low_tp[1:],
                                                  low_centroids=low_centroids_corr[1:],
                                                  high_tp=high_tp[1:],
@@ -216,8 +211,9 @@ def gen_merged_dstirbution(sequence: str,
                                                  opt_init_guess=factor_init_value)
         opt_list.append(opt_dict)
 
-    mse_array = np.array([x['opt_mse'] for x in opt_list])
-    min_mse_ind = np.argmin(mse_array)
+    mse_arr = np.array([x['opt_mse'] for x in opt_list])
+    min_mse_ind = np.argmin(mse_arr)
+
     opt_ = opt_list[min_mse_ind]
 
     # generate the high ph timepoints with factor applied
