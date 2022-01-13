@@ -6,7 +6,7 @@ import glob
 import pandas as pd
 
 # set the config file path
-configfile: '../config/config.yml'
+configfile: 'config.yml'
 
 # set benchmark dirpath
 benchmark_dpath = config['output_dirpath'] + '/benchmark'
@@ -29,20 +29,22 @@ def gen_prot_name_seq_list(hxms_dist_top_dir, hxms_end_string, levels_to_fpaths,
 
     for ind, hx_ms_dist_fpath in enumerate(hx_ms_dist_file_list):
 
-        hxms_df = pd.read_csv(hx_ms_dist_fpath)
+        # check whether the file is empty or not
+        if os.stat(hx_ms_dist_fpath).st_size > 0:
+            hxms_df = pd.read_csv(hx_ms_dist_fpath)
 
-        # check whether the data frame is empty or not
-        if not hxms_df.empty:
+            # check whether the data frame is empty or not
+            if not hxms_df.empty:
 
-            dpath, hx_ms_dist_fname = os.path.split(hx_ms_dist_fpath)
+                dpath, hx_ms_dist_fname = os.path.split(hx_ms_dist_fpath)
 
-            prot_name = hx_ms_dist_fname.strip(hxms_end_string)
+                prot_name = hx_ms_dist_fname.strip(hxms_end_string)
 
-            if prot_name in libinfo_df['name'].values:
+                if prot_name in libinfo_df['name'].values:
 
-                name_list.append(prot_name)
-                prot_seq = libinfo_df[libinfo_df['name'] == prot_name]['sequence'].values[0]
-                name_seq_dict_[prot_name] = prot_seq
+                    name_list.append(prot_name)
+                    prot_seq = libinfo_df[libinfo_df['name'] == prot_name]['sequence'].values[0]
+                    name_seq_dict_[prot_name] = prot_seq
 
     return name_list, name_seq_dict_
 

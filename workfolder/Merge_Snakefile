@@ -34,20 +34,22 @@ def gen_prot_name_seq_list(hxms_dist_top_dir, hxms_end_string, levels_to_fpaths,
 
     for ind, hx_ms_dist_fpath in enumerate(hx_ms_dist_file_list):
 
-        hxms_df = pd.read_csv(hx_ms_dist_fpath)
+        # check whether the file is empty or not
+        if os.stat(hx_ms_dist_fpath).st_size > 0:
+            hxms_df = pd.read_csv(hx_ms_dist_fpath)
 
-        # check whether the data frame is empty or not
-        if not hxms_df.empty:
+            # check whether the data frame is empty or not
+            if not hxms_df.empty:
 
-            dpath, hx_ms_dist_fname = os.path.split(hx_ms_dist_fpath)
+                dpath, hx_ms_dist_fname = os.path.split(hx_ms_dist_fpath)
 
-            prot_name = hx_ms_dist_fname.strip(hxms_end_string)
+                prot_name = hx_ms_dist_fname.strip(hxms_end_string)
 
-            if prot_name in libinfo_df['name'].values:
+                if prot_name in libinfo_df['name'].values:
 
-                name_list.append(prot_name)
-                prot_seq = libinfo_df[libinfo_df['name'] == prot_name]['sequence'].values[0]
-                name_seq_dict_[prot_name] = prot_seq
+                    name_list.append(prot_name)
+                    prot_seq = libinfo_df[libinfo_df['name'] == prot_name]['sequence'].values[0]
+                    name_seq_dict_[prot_name] = prot_seq
 
     return name_list, name_seq_dict_
 
@@ -90,23 +92,29 @@ def gen_match_protein_ids(low_ph_libinfo_fpath, high_ph_libinfo_fpath, low_ph_hx
                     low_ph_fpath = low_ph_hxms_dir + ('/'+ low_ph_rt_name)*low_ph_level_to_fpaths+low_ph_hxms_end_string
                     high_ph_fpath = high_ph_hxms_dir + ('/'+ high_ph_rt_name)*high_ph_level_to_fpaths+high_ph_hxms_end_string
 
+                    #check if the file exists
                     if os.path.exists(low_ph_fpath):
                         if os.path.exists(high_ph_fpath):
 
-                            lowphdf = pd.read_csv(low_ph_fpath)
-                            highphdf = pd.read_csv(high_ph_fpath)
+                            #check if the file is empty
+                            if os.stat(low_ph_fpath).st_size > 0:
+                                if os.stat(high_ph_fpath).st_size > 0:
 
-                            if not lowphdf.empty:
-                                if not highphdf.empty:
+                                    lowphdf = pd.read_csv(low_ph_fpath)
+                                    highphdf = pd.read_csv(high_ph_fpath)
 
-                                    prot_seq = low_ph_libinfo_df[low_ph_libinfo_df['name'] == low_ph_rt_name]['sequence'].values[0]
-                                    sequence_list.append(prot_seq)
-                                    low_ph_name.append(low_ph_rt_name)
-                                    high_ph_name.append(high_ph_rt_name)
-                                    low_high_name.append(low_ph_rt_name + '_' + high_ph_rt_name)
-                                    low_high_name_seq_dict_[low_ph_rt_name + '_' + high_ph_rt_name] = prot_seq
-                                    low_name_dict[low_ph_rt_name + '_' + high_ph_rt_name] = low_ph_rt_name
-                                    high_name_dict[low_ph_rt_name + '_' + high_ph_rt_name] = high_ph_rt_name
+                                    # check if the data frame is empty
+                                    if not lowphdf.empty:
+                                        if not highphdf.empty:
+
+                                            prot_seq = low_ph_libinfo_df[low_ph_libinfo_df['name'] == low_ph_rt_name]['sequence'].values[0]
+                                            sequence_list.append(prot_seq)
+                                            low_ph_name.append(low_ph_rt_name)
+                                            high_ph_name.append(high_ph_rt_name)
+                                            low_high_name.append(low_ph_rt_name + '_' + high_ph_rt_name)
+                                            low_high_name_seq_dict_[low_ph_rt_name + '_' + high_ph_rt_name] = prot_seq
+                                            low_name_dict[low_ph_rt_name + '_' + high_ph_rt_name] = low_ph_rt_name
+                                            high_name_dict[low_ph_rt_name + '_' + high_ph_rt_name] = high_ph_rt_name
 
 
     return low_ph_name, high_ph_name, sequence_list, low_high_name, low_high_name_seq_dict_, low_name_dict, high_name_dict
