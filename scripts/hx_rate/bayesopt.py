@@ -44,6 +44,9 @@ class BayesRateFit(object):
         :return: None
         """
 
+        # set the number of cores to be the number of chains
+        numpyro.set_host_device_count(n=self.num_chains)
+
         # generate a temporary rates to determine what residues can't exchange
         temp_rates = gen_temp_rates(sequence=sequence, rate_value=1)
 
@@ -145,7 +148,6 @@ class BayesRateFit(object):
                                                                                                     d2o_purity=d2o_purity,
                                                                                                     num_bins=num_bins))
         else:
-
             self.output['pred_distribution'] = np.array(gen_theoretical_isotope_dist_for_all_timepoints(sequence=sequence,
                                                                                                         timepoints=jnp.asarray(timepoints),
                                                                                                         rates=jnp.exp(summary_['rate']['mean']),
@@ -154,11 +156,11 @@ class BayesRateFit(object):
                                                                                                         d2o_purity=d2o_purity,
                                                                                                         num_bins=num_bins))
 
-
         self.output['rmse'] = dict()
         self.output['rmse']['total'] = compute_rmse_exp_thr_iso_dist(exp_isotope_dist=exp_distribution,
                                                                      thr_isotope_dist=self.output['pred_distribution'],
                                                                      squared=False)
+
         self.output['rmse']['per_timepoint'] = np.zeros(len(timepoints))
         for ind, (exp_dist, thr_dist) in enumerate(zip(exp_distribution, self.output['pred_distribution'])):
             self.output['rmse']['per_timepoint'][ind] = compute_rmse_exp_thr_iso_dist(exp_isotope_dist=exp_dist,
