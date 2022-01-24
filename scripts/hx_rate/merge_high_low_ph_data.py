@@ -582,30 +582,30 @@ if __name__ == '__main__':
 
     run_from_parser_v2()
 
-    # sequence = 'HMKTVEVNGVKYDFDNPEQAREMAERIAKSLGLQVRLEGDTFKIE'
+    # sequence = 'HMTQVHVDGVTYTFSNPEEAKKFADEMAKRKGGTWEIKDGHIHVE'
     #
-    # low_ph_data_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib15/20211225_ph6/hx_dist_input/EEHEE_rd4_0642.pdb_15.04889_winner_multibody.cpickle.zlib.csv'
-    # high_ph_data_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib15/20211223_ph9/hxdist_input/EEHEE_rd4_0642.pdb_15.16751_winner_multibody.cpickle.zlib.csv'
+    # low_ph_data_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib10/EEHEE_rd4_0871.pdb_10.46084_winner_multibody.cpickle.zlib.csv'
+    # high_ph_data_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib10/EEHEE_rd4_0871.pdb_8.86936_winner_multibody.cpickle.zlib.csv'
     #
     # d2o_frac = 0.95
     # d2o_pur = 0.95
     #
-    # low_bkexch_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib15/20211225_ph6/hx_dist_input/bkexchcorr.csv'
-    # high_bkexch_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib15/20211223_ph9/hxdist_input/bkexchcorr.csv'
+    # low_bkexch_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib10/20213112_pH6_20220102_pH9/backexchange/low_ph_bkexch_corr.csv'
+    # high_bkexch_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib10/20213112_pH6_20220102_pH9/backexchange/high_ph_bkexch_corr.csv'
     #
-    # high_low_bkexch_list = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib15/20211225_ph6_20211223_ph9/backexchange/backexchange/high_low_backexchange_list.csv'
+    # high_low_bkexch_list = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib10/20213112_pH6_20220102_pH9/backexchange/backexchange/high_low_backexchange_list.csv'
     #
-    # output_path = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib15/20211225_ph6_20211223_ph9/merge_distribution/EEHEE_rd4_0642.pdb_15.04889_EEHEE_rd4_0642.pdb_15.16751/test'
+    # output_path = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib10'
     #
     # gen_high_low_merged_from_to_file_v2(sequence=sequence,
     #                                     low_ph_data_fpath=low_ph_data_fpath,
-    #                                     low_ph_prot_name='EEHEE_rd4_0642.pdb_15.04889',
+    #                                     low_ph_prot_name='EEHEE_rd4_0871.pdb_10.46084',
     #                                     low_d2o_frac=d2o_frac,
     #                                     low_d2o_purity=d2o_pur,
     #                                     low_user_backexchange=None,
     #                                     low_backexchange_corr_fpath=low_bkexch_corr_fpath,
     #                                     high_ph_data_fpath=high_ph_data_fpath,
-    #                                     high_ph_prot_name='EEHEE_rd4_0642.pdb_15.16751',
+    #                                     high_ph_prot_name='EEHEE_rd4_0871.pdb_8.86936',
     #                                     high_d2o_frac=d2o_frac,
     #                                     high_d2o_purity=d2o_pur,
     #                                     high_user_backexchange=None,
