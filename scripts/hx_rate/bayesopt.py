@@ -1,9 +1,8 @@
-
 import numpy as np
+from sklearn.metrics import mean_squared_error
 import numpyro
 from jax import random
 from numpyro.infer import NUTS, MCMC
-from methods import gen_temp_rates, compute_rmse_exp_thr_iso_dist
 import jax.numpy as jnp
 import molmass
 
@@ -23,6 +22,7 @@ class BayesRateFit(object):
         :param num_warmups: number of warmup or burn ins
         :param num_samples: number of samples for posterior
         :param return_posterior_distributions: bool. If True, returns all the posterior distributions
+        :param sample_backexchange: If True, will sample backexchange for rate fitting
         """
 
         self.num_chains = num_chains
@@ -137,13 +137,23 @@ class BayesRateFit(object):
             self.output['backexchange_sigma']['n_eff'] = summary_['backexchange_sigma']['n_eff']
             self.output['backexchange_sigma']['r_hat'] = summary_['backexchange_sigma']['r_hat']
 
-        self.output['pred_distribution'] = np.array(gen_theoretical_isotope_dist_for_all_timepoints(sequence=sequence,
+            self.output['pred_distribution'] = np.array(gen_theoretical_isotope_dist_for_all_timepoints(sequence=sequence,
                                                                                                     timepoints=jnp.asarray(timepoints),
                                                                                                     rates=jnp.exp(summary_['rate']['mean']),
-                                                                                                    inv_backexchange_array=jnp.subtract(1, jnp.asarray(back_exchange_array)),
+                                                                                                    inv_backexchange_array=jnp.subtract(1, summary_['backexchange']['mean']),
                                                                                                     d2o_fraction=d2o_fraction,
                                                                                                     d2o_purity=d2o_purity,
                                                                                                     num_bins=num_bins))
+        else:
+
+            self.output['pred_distribution'] = np.array(gen_theoretical_isotope_dist_for_all_timepoints(sequence=sequence,
+                                                                                                        timepoints=jnp.asarray(timepoints),
+                                                                                                        rates=jnp.exp(summary_['rate']['mean']),
+                                                                                                        inv_backexchange_array=jnp.subtract(1, jnp.asarray(back_exchange_array)),
+                                                                                                        d2o_fraction=d2o_fraction,
+                                                                                                        d2o_purity=d2o_purity,
+                                                                                                        num_bins=num_bins))
+
 
         self.output['rmse'] = dict()
         self.output['rmse']['total'] = compute_rmse_exp_thr_iso_dist(exp_isotope_dist=exp_distribution,
@@ -154,6 +164,45 @@ class BayesRateFit(object):
             self.output['rmse']['per_timepoint'][ind] = compute_rmse_exp_thr_iso_dist(exp_isotope_dist=exp_dist,
                                                                                       thr_isotope_dist=thr_dist,
                                                                                       squared=False)
+
+
+def gen_temp_rates(sequence: str, rate_value: float = 1e2) -> np.ndarray:
+    """
+    generate template rates
+    :param sequence: protein sequence
+    :param rate_value: temporary rate value
+    :return: an array of rates with first two residues and proline residues assigned to 0.0
+    """
+    rates = np.array([rate_value]*len(sequence), dtype=float)
+
+    # set the rates for the first two residues as 0
+    rates[:2] = 0
+
+    # set the rate for proline to be 0
+    if 'P' in sequence:
+        amino_acid_list = [x for x in sequence]
+        for ind, amino_acid in enumerate(amino_acid_list):
+            if amino_acid == 'P':
+                rates[ind] = 0
+
+    return rates
+
+
+def compute_rmse_exp_thr_iso_dist(exp_isotope_dist: np.ndarray,
+                                  thr_isotope_dist: np.ndarray,
+                                  squared: bool = False):
+    """
+    compute the mean squared error between exp and thr isotope distribution only with values of exp_dist that are higher
+    than 0
+    :param exp_isotope_dist:
+    :param thr_isotope_dist:
+    :param squared:
+    :return:
+    """
+    exp_isotope_dist_comp = exp_isotope_dist[exp_isotope_dist > 0]
+    thr_isotope_dist_comp = thr_isotope_dist[exp_isotope_dist > 0]
+    rmse = mean_squared_error(exp_isotope_dist_comp, thr_isotope_dist_comp, squared=squared)
+    return rmse
 
 
 def PoiBin(success_probabilities):
