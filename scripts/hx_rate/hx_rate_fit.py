@@ -347,19 +347,20 @@ if __name__ == '__main__':
 
     # prot_name = 'HEEH_rd4_0097'
     # prot_sequence = 'HMDVEEQIRRLEEVLKKNQPVTWNGTTYTDPNEIKKVIEELRKSM'
-    # hx_dist_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/lib15_ph6/HEEH_rd4_0097.pdb_9.64507_winner.cpickle.zlib.csv'
-    # bk_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/lib15_ph6_sample.csv_backexchange_correction_2.csv'
-    # output_dir = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/output_lib15_ph6/HEEH_rd4_0097'
+    # hx_dist_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib15/20211225_ph6_re_20211223_ph9/merge_distribution/HEEH_rd4_0097.pdb_16.16448_HEEH_rd4_0097.pdb_16.27463/HEEH_rd4_0097.pdb_16.16448_HEEH_rd4_0097.pdb_16.27463_merge_hxms_dist.csv'
+    # bkexch_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib15/20211225_ph6_re_20211223_ph9/merge_distribution/HEEH_rd4_0097.pdb_16.16448_HEEH_rd4_0097.pdb_16.27463/HEEH_rd4_0097.pdb_16.16448_HEEH_rd4_0097.pdb_16.27463_merge_backexchange.csv'
+    # # bk_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/lib15_ph6_sample.csv_backexchange_correction_2.csv'
+    # output_dir = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib15/20211225_ph6_re_20211223_ph9/rates/HEEH_rd4_0097.pdb_16.16448_HEEH_rd4_0097.pdb_16.27463'
     #
     # fit_rate_from_to_file(prot_name=prot_name,
     #                       sequence=prot_sequence,
     #                       hx_ms_dist_fpath=hx_dist_fpath,
     #                       d2o_fraction=0.95,
     #                       d2o_purity=0.95,
-    #                       backexchange_corr_fpath=bk_corr_fpath,
+    #                       backexchange_array_fpath=bkexch_fpath,
     #                       num_chains=4,
     #                       num_warmups=100,
-    #                       num_samples=200,
+    #                       num_samples=500,
     #                       hx_rate_output_path=output_dir + '/_hxrate_v2.pickle',
     #                       hx_rate_csv_output_path=output_dir + '/_hxrate_v2.csv',
     #                       hx_isotope_dist_output_path=output_dir + '/_rate_iso_dist_v2.csv',
