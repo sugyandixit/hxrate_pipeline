@@ -71,7 +71,8 @@ class BayesRateFit(object):
             nuts_kernel = NUTS(model=rate_fit_model)
 
         # initialize MCMC
-        mcmc = MCMC(nuts_kernel, num_warmup=self.num_warmups, num_samples=self.num_samples, num_chains=self.num_chains)
+        mcmc = MCMC(nuts_kernel, num_warmup=self.num_warmups, num_samples=self.num_samples, num_chains=self.num_chains,
+                    chain_method='parallel')
 
         # gen random key
         rng_key = random.PRNGKey(0)
