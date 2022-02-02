@@ -298,7 +298,7 @@ def gen_parser_arguments():
     parser.add_argument('-nc', '--num_chains', help='number of independent markov chains for MCMC', default=4)
     parser.add_argument('-nw', '--num_warmups', help='number of warmups for MCMC', default=100)
     parser.add_argument('-ns', '--num_samples', help='number of samples for MCMC', default=500)
-    parser.add_argument('-pd', '--return_posterior', help='return posterior distribution boolean', default=False)
+    parser.add_argument('-pd', '--return_posterior', help='return posterior distribution boolean', default=True)
     parser.add_argument('-o', '--output_pickle_file', help='output pickle filepath')
     parser.add_argument('-or', '--output_rate_csv', help='output rates csv filepath')
     parser.add_argument('-op', '--output_rate_plot', help='output_rate_plot filepath')
