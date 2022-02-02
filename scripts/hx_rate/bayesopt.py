@@ -15,7 +15,7 @@ class BayesRateFit(object):
     Bayes Rate Fit class
     """
 
-    def __init__(self, num_chains=4, num_warmups=1000, num_samples=500, return_posterior_distributions=False,
+    def __init__(self, num_chains=4, num_warmups=100, num_samples=500, return_posterior_distributions=True,
                  sample_backexchange=False):
         """
         initialize the class with mcmc key parameters
