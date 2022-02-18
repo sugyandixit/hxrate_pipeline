@@ -67,9 +67,12 @@ class BayesRateFit(object):
 
         # initialize the kernel for MCMC
         if self.sample_backexchange:
-            nuts_kernel = NUTS(model=rate_fit_model_v2)
+            nuts_kernel = NUTS(model=rate_fit_model_v3)
         else:
-            nuts_kernel = NUTS(model=rate_fit_model)
+            nuts_kernel = NUTS(model=rate_fit_model_v4)
+
+        # # for debugging purpose
+        # nuts_kernel = NUTS(model=rate_fit_model_v3)
 
         # initialize MCMC
         mcmc = MCMC(nuts_kernel, num_warmup=self.num_warmups, num_samples=self.num_samples, num_chains=self.num_chains,
@@ -134,14 +137,14 @@ class BayesRateFit(object):
             self.output['backexchange']['n_eff'] = np.array(summary_['backexchange']['n_eff'])
             self.output['backexchange']['r_hat'] = np.array(summary_['backexchange']['r_hat'])
 
-            self.output['backexchange_sigma'] = dict()
-            self.output['backexchange_sigma']['mean'] = summary_['backexchange_sigma']['mean']
-            self.output['backexchange_sigma']['median'] = summary_['backexchange_sigma']['median']
-            self.output['backexchange_sigma']['std'] = summary_['backexchange_sigma']['std']
-            self.output['backexchange_sigma']['5percent'] = summary_['backexchange_sigma']['5.0%']
-            self.output['backexchange_sigma']['95percent'] = summary_['backexchange_sigma']['95.0%']
-            self.output['backexchange_sigma']['n_eff'] = summary_['backexchange_sigma']['n_eff']
-            self.output['backexchange_sigma']['r_hat'] = summary_['backexchange_sigma']['r_hat']
+            # self.output['backexchange_sigma'] = dict()
+            # self.output['backexchange_sigma']['mean'] = summary_['backexchange_sigma']['mean']
+            # self.output['backexchange_sigma']['median'] = summary_['backexchange_sigma']['median']
+            # self.output['backexchange_sigma']['std'] = summary_['backexchange_sigma']['std']
+            # self.output['backexchange_sigma']['5percent'] = summary_['backexchange_sigma']['5.0%']
+            # self.output['backexchange_sigma']['95percent'] = summary_['backexchange_sigma']['95.0%']
+            # self.output['backexchange_sigma']['n_eff'] = summary_['backexchange_sigma']['n_eff']
+            # self.output['backexchange_sigma']['r_hat'] = summary_['backexchange_sigma']['r_hat']
 
             self.output['pred_distribution'] = np.array(
                 gen_theoretical_isotope_dist_for_all_timepoints(sequence=sequence,
@@ -460,6 +463,114 @@ def rate_fit_model(num_rates,
                               obs=obs_dist_nonzero_flat)
 
 
+def rate_fit_model_v3(num_rates,
+                      sequence,
+                      timepoints,
+                      backexchange_array,
+                      d2o_fraction,
+                      d2o_purity,
+                      num_bins,
+                      obs_dist_nonzero_flat,
+                      nonzero_indices):
+    """
+    rate fit model for opt
+    :param num_rates: number of rates
+    :param sequence: protein sequence
+    :param timepoints: timepoints array
+    :param inv_backexchange_array:  1- backexchange array
+    :param d2o_fraction: d2o fraction
+    :param d2o_purity: d2o purity
+    :param num_bins: number of bins in integrated mz data
+    :param obs_dist_nonzero_flat: observed experimental distribution flattened and with non zero values
+    :param nonzero_indices: indices in exp distribution with non zero values
+    :return: numpyro sample object
+    """
+
+    rate_center = np.linspace(start=-15, stop=5, num=num_rates)
+    rate_sigma = 2.5
+    with numpyro.plate(name='rates', size=num_rates):
+        rates_ = numpyro.sample(name='rate',
+                                fn=numpyro.distributions.Normal(loc=rate_center, scale=rate_sigma))
+
+    # todo: need to re evaluate the prior distribution params
+    backexchange_sigma = 0.01
+
+    with numpyro.plate(name='backexchange_values', size=len(backexchange_array)):
+        backexchange = numpyro.sample(name='backexchange',
+                                      fn=numpyro.distributions.Normal(loc=backexchange_array,
+                                                                      scale=backexchange_sigma))
+
+    thr_dists = gen_theoretical_isotope_dist_for_all_timepoints(sequence=sequence,
+                                                                timepoints=timepoints,
+                                                                rates=jnp.exp(rates_),
+                                                                inv_backexchange_array=jnp.subtract(1,
+                                                                                                    backexchange),
+                                                                d2o_fraction=d2o_fraction,
+                                                                d2o_purity=d2o_purity,
+                                                                num_bins=num_bins)
+
+    flat_thr_dist = jnp.concatenate(thr_dists)
+    flat_thr_dist_non_zero = flat_thr_dist[nonzero_indices]
+
+    sigma = numpyro.sample(name='sigma',
+                           fn=numpyro.distributions.Normal(loc=0.5, scale=0.5))
+
+    with numpyro.plate(name='bins', size=len(flat_thr_dist_non_zero)):
+        return numpyro.sample(name='bin_preds',
+                              fn=numpyro.distributions.Normal(loc=flat_thr_dist_non_zero, scale=sigma),
+                              obs=obs_dist_nonzero_flat)
+
+
+def rate_fit_model_v4(num_rates,
+                      sequence,
+                      timepoints,
+                      backexchange_array,
+                      d2o_fraction,
+                      d2o_purity,
+                      num_bins,
+                      obs_dist_nonzero_flat,
+                      nonzero_indices):
+    """
+    rate fit model for opt
+    :param num_rates: number of rates
+    :param sequence: protein sequence
+    :param timepoints: timepoints array
+    :param inv_backexchange_array:  1- backexchange array
+    :param d2o_fraction: d2o fraction
+    :param d2o_purity: d2o purity
+    :param num_bins: number of bins in integrated mz data
+    :param obs_dist_nonzero_flat: observed experimental distribution flattened and with non zero values
+    :param nonzero_indices: indices in exp distribution with non zero values
+    :return: numpyro sample object
+    """
+
+    rate_center = np.linspace(start=-15, stop=5, num=num_rates)
+    rate_sigma = 2.5
+    with numpyro.plate(name='rates', size=num_rates):
+        rates_ = numpyro.sample(name='rate',
+                                fn=numpyro.distributions.Normal(loc=rate_center, scale=rate_sigma))
+
+    thr_dists = gen_theoretical_isotope_dist_for_all_timepoints(sequence=sequence,
+                                                                timepoints=timepoints,
+                                                                rates=jnp.exp(rates_),
+                                                                inv_backexchange_array=jnp.subtract(1,
+                                                                                                    backexchange_array),
+                                                                d2o_fraction=d2o_fraction,
+                                                                d2o_purity=d2o_purity,
+                                                                num_bins=num_bins)
+
+    flat_thr_dist = jnp.concatenate(thr_dists)
+    flat_thr_dist_non_zero = flat_thr_dist[nonzero_indices]
+
+    sigma = numpyro.sample(name='sigma',
+                           fn=numpyro.distributions.Normal(loc=0.5, scale=0.5))
+
+    with numpyro.plate(name='bins', size=len(flat_thr_dist_non_zero)):
+        return numpyro.sample(name='bin_preds',
+                              fn=numpyro.distributions.Normal(loc=flat_thr_dist_non_zero, scale=sigma),
+                              obs=obs_dist_nonzero_flat)
+
+
 def rate_fit_model_v2(num_rates,
                       sequence,
                       timepoints,
@@ -489,7 +600,7 @@ def rate_fit_model_v2(num_rates,
 
     # todo: need to re evaluate the prior distribution params
     backexchange_sigma = numpyro.sample(name='backexchange_sigma',
-                                        fn=numpyro.distributions.HalfNormal(scale=0.1))
+                                        fn=numpyro.distributions.HalfNormal(scale=0.001))
 
     with numpyro.plate(name='backexchange_values', size=len(backexchange_array)):
         backexchange = numpyro.sample(name='backexchange',
