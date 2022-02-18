@@ -10,6 +10,7 @@ from methods import normalize_mass_distribution_array, gauss_fit_to_isotope_dist
 from backexchange import calc_back_exchange
 from hxdata import load_data_from_hdx_ms_dist_, write_pickle_object, write_hx_rate_output_bayes, \
     write_isotope_dist_timepoints, load_tp_dependent_dict
+from plot_posterior_samples import plot_posteriors
 
 
 @dataclass
@@ -52,6 +53,7 @@ def fit_rate_bayes_(prot_name: str,
                     num_chains: int,
                     num_warmups: int,
                     num_samples: int,
+                    sample_backexchange: bool = False,
                     return_posterior_distribution: bool = False,
                     adj_backexchange: bool = True,
                     backexchange_value: float = None,
@@ -105,6 +107,7 @@ def fit_rate_bayes_(prot_name: str,
             ratefit = BayesRateFit(num_chains=num_chains,
                                    num_warmups=num_warmups,
                                    num_samples=num_samples,
+                                   sample_backexchange=sample_backexchange,
                                    return_posterior_distributions=return_posterior_distribution)
 
             ratefit.fit_rate(sequence=sequence,
@@ -177,11 +180,13 @@ def fit_rate_from_to_file(prot_name: str,
                           num_chains: int = 4,
                           num_warmups: int = 100,
                           num_samples: int = 500,
-                          return_posterior_distribution: bool = False,
+                          sample_backexchange: bool = False,
+                          return_posterior_distribution: bool = True,
                           hx_rate_output_path: str = None,
                           hx_rate_csv_output_path: str = None,
                           hx_isotope_dist_output_path: str = None,
                           hx_rate_plot_path: str = None,
+                          posterior_plot_path: str = None,
                           return_flag: bool = False) -> object:
     # todo: add param descriptions for the function here
 
@@ -214,6 +219,7 @@ def fit_rate_from_to_file(prot_name: str,
                                     num_chains=num_chains,
                                     num_samples=num_samples,
                                     num_warmups=num_warmups,
+                                    sample_backexchange=sample_backexchange,
                                     return_posterior_distribution=return_posterior_distribution,
                                     adj_backexchange=adjust_backexchange,
                                     backexchange_value=usr_backexchange,
@@ -270,6 +276,11 @@ def fit_rate_from_to_file(prot_name: str,
                                    d2o_purity=d2o_purity,
                                    output_path=hx_rate_plot_path)
 
+    # plot posterior samples
+    if posterior_plot_path is not None:
+        plot_posteriors(bayesfit_output=hxrate_object.bayesfit_output,
+                        output_path=posterior_plot_path)
+
     # save hxrate object into a pickle object
     if hx_rate_output_path is not None:
         hxrate_dict = convert_hxrate_object_to_dict(hxrate_object=hxrate_object)
@@ -298,10 +309,12 @@ def gen_parser_arguments():
     parser.add_argument('-nc', '--num_chains', help='number of independent markov chains for MCMC', default=4)
     parser.add_argument('-nw', '--num_warmups', help='number of warmups for MCMC', default=100)
     parser.add_argument('-ns', '--num_samples', help='number of samples for MCMC', default=500)
+    parser.add_argument('-sb', '--sample_backexchange', help='sample backexchange for MCMC', default=False)
     parser.add_argument('-pd', '--return_posterior', help='return posterior distribution boolean', default=True)
     parser.add_argument('-o', '--output_pickle_file', help='output pickle filepath')
     parser.add_argument('-or', '--output_rate_csv', help='output rates csv filepath')
     parser.add_argument('-op', '--output_rate_plot', help='output_rate_plot filepath')
+    parser.add_argument('-opp', '--output_posterior_plot', help='output_posterior_plot filepath')
     parser.add_argument('-od', '--output_iso_dist', help='output isotope distribution filepath')
 
     return parser
@@ -332,11 +345,13 @@ def hx_rate_fitting_from_parser(parser):
                           num_chains=int(options.num_chains),
                           num_warmups=int(options.num_warmups),
                           num_samples=int(options.num_samples),
+                          sample_backexchange=options.sample_backexchange,
                           return_posterior_distribution=options.return_posterior,
                           hx_rate_output_path=options.output_pickle_file,
                           hx_rate_csv_output_path=options.output_rate_csv,
                           hx_isotope_dist_output_path=options.output_iso_dist,
-                          hx_rate_plot_path=options.output_rate_plot)
+                          hx_rate_plot_path=options.output_rate_plot,
+                          posterior_plot_path=options.output_posterior_plot)
 
 
 if __name__ == '__main__':
@@ -345,23 +360,24 @@ if __name__ == '__main__':
     parser_ = gen_parser_arguments()
     hx_rate_fitting_from_parser(parser_)
 
-    # prot_name = 'HEEH_rd4_0097'
+    # prot_name = 'HEEH_rd4_0097.pdb_16.2012'
     # prot_sequence = 'HMDVEEQIRRLEEVLKKNQPVTWNGTTYTDPNEIKKVIEELRKSM'
-    # hx_dist_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib15/20211225_ph6_re_20211223_ph9/merge_distribution/HEEH_rd4_0097.pdb_16.16448_HEEH_rd4_0097.pdb_16.27463/HEEH_rd4_0097.pdb_16.16448_HEEH_rd4_0097.pdb_16.27463_merge_hxms_dist.csv'
-    # bkexch_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib15/20211225_ph6_re_20211223_ph9/merge_distribution/HEEH_rd4_0097.pdb_16.16448_HEEH_rd4_0097.pdb_16.27463/HEEH_rd4_0097.pdb_16.16448_HEEH_rd4_0097.pdb_16.27463_merge_backexchange.csv'
-    # # bk_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/lib15_ph6_sample.csv_backexchange_correction_2.csv'
-    # output_dir = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib15/20211225_ph6_re_20211223_ph9/rates/HEEH_rd4_0097.pdb_16.16448_HEEH_rd4_0097.pdb_16.27463'
+    # hx_dist_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib14/sample_bkexch/HEEH_rd4_0097.pdb_16.2012_winner_multibody.cpickle.zlib.csv'
+    # # bkexch_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib15/20211225_ph6_re_20211223_ph9/merge_distribution/HEEH_rd4_0097.pdb_16.16448_HEEH_rd4_0097.pdb_16.27463/HEEH_rd4_0097.pdb_16.16448_HEEH_rd4_0097.pdb_16.27463_merge_backexchange.csv'
+    # bk_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib14/sample_bkexch/bkexch_corr.csv'
+    # output_dir = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib14/sample_bkexch'
     #
     # fit_rate_from_to_file(prot_name=prot_name,
     #                       sequence=prot_sequence,
     #                       hx_ms_dist_fpath=hx_dist_fpath,
     #                       d2o_fraction=0.95,
     #                       d2o_purity=0.95,
-    #                       backexchange_array_fpath=bkexch_fpath,
+    #                       backexchange_corr_fpath=bk_corr_fpath,
     #                       num_chains=4,
     #                       num_warmups=100,
     #                       num_samples=500,
-    #                       hx_rate_output_path=output_dir + '/_hxrate_v2.pickle',
-    #                       hx_rate_csv_output_path=output_dir + '/_hxrate_v2.csv',
-    #                       hx_isotope_dist_output_path=output_dir + '/_rate_iso_dist_v2.csv',
-    #                       hx_rate_plot_path=output_dir + '/_hxrate_v2.pdf')
+    #                       sample_backexchange=True,
+    #                       hx_rate_output_path=output_dir + '/_hxrate_rate_norm_prior_sigma2.5_bkexch_sample_True_v2.pickle',
+    #                       hx_rate_csv_output_path=output_dir + '/_hxrate_rate_norm_prior_sigma2.5_bkexch_sample_True_v2.csv',
+    #                       hx_isotope_dist_output_path=output_dir + '/_hxrate_rate_norm_prior_sigma2.5_bkexch_sample_True_v2.csv',
+    #                       hx_rate_plot_path=output_dir + '/_hxrate_rate_norm_prior_sigma2.5_bkexch_sample_True_v2.pdf')
