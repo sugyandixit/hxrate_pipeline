@@ -103,17 +103,19 @@ if config['backexchange_correction']:
             num_chains = config['num_chains'],
             num_warmups = config['num_warmups'],
             num_samples = config['num_samples'],
-            adjust_backexchange = config['adjust_backexchange']
+            adjust_backexchange = config['adjust_backexchange'],
+            sample_backexchange = config['sample_backexchange']
         output:
             pk_file = rate_output_path + '/{name}/{name}_hx_rate_fit.pickle',
             rate_csv_file = rate_output_path + '/{name}/{name}_hx_rate.csv',
             iso_dist_file = rate_output_path + '/{name}/{name}_hx_rate_theo_dist.csv',
-            plot_file = rate_output_path + '/{name}/{name}_hx_rate.pdf'
+            plot_file = rate_output_path + '/{name}/{name}_hx_rate.pdf',
+            posterior_plot_file = rate_output_path + '/{name}/{name}_posteriors.pdf'
         benchmark:
             benchmark_dpath + '/{name}_fit_hx_rate.benchmark.txt'
         threads: config['num_chains']
         shell:
-            'python ' + hx_rate_fit_python_path + ' -p {params.prot_name} -s {params.prot_seq} -i {input.hx_dist_fpath} -df {params.d2o_frac} -dp {params.d2o_purity} -bcf {input.bkexch_corr_fpath} -adb {params.adjust_backexchange} -nc {params.num_chains} -nw {params.num_warmups} -ns {params.num_samples} -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -od {output.iso_dist_file}'
+            'python ' + hx_rate_fit_python_path + ' -p {params.prot_name} -s {params.prot_seq} -i {input.hx_dist_fpath} -df {params.d2o_frac} -dp {params.d2o_purity} -bcf {input.bkexch_corr_fpath} -adb {params.adjust_backexchange} -nc {params.num_chains} -nw {params.num_warmups} -ns {params.num_samples} -sb {params.sample_backexchange} -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -opp {output.posterior_plot_file} -od {output.iso_dist_file}'
 
 else:
 
@@ -128,17 +130,19 @@ else:
             num_chains = config['num_chains'],
             num_warmups = config['num_warmups'],
             num_samples = config['num_samples'],
-            adjust_backexchange = config['adjust_backexchange']
+            adjust_backexchange = config['adjust_backexchange'],
+            sample_backexchange = config['sample_backexchange']
         output:
             pk_file = rate_output_path + '/{name}/{name}_hx_rate_fit.pickle',
             rate_csv_file = rate_output_path + '/{name}/{name}_hx_rate.csv',
             iso_dist_file = rate_output_path + '/{name}/{name}_hx_rate_theo_dist.csv',
-            plot_file = rate_output_path + '/{name}/{name}_hx_rate.pdf'
+            plot_file = rate_output_path + '/{name}/{name}_hx_rate.pdf',
+            posterior_plot_file = rate_output_path + '/{name}/{name}_posteriors.pdf'
         benchmark:
             benchmark_dpath + '/{name}_fit_hx_rate.benchmark.txt'
         threads: config['num_chains']
         shell:
-            'python ' + hx_rate_fit_python_path + ' -p {params.prot_name} -s {params.prot_seq} -i {input.hx_dist_fpath} -df {params.d2o_frac} -dp {params.d2o_purity} -adb {params.adjust_backexchange} -nc {params.num_chains} -nw {params.num_warmups} -ns {params.num_samples} -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -od {output.iso_dist_file}'
+            'python ' + hx_rate_fit_python_path + ' -p {params.prot_name} -s {params.prot_seq} -i {input.hx_dist_fpath} -df {params.d2o_frac} -dp {params.d2o_purity} -adb {params.adjust_backexchange} -nc {params.num_chains} -nw {params.num_warmups} -ns {params.num_samples} -sb {params.sample_backexchange} -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -opp {output.posterior_plot_file} -od {output.iso_dist_file}'
 
 #
 # # this workflow processes the hx rate fitting
