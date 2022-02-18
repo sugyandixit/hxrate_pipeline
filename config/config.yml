@@ -41,6 +41,7 @@ d2o_purity: 0.95
 
 # rate fitting parameters
 adjust_backexchange: True
+sample_backexchange: False
 num_chains: 4
 num_warmups: 100
-num_samples: 900
+num_samples: 500
