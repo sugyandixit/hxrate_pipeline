@@ -88,6 +88,8 @@ def fit_rate_bayes_(prot_name: str,
                                        backexchange_array=backexchange_array,
                                        backexchange_corr_dict=backexchange_correction_dict)
 
+    hxrate.back_exchange = back_exchange
+
     if adj_backexchange:
 
         # set a flag for backexchange adjusting
@@ -154,6 +156,7 @@ def fit_rate_bayes_(prot_name: str,
         ratefit = BayesRateFit(num_chains=num_chains,
                                num_warmups=num_warmups,
                                num_samples=num_samples,
+                               sample_backexchange=sample_backexchange,
                                return_posterior_distributions=return_posterior_distribution)
 
         ratefit.fit_rate(sequence=sequence,
@@ -305,12 +308,12 @@ def gen_parser_arguments():
     parser.add_argument('-ub', '--user_bkexchange', help='user defined backexchange', default=None)
     parser.add_argument('-bcf', '--bkexchange_corr_fpath', help='backexchange correction filepath .csv')
     parser.add_argument('-baf', '--bkexchange_array_fpath', help='backexchange array filepath .csv')
-    parser.add_argument('-adb', '--adjust_backexchange', help='adjust backexchange boolean', default=True)
+    parser.add_argument('--adjust_backexchange', help='adjust backexchange boolean', default=True, action=argparse.BooleanOptionalAction)
     parser.add_argument('-nc', '--num_chains', help='number of independent markov chains for MCMC', default=4)
     parser.add_argument('-nw', '--num_warmups', help='number of warmups for MCMC', default=100)
     parser.add_argument('-ns', '--num_samples', help='number of samples for MCMC', default=500)
-    parser.add_argument('-sb', '--sample_backexchange', help='sample backexchange for MCMC', default=False)
-    parser.add_argument('-pd', '--return_posterior', help='return posterior distribution boolean', default=True)
+    parser.add_argument('--sample_backexchange', help='sample backexchange for MCMC', default=True, action=argparse.BooleanOptionalAction)
+    parser.add_argument('--return_posterior', help='return posterior distribution boolean', default=True, action=argparse.BooleanOptionalAction)
     parser.add_argument('-o', '--output_pickle_file', help='output pickle filepath')
     parser.add_argument('-or', '--output_rate_csv', help='output rates csv filepath')
     parser.add_argument('-op', '--output_rate_plot', help='output_rate_plot filepath')
