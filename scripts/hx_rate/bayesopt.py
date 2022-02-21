@@ -67,9 +67,9 @@ class BayesRateFit(object):
 
         # initialize the kernel for MCMC
         if self.sample_backexchange:
-            nuts_kernel = NUTS(model=rate_fit_model_v3)
+            nuts_kernel = NUTS(model=rate_fit_model_norm_priors_with_backexchange_sampling)
         else:
-            nuts_kernel = NUTS(model=rate_fit_model_v4)
+            nuts_kernel = NUTS(model=rate_fit_model_norm_priors)
 
         # # for debugging purpose
         # nuts_kernel = NUTS(model=rate_fit_model_v3)
@@ -463,7 +463,7 @@ def rate_fit_model(num_rates,
                               obs=obs_dist_nonzero_flat)
 
 
-def rate_fit_model_v3(num_rates,
+def rate_fit_model_norm_priors_with_backexchange_sampling(num_rates,
                       sequence,
                       timepoints,
                       backexchange_array,
@@ -521,7 +521,7 @@ def rate_fit_model_v3(num_rates,
                               obs=obs_dist_nonzero_flat)
 
 
-def rate_fit_model_v4(num_rates,
+def rate_fit_model_norm_priors(num_rates,
                       sequence,
                       timepoints,
                       backexchange_array,
