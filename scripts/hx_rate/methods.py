@@ -930,8 +930,16 @@ def plot_hx_rate_fitting_bayes(prot_name: str,
 
     # define figure size
     num_columns = 2
+
+    # this is a constant
+    num_plots_second_row = 8
+
     num_rows = len(timepoints)
-    fig_size = (25, 1.0 * num_rows)
+    row_width = 1.0
+    if len(timepoints) < num_plots_second_row:
+        num_rows = num_plots_second_row
+        row_width = 2.5
+    fig_size = (25, row_width * num_rows)
 
     font_size = 10
 
@@ -1003,8 +1011,9 @@ def plot_hx_rate_fitting_bayes(prot_name: str,
     #######################################################
 
     # 8 plots on the second row
-    num_plots_second_row = 8
     second_plot_row_thickness = int(len(timepoints)/num_plots_second_row)
+    if len(timepoints) < num_plots_second_row:
+        second_plot_row_thickness = 1
     second_plot_indices = [(num*second_plot_row_thickness) for num in range(num_plots_second_row)]
 
     #######################################################
