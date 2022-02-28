@@ -314,11 +314,11 @@ def gen_parser_arguments():
     parser.add_argument('-ns', '--num_samples', help='number of samples for MCMC', default=500)
     parser.add_argument('--sample_backexchange', help='sample backexchange for MCMC', default=True, action=argparse.BooleanOptionalAction)
     parser.add_argument('--return_posterior', help='return posterior distribution boolean', default=True, action=argparse.BooleanOptionalAction)
-    parser.add_argument('-o', '--output_pickle_file', help='output pickle filepath')
-    parser.add_argument('-or', '--output_rate_csv', help='output rates csv filepath')
-    parser.add_argument('-op', '--output_rate_plot', help='output_rate_plot filepath')
-    parser.add_argument('-opp', '--output_posterior_plot', help='output_posterior_plot filepath')
-    parser.add_argument('-od', '--output_iso_dist', help='output isotope distribution filepath')
+    parser.add_argument('-o', '--output_pickle_file', help='output pickle filepath', default=None)
+    parser.add_argument('-or', '--output_rate_csv', help='output rates csv filepath', default=None)
+    parser.add_argument('-op', '--output_rate_plot', help='output_rate_plot filepath', default=None)
+    parser.add_argument('-opp', '--output_posterior_plot', help='output_posterior_plot filepath', default=None)
+    parser.add_argument('-od', '--output_iso_dist', help='output isotope distribution filepath', default=None)
 
     return parser
 
