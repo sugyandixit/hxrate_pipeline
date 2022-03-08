@@ -131,6 +131,26 @@ lowph_protname_match, highph_protname_match, match_seq_list, low_high_name_, low
 lowph_match_hx_dist_fpaths_gen_ = config['low_ph_hxms_fpath_dir'] + '/{lowph_name_match}'*config['level_to_fpaths_low_ph'] + config['low_ph_hxms_fpath_delim_str']
 highph_match_hx_dist_fpaths_gen_ = config['high_ph_hxms_fpath_dir'] + '/{highph_name_match}'*config['level_to_fpaths_high_ph'] + config['high_ph_hxms_fpath_delim_str']
 
+# generate python shell commands here for hx rate fitting
+# set a default shell line with both adjust backexchange and sample backexchange options set to true
+sample_backexchange_param = '--sample_backexchange'
+adjust_backexchange_param = '--adjust_backexchange'
+
+if config['adjust_backexchange']:
+    if config['sample_backexchange']:
+        sample_backexchange_param = sample_backexchange_param
+        adjust_backexchange_param = adjust_backexchange_param
+    else:
+        sample_backexchange_param = '--no-sample_backexchange'
+        adjust_backexchange_param = adjust_backexchange_param
+else:
+    if config['sample_backexchange']:
+        sample_backexchange_param = sample_backexchange_param
+        adjust_backexchange_param = '--no-adjust_backexchange'
+    else:
+        sample_backexchange_param = '--no-sample_backexchange'
+        adjust_backexchange_param = '--no-adjust_backexchange'
+
 
 rule all:
     input:  expand(hxrate_dpath + '/{low_high_name}/{low_high_name}_hx_rate_fit.pickle', low_high_name=low_high_name_)
@@ -274,9 +294,10 @@ rule fit_hx_rates:
         posterior_plot_file = hxrate_dpath + '/{low_high_name}/{low_high_name}_posteriors.pdf'
     benchmark:
         benchmark_dpath + '/{low_high_name}_fit_hx_rate.benchmark.txt'
-    threads: config['num_chains']
+    # threads: config['num_chains']
     shell:
-        'python ' + hx_rate_fit_python_path + ' -p {params.prot_name} -s {params.prot_seq} -i {input.hx_dist_fpath} -df {params.d2o_frac} -dp {params.d2o_pur} -baf {input.backexch_array_file} -adb {params.adjust_backexchange} -nc {params.num_chains} -nw {params.num_warmups} -ns {params.num_samples} -sb {params.sample_backexchange} -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -opp {output.posterior_plot_file} -od {output.iso_dist_file}'
+        'python ' + hx_rate_fit_python_path + ' -p {params.prot_name} -s {params.prot_seq} -i {input.hx_dist_fpath} -df {params.d2o_frac} -dp {params.d2o_pur} -baf {input.backexch_array_file} {params.adjust_backexchange} -nc {params.num_chains} -nw {params.num_warmups} -ns {params.num_samples} {params.sample_backexchange} -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -opp {output.posterior_plot_file} -od {output.iso_dist_file}'
+        # 'python ' + hx_rate_fit_python_path + ' -p {params.prot_name} -s {params.prot_seq} -i {input.hx_dist_fpath} -df {params.d2o_frac} -dp {params.d2o_pur} -baf {input.backexch_array_file} -adb {params.adjust_backexchange} -nc {params.num_chains} -nw {params.num_warmups} -ns {params.num_samples} -sb {params.sample_backexchange} -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -opp {output.posterior_plot_file} -od {output.iso_dist_file}'
 
         #
 #
