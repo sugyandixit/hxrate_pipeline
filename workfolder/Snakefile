@@ -58,25 +58,21 @@ hx_dist_fpaths_gen_ = config['hx_ms_dist_fpaths_top_dir'] + '/{name}'*config['le
 sample_backexchange_param = '--sample_backexchange'
 adjust_backexchange_param = '--adjust_backexchange'
 
-# rate_fit_shell_line = 'python ' + hx_rate_fit_python_path + ' -p {params.prot_name} -s {params.prot_seq} -i {input.hx_dist_fpath} -df {params.d2o_frac} -dp {params.d2o_purity} --adjust_backexchange -nc {params.num_chains} -nw {params.num_warmups} -ns {params.num_samples} --sample_backexchange -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -opp {output.posterior_plot_file} -od {output.iso_dist_file}'
 if config['adjust_backexchange']:
     if config['sample_backexchange']:
         sample_backexchange_param = sample_backexchange_param
         adjust_backexchange_param = adjust_backexchange_param
-        # rate_fit_shell_line = rate_fit_shell_line
     else:
         sample_backexchange_param = '--no-sample_backexchange'
         adjust_backexchange_param = adjust_backexchange_param
-        # rate_fit_shell_line = 'python ' + hx_rate_fit_python_path + ' -p {params.prot_name} -s {params.prot_seq} -i {input.hx_dist_fpath} -df {params.d2o_frac} -dp {params.d2o_purity} --adjust_backexchange -nc {params.num_chains} -nw {params.num_warmups} -ns {params.num_samples} -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -opp {output.posterior_plot_file} -od {output.iso_dist_file}'
 else:
     if config['sample_backexchange']:
         sample_backexchange_param = sample_backexchange_param
         adjust_backexchange_param = '--no-adjust_backexchange'
-        # rate_fit_shell_line = 'python ' + hx_rate_fit_python_path + ' -p {params.prot_name} -s {params.prot_seq} -i {input.hx_dist_fpath} -df {params.d2o_frac} -dp {params.d2o_purity} -nc {params.num_chains} -nw {params.num_warmups} -ns {params.num_samples} --sample_backexchange -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -opp {output.posterior_plot_file} -od {output.iso_dist_file}'
     else:
         sample_backexchange_param = '--no-sample_backexchange'
         adjust_backexchange_param = '--no-adjust_backexchange'
-        # rate_fit_shell_line = 'python ' + hx_rate_fit_python_path + ' -p {params.prot_name} -s {params.prot_seq} -i {input.hx_dist_fpath} -df {params.d2o_frac} -dp {params.d2o_purity} -nc {params.num_chains} -nw {params.num_warmups} -ns {params.num_samples} -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -opp {output.posterior_plot_file} -od {output.iso_dist_file}'
+
 
 rule all:
     input:  expand(rate_output_path + '/{name}/{name}_hx_rate_fit.pickle', name=prot_name_list)
