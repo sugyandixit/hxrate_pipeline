@@ -10,6 +10,29 @@ import hx_rate_fit
 import hxdata
 
 
+def interpol_and_calc_mse(log_high_tp_refac,
+                          log_low_tp,
+                          high_centroids,
+                          low_centroids,
+                          slice_index_low,
+                          slice_index_high):
+
+    # generate a new time axis that's common for both high and low ph data
+
+    new_axis = log_high_tp_refac[slice_index_low:slice_index_high]
+    high_centroids_comp = high_centroids[slice_index_low:slice_index_high]
+
+    # create an interpolation function for low data
+    low_interp_func = interpolate.interp1d(x=log_low_tp, y=low_centroids)
+
+    # generate interpolated centroids on the new axis
+    low_centroids_comp = low_interp_func(x=new_axis)
+
+    mse = mean_squared_error(y_true=high_centroids_comp, y_pred=low_centroids_comp)
+
+    return mse
+
+
 def gen_mse_with_factor_shift(factor: float,
                               low_tp: np.ndarray,
                               low_centroids: np.ndarray,
@@ -26,41 +49,109 @@ def gen_mse_with_factor_shift(factor: float,
     """
 
     # shift the tp by some factor
+    # factor = 5
     high_tp_refac = high_tp * factor
 
     log_low_tp = np.log10(low_tp)
     log_high_tp_refac = np.log10(high_tp_refac)
 
-    # generate index where to slice the timepoint for comparison that is common on both high and low data
-    tp_diff = np.subtract(log_low_tp[-1], log_high_tp_refac)
+    # generate low and high indices where to slice the timepoint for comparison that is common on both high and low data
+    tp_diff_high = np.subtract(log_low_tp[-1], log_high_tp_refac)
+    tp_diff_low = np.subtract(log_low_tp[0], log_high_tp_refac)
+    # tp_diff = np.subtract(log_low_tp[-1], log_high_tp_refac)
     high_ind = 0
-    for ind, diff in enumerate(tp_diff):
+    low_ind = 0
+    for ind, diff in enumerate(tp_diff_high):
         if diff < 0:
             high_ind = ind
             break
 
-    # make sure high end is not zero. That means it didn't find any common timepoints for comparison. in that case
-    # return the full centroids for comparison
-    if high_ind == 0:
-        print('no common timepoints for comparison. Returning the entire array as it is for computing mse.')
-        high_centroids_comp = high_centroids
-        low_centroids_comp = low_centroids
-    else:
-        # generate a new time axis that's common for both high and low ph data
-        new_axis = log_high_tp_refac[:high_ind]
-        high_centroids_comp = high_centroids[:high_ind]
+    for ind2, diff in enumerate(tp_diff_low):
+        if diff < 0:
+            low_ind = ind2
+            break
 
-        # create an interpolation function for low data
-        low_interp_func = interpolate.interp1d(x=log_low_tp, y=low_centroids)
+    # use the high and low indices to slice the data
+    # make statements for if high_ind == len(tpdiff) -1 or low_ind == len(tpdifflow) -1
 
-        # generate interpolated centroids on the new axis
-        low_centroids_comp = low_interp_func(x=new_axis)
-
-    # computing mse
-    try:
-        mse = mean_squared_error(y_true=high_centroids_comp, y_pred=low_centroids_comp)
-    except ValueError:
+    mse = 100
+    if high_ind == 0 and low_ind == 0:
         mse = 100
+    elif high_ind <= low_ind:
+        mse = 100
+    elif low_ind >= high_ind:
+        mse = 100
+    elif high_ind > 0:
+        if high_ind == len(tp_diff_high) -1:
+            mse = interpol_and_calc_mse(log_high_tp_refac=log_high_tp_refac,
+                                        log_low_tp=log_low_tp,
+                                        high_centroids=high_centroids,
+                                        low_centroids=low_centroids,
+                                        slice_index_low=low_ind,
+                                        slice_index_high=-1)
+        else:
+            mse = interpol_and_calc_mse(log_high_tp_refac=log_high_tp_refac,
+                                        log_low_tp=log_low_tp,
+                                        high_centroids=high_centroids,
+                                        low_centroids=low_centroids,
+                                        slice_index_low=low_ind,
+                                        slice_index_high=high_ind)
+
+
+    # elif high_ind == 0 and low_ind > 0:
+    #     if low_ind >= high_ind:
+    #         mse = 100
+    #     else:
+    #         mse = interpol_and_calc_mse(log_high_tp_refac=log_high_tp_refac,
+    #                                     log_low_tp=log_low_tp,
+    #                                     high_centroids=high_centroids,
+    #                                     low_centroids=low_centroids,
+    #                                     slice_index_low=low_ind,
+    #                                     slice_index_high=high_ind)
+    # elif high_ind > 0 and low_ind == 0:
+    #     if high_ind == len(tp_diff_high) -1:
+    #         mse = interpol_and_calc_mse(log_high_tp_refac=log_high_tp_refac,
+    #                                     log_low_tp=log_low_tp,
+    #                                     high_centroids=high_centroids,
+    #                                     low_centroids=low_centroids,
+    #                                     slice_index_low=low_ind,
+    #                                     slice_index_high=None)
+    # elif high_ind > 0 and low_ind > 0:
+    #     mse = 100
+    #
+    #
+    #
+    #
+    # # make sure high end is not zero. That means it didn't find any common timepoints for comparison. in that case
+    # # return the full centroids for comparison
+    # if high_ind == 0:
+    #     print('no common timepoints for comparison. Returning the entire array as it is for computing mse.')
+    #     high_centroids_comp = high_centroids
+    #     low_centroids_comp = low_centroids
+    # # if high_ind == len(log_high_tp_refac)-1:
+    # #     new_axis = log_high_tp_refac
+    # #     high_centroids_comp
+    # elif high_ind == len(tp_diff) - 1:
+    #     new_axis = log_high_tp_refac
+    #     high_centroids_comp = high_centroids
+    #     low_interp_func = interpolate.interp1d(x=log_low_tp, y=low_centroids)
+    #     low_centroids_comp = low_interp_func(x=new_axis)
+    # else:
+    #     # generate a new time axis that's common for both high and low ph data
+    #     new_axis = log_high_tp_refac[:high_ind]
+    #     high_centroids_comp = high_centroids[:high_ind]
+    #
+    #     # create an interpolation function for low data
+    #     low_interp_func = interpolate.interp1d(x=log_low_tp, y=low_centroids)
+    #
+    #     # generate interpolated centroids on the new axis
+    #     low_centroids_comp = low_interp_func(x=new_axis)
+    #
+    # # computing mse
+    # try:
+    #     mse = mean_squared_error(y_true=high_centroids_comp, y_pred=low_centroids_comp)
+    # except ValueError:
+    #     mse = 100
 
     return mse
 
@@ -101,57 +192,19 @@ def optimize_factor_for_alignment(low_tp: np.ndarray,
     return out_dict
 
 
-def generate_backexchange_array(exp_dist: np.ndarray,
-                                timepoints: np.ndarray,
-                                sequence: str,
-                                d2o_fraction: float,
-                                d2o_purity: float,
-                                user_backexchange: float,
-                                backexchange_correction_arr: np.ndarray) -> np.ndarray:
-    """
-    generate backexchange array by calculating backexchange and using correction rates
-    :param exp_dist: experimental distribution used to calculate the backexchange
-    :param timepoints: timepoints array
-    :param sequence: protein sequence
-    :param d2o_fraction: d2o fraction
-    :param d2o_purity: d2o purity
-    :param user_backexchange: user backexchange
-    :param backexchange_correction_arr: correction arr
-    :return: backexchange array
-    """
-
-    # generate backexchange object. Either calculate backexchange using the exp distribution or set a user backexchange
-    backexchange = hx_rate_fit.calc_back_exchange(sequence=sequence,
-                                                  experimental_isotope_dist=exp_dist,
-                                                  timepoints_array=timepoints,
-                                                  d2o_fraction=d2o_fraction,
-                                                  d2o_purity=d2o_purity,
-                                                  usr_backexchange=user_backexchange)
-
-    # generate backexchange array based on correction rates. If no correction rate, use the same backexchange for all timepoints
-    if backexchange_correction_arr is None:
-        backexchange_array = np.array([backexchange.backexchange_value for x in timepoints])
-    else:
-
-        backexchange_array = methods.gen_corr_backexchange(mass_rate_array=backexchange_correction_arr,
-                                                       fix_backexchange_value=backexchange.backexchange_value)
-
-    return backexchange_array
-
-
 def gen_merged_dstirbution(sequence: str,
                            low_tp: np.ndarray,
                            low_dist: np.ndarray,
                            low_d2o_frac: float,
                            low_d2o_purity: float,
                            low_user_backexchange: float,
-                           low_backexchange_correction_arr: np.ndarray,
+                           low_backexchange_correction_dict: dict,
                            high_tp: np.ndarray,
                            high_dist: np.ndarray,
                            high_d2o_frac: float,
                            high_d2o_purity: float,
                            high_user_backexchange: float,
-                           high_backexchange_correction_arr: np.ndarray,
+                           high_backexchange_correction_dict: dict,
                            factor_init_list: list = [1, 10, 100, 1000, 10000]) -> dict:
     """
 
@@ -176,20 +229,22 @@ def gen_merged_dstirbution(sequence: str,
     high_gauss_fit_list = methods.gauss_fit_to_isotope_dist_array(high_dist)
 
     # get backexchange array
-    low_backexchange_array = generate_backexchange_array(exp_dist=low_dist[-1],
-                                                         timepoints=low_tp,
-                                                         sequence=sequence,
-                                                         d2o_fraction=low_d2o_frac,
-                                                         d2o_purity=low_d2o_purity,
-                                                         user_backexchange=low_user_backexchange,
-                                                         backexchange_correction_arr=low_backexchange_correction_arr)
-    high_backexchange_array = generate_backexchange_array(exp_dist=high_dist[-1],
-                                                          timepoints=high_tp,
-                                                          sequence=sequence,
-                                                          d2o_fraction=high_d2o_frac,
-                                                          d2o_purity=high_d2o_purity,
-                                                          user_backexchange=high_user_backexchange,
-                                                          backexchange_correction_arr=high_backexchange_correction_arr)
+
+    low_backexchange_obj = hx_rate_fit.calc_back_exchange(sequence=sequence,
+                                                          experimental_isotope_dist=low_dist[-1],
+                                                          timepoints_array=low_tp,
+                                                          d2o_fraction=low_d2o_frac,
+                                                          d2o_purity=low_d2o_purity,
+                                                          usr_backexchange=low_user_backexchange,
+                                                          backexchange_corr_dict=low_backexchange_correction_dict)
+
+    high_backexchange_obj = hx_rate_fit.calc_back_exchange(sequence=sequence,
+                                                           experimental_isotope_dist=high_dist[-1],
+                                                           timepoints_array=high_tp,
+                                                           d2o_fraction=high_d2o_frac,
+                                                           d2o_purity=high_d2o_purity,
+                                                           usr_backexchange=high_user_backexchange,
+                                                           backexchange_corr_dict=high_backexchange_correction_dict)
 
     # generate centroids array for both distributions
     low_centroids = np.array([x.centroid for x in low_gauss_fit_list])
@@ -197,10 +252,10 @@ def gen_merged_dstirbution(sequence: str,
 
     # generate centroids with backexhcnage corrections
     low_centroids_corr = methods.correct_centroids_using_backexchange(centroids=low_centroids,
-                                                                      backexchange_array=low_backexchange_array,
+                                                                      backexchange_array=low_backexchange_obj.backexchange_array,
                                                                       include_zero_dist=True)
     high_centroids_corr = methods.correct_centroids_using_backexchange(centroids=high_centroids,
-                                                                       backexchange_array=high_backexchange_array,
+                                                                       backexchange_array=high_backexchange_obj.backexchange_array,
                                                                        include_zero_dist=True)
     opt_list = []
     for factor_init_value in factor_init_list:
@@ -233,7 +288,7 @@ def gen_merged_dstirbution(sequence: str,
     sorted_merged_dist = merge_dist[tp_sort_index, :]
 
     # generate a sorted merged backexchange array
-    merged_backexchange = np.concatenate([low_backexchange_array, high_backexchange_array[1:]])
+    merged_backexchange = np.concatenate([low_backexchange_obj.backexchange_array, high_backexchange_obj.backexchange_array[1:]])
     sorted_merged_backexchange = merged_backexchange[tp_sort_index]
     merged_backexchange_correction_array = methods.gen_backexchange_correction_from_backexchange_array(backexchange_array=sorted_merged_backexchange)
 
@@ -287,92 +342,92 @@ def plot_merge_centroids(low_tp, low_centroids, high_tp_refactored, high_centroi
     plt.close()
 
 
-def gen_high_low_merged_from_to_file(sequence: str,
-                                     low_ph_data_fpath: str,
-                                     low_d2o_frac: float,
-                                     low_d2o_purity: float,
-                                     low_user_backexchange: float or None,
-                                     low_backexchange_corr_fpath: str,
-                                     high_ph_data_fpath: str,
-                                     high_d2o_frac: float,
-                                     high_d2o_purity: float,
-                                     high_user_backexchange: float or None,
-                                     high_backexchange_corr_fpath: str,
-                                     merged_backexchange_fpath: str or None,
-                                     merged_data_fpath: str or None,
-                                     merged_backexchange_correction_fpath: str or None,
-                                     factor_fpath: str or None,
-                                     merge_plot_fpath: str or None,
-                                     return_flag: bool = False):
-
-    # read the ph data
-    low_tp, low_dists = hxdata.load_data_from_hdx_ms_dist_(low_ph_data_fpath)
-    high_tp, high_dists = hxdata.load_data_from_hdx_ms_dist_(high_ph_data_fpath)
-
-    # get the backexchange correction array
-    if low_backexchange_corr_fpath is not None:
-        low_backexchange_corr_arr = get_backexchange_corr_arr(low_backexchange_corr_fpath)
-    else:
-        low_backexchange_corr_arr = None
-
-    if high_backexchange_corr_fpath is not None:
-        high_backexchange_corr_arr = get_backexchange_corr_arr(high_backexchange_corr_fpath)
-    else:
-        high_backexchange_corr_arr = None
-
-    merged_data_dict = gen_merged_dstirbution(sequence=sequence,
-                                              low_tp=low_tp,
-                                              low_dist=low_dists,
-                                              low_d2o_frac=low_d2o_frac,
-                                              low_d2o_purity=low_d2o_purity,
-                                              low_user_backexchange=low_user_backexchange,
-                                              low_backexchange_correction_arr=low_backexchange_corr_arr,
-                                              high_tp=high_tp,
-                                              high_dist=high_dists,
-                                              high_d2o_frac=high_d2o_frac,
-                                              high_d2o_purity=high_d2o_purity,
-                                              high_user_backexchange=high_user_backexchange,
-                                              high_backexchange_correction_arr=high_backexchange_corr_arr)
-
-    # write the merged timepoints and isotope distribution
-    if merged_data_fpath is not None:
-        hxdata.write_isotope_dist_timepoints(timepoints=merged_data_dict['merged_timepoints'],
-                                             isotope_dist_array=merged_data_dict['merged_dist'],
-                                             output_path=merged_data_fpath)
-
-    # write the merged backexchange
-    if merged_backexchange_fpath is not None:
-        hxdata.write_backexchange_array(timepoints=merged_data_dict['merged_timepoints'],
-                                        backexchange_array=merged_data_dict['merged_backexchange'],
-                                        output_path=merged_backexchange_fpath)
-
-    # write the merged backexchange correction
-    if merged_backexchange_correction_fpath is not None:
-        hxdata.write_backexchange_correction_array(timepoints=merged_data_dict['merged_timepoints'],
-                                                   backexchange_correction_array=merged_data_dict['merged_backexchange_correction_array'],
-                                                   output_path=merged_backexchange_correction_fpath)
-
-    # write factor and optimization info to a file
-    if factor_fpath is not None:
-        hxdata.write_merge_factor(merge_factor=merged_data_dict['factor_optimization']['opt_x'],
-                                  opt_mse=merged_data_dict['factor_optimization']['opt_mse'],
-                                  opt_nfev=merged_data_dict['factor_optimization']['opt_nfev'],
-                                  opt_nit=merged_data_dict['factor_optimization']['opt_nit'],
-                                  opt_success=merged_data_dict['factor_optimization']['opt_success'],
-                                  opt_message=merged_data_dict['factor_optimization']['opt_message'],
-                                  output_path=factor_fpath)
-
-    if merge_plot_fpath is not None:
-        plot_merge_centroids(low_tp=merged_data_dict['low_tp'][1:],
-                             low_centroids=merged_data_dict['low_centroids_corr'][1:],
-                             high_tp_refactored=merged_data_dict['high_tp_factor'][1:],
-                             high_centroids=merged_data_dict['high_centroids_corr'][1:],
-                             factor=merged_data_dict['factor_optimization']['opt_x'],
-                             mse=merged_data_dict['factor_optimization']['opt_mse'],
-                             output_path=merge_plot_fpath)
-
-    if return_flag:
-        return merged_data_dict
+# def gen_high_low_merged_from_to_file(sequence: str,
+#                                      low_ph_data_fpath: str,
+#                                      low_d2o_frac: float,
+#                                      low_d2o_purity: float,
+#                                      low_user_backexchange: float or None,
+#                                      low_backexchange_corr_fpath: str,
+#                                      high_ph_data_fpath: str,
+#                                      high_d2o_frac: float,
+#                                      high_d2o_purity: float,
+#                                      high_user_backexchange: float or None,
+#                                      high_backexchange_corr_fpath: str,
+#                                      merged_backexchange_fpath: str or None,
+#                                      merged_data_fpath: str or None,
+#                                      merged_backexchange_correction_fpath: str or None,
+#                                      factor_fpath: str or None,
+#                                      merge_plot_fpath: str or None,
+#                                      return_flag: bool = False):
+#
+#     # read the ph data
+#     low_tp, low_dists = hxdata.load_data_from_hdx_ms_dist_(low_ph_data_fpath)
+#     high_tp, high_dists = hxdata.load_data_from_hdx_ms_dist_(high_ph_data_fpath)
+#
+#     # get the backexchange correction array
+#     if low_backexchange_corr_fpath is not None:
+#         low_backexchange_corr_arr = get_backexchange_corr_arr(low_backexchange_corr_fpath)
+#     else:
+#         low_backexchange_corr_arr = None
+#
+#     if high_backexchange_corr_fpath is not None:
+#         high_backexchange_corr_arr = get_backexchange_corr_arr(high_backexchange_corr_fpath)
+#     else:
+#         high_backexchange_corr_arr = None
+#
+#     merged_data_dict = gen_merged_dstirbution(sequence=sequence,
+#                                               low_tp=low_tp,
+#                                               low_dist=low_dists,
+#                                               low_d2o_frac=low_d2o_frac,
+#                                               low_d2o_purity=low_d2o_purity,
+#                                               low_user_backexchange=low_user_backexchange,
+#                                               low_backexchange_correction_arr=low_backexchange_corr_arr,
+#                                               high_tp=high_tp,
+#                                               high_dist=high_dists,
+#                                               high_d2o_frac=high_d2o_frac,
+#                                               high_d2o_purity=high_d2o_purity,
+#                                               high_user_backexchange=high_user_backexchange,
+#                                               high_backexchange_correction_arr=high_backexchange_corr_arr)
+#
+#     # write the merged timepoints and isotope distribution
+#     if merged_data_fpath is not None:
+#         hxdata.write_isotope_dist_timepoints(timepoints=merged_data_dict['merged_timepoints'],
+#                                              isotope_dist_array=merged_data_dict['merged_dist'],
+#                                              output_path=merged_data_fpath)
+#
+#     # write the merged backexchange
+#     if merged_backexchange_fpath is not None:
+#         hxdata.write_backexchange_array(timepoints=merged_data_dict['merged_timepoints'],
+#                                         backexchange_array=merged_data_dict['merged_backexchange'],
+#                                         output_path=merged_backexchange_fpath)
+#
+#     # write the merged backexchange correction
+#     if merged_backexchange_correction_fpath is not None:
+#         hxdata.write_backexchange_correction_array(timepoints=merged_data_dict['merged_timepoints'],
+#                                                    backexchange_correction_array=merged_data_dict['merged_backexchange_correction_array'],
+#                                                    output_path=merged_backexchange_correction_fpath)
+#
+#     # write factor and optimization info to a file
+#     if factor_fpath is not None:
+#         hxdata.write_merge_factor(merge_factor=merged_data_dict['factor_optimization']['opt_x'],
+#                                   opt_mse=merged_data_dict['factor_optimization']['opt_mse'],
+#                                   opt_nfev=merged_data_dict['factor_optimization']['opt_nfev'],
+#                                   opt_nit=merged_data_dict['factor_optimization']['opt_nit'],
+#                                   opt_success=merged_data_dict['factor_optimization']['opt_success'],
+#                                   opt_message=merged_data_dict['factor_optimization']['opt_message'],
+#                                   output_path=factor_fpath)
+#
+#     if merge_plot_fpath is not None:
+#         plot_merge_centroids(low_tp=merged_data_dict['low_tp'][1:],
+#                              low_centroids=merged_data_dict['low_centroids_corr'][1:],
+#                              high_tp_refactored=merged_data_dict['high_tp_factor'][1:],
+#                              high_centroids=merged_data_dict['high_centroids_corr'][1:],
+#                              factor=merged_data_dict['factor_optimization']['opt_x'],
+#                              mse=merged_data_dict['factor_optimization']['opt_mse'],
+#                              output_path=merge_plot_fpath)
+#
+#     if return_flag:
+#         return merged_data_dict
 
 
 def gen_high_low_merged_from_to_file_v2(sequence: str,
@@ -402,14 +457,14 @@ def gen_high_low_merged_from_to_file_v2(sequence: str,
 
     # get the backexchange correction array
     if low_backexchange_corr_fpath is not None:
-        low_backexchange_corr_arr = get_backexchange_corr_arr(low_backexchange_corr_fpath)
+        low_backexchange_corr_dict = hxdata.load_tp_dependent_dict(low_backexchange_corr_fpath)
     else:
-        low_backexchange_corr_arr = None
+        low_backexchange_corr_dict = None
 
     if high_backexchange_corr_fpath is not None:
-        high_backexchange_corr_arr = get_backexchange_corr_arr(high_backexchange_corr_fpath)
+        high_backexchange_corr_dict = hxdata.load_tp_dependent_dict(high_backexchange_corr_fpath)
     else:
-        high_backexchange_corr_arr = None
+        high_backexchange_corr_dict = None
 
     if low_high_backexchange_list_fpath is not None:
         low_high_bkexch_df = pd.read_csv(low_high_backexchange_list_fpath)
@@ -427,13 +482,13 @@ def gen_high_low_merged_from_to_file_v2(sequence: str,
                                               low_d2o_frac=low_d2o_frac,
                                               low_d2o_purity=low_d2o_purity,
                                               low_user_backexchange=low_user_backexchange,
-                                              low_backexchange_correction_arr=low_backexchange_corr_arr,
+                                              low_backexchange_correction_dict=low_backexchange_corr_dict,
                                               high_tp=high_tp,
                                               high_dist=high_dists,
                                               high_d2o_frac=high_d2o_frac,
                                               high_d2o_purity=high_d2o_purity,
                                               high_user_backexchange=high_user_backexchange,
-                                              high_backexchange_correction_arr=high_backexchange_corr_arr)
+                                              high_backexchange_correction_dict=high_backexchange_corr_dict)
 
     # write the merged timepoints and isotope distribution
     if merged_data_fpath is not None:
@@ -476,28 +531,28 @@ def gen_high_low_merged_from_to_file_v2(sequence: str,
         return merged_data_dict
 
 
-def gen_parse_args():
-
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument('-seq', '--sequence', help='protein sequence one letter code')
-    parser.add_argument('-ldata', '--lowphdata', help='low ph data filepath')
-    parser.add_argument('-ldf', '--lowdfrac', help='low d2o fraction')
-    parser.add_argument('-ldp', '--lowdpur', help='low d2o purity')
-    parser.add_argument('-lbk', '--lowbkex', help='low ph backexchange user value')
-    parser.add_argument('-lbkc', '--lowbkexcorr', help='low ph backexchange correction filepath')
-    parser.add_argument('-hdata', '--highphdata', help='high ph data filepath')
-    parser.add_argument('-hdf', '--highdfrac', help='high d2o fraction')
-    parser.add_argument('-hdp', '--highdpur', help='high d2o purity')
-    parser.add_argument('-hbk', '--highbkex', help='high ph backexchange user value')
-    parser.add_argument('-hbkc', '--highbkexcorr', help='high ph backexchange correction filepath')
-    parser.add_argument('-mbk', '--mergebkex', help='merge backexchange output filepath .csv')
-    parser.add_argument('-mbkc', '--mergebkexcorr', help='merge backexchange correction output filepath .csv')
-    parser.add_argument('-mdp', '--mergedatapath', help='merge distribution output filepath .csv')
-    parser.add_argument('-mpp', '--mergeplotpath', help='merge plot output filepath .pdf')
-    parser.add_argument('-mfp', '--mergefactorpath', help='merge factor output filepath .csv')
-
-    return parser
+# def gen_parse_args():
+#
+#     parser = argparse.ArgumentParser()
+#
+#     parser.add_argument('-seq', '--sequence', help='protein sequence one letter code')
+#     parser.add_argument('-ldata', '--lowphdata', help='low ph data filepath')
+#     parser.add_argument('-ldf', '--lowdfrac', help='low d2o fraction')
+#     parser.add_argument('-ldp', '--lowdpur', help='low d2o purity')
+#     parser.add_argument('-lbk', '--lowbkex', help='low ph backexchange user value')
+#     parser.add_argument('-lbkc', '--lowbkexcorr', help='low ph backexchange correction filepath')
+#     parser.add_argument('-hdata', '--highphdata', help='high ph data filepath')
+#     parser.add_argument('-hdf', '--highdfrac', help='high d2o fraction')
+#     parser.add_argument('-hdp', '--highdpur', help='high d2o purity')
+#     parser.add_argument('-hbk', '--highbkex', help='high ph backexchange user value')
+#     parser.add_argument('-hbkc', '--highbkexcorr', help='high ph backexchange correction filepath')
+#     parser.add_argument('-mbk', '--mergebkex', help='merge backexchange output filepath .csv')
+#     parser.add_argument('-mbkc', '--mergebkexcorr', help='merge backexchange correction output filepath .csv')
+#     parser.add_argument('-mdp', '--mergedatapath', help='merge distribution output filepath .csv')
+#     parser.add_argument('-mpp', '--mergeplotpath', help='merge plot output filepath .pdf')
+#     parser.add_argument('-mfp', '--mergefactorpath', help='merge factor output filepath .csv')
+#
+#     return parser
 
 
 def gen_parse_args_v2():
@@ -527,28 +582,28 @@ def gen_parse_args_v2():
     return parser
 
 
-def run_from_parser():
-
-    parser_ = gen_parse_args()
-    options = parser_.parse_args()
-
-    gen_high_low_merged_from_to_file(sequence=options.sequence,
-                                     low_ph_data_fpath=options.lowphdata,
-                                     low_d2o_frac=float(options.lowdfrac),
-                                     low_d2o_purity=float(options.lowdpur),
-                                     low_user_backexchange=float(options.lowbkex),
-                                     low_backexchange_corr_fpath=options.lowbkexcorr,
-                                     high_ph_data_fpath=options.highphdata,
-                                     high_d2o_frac=float(options.highdfrac),
-                                     high_d2o_purity=float(options.highdpur),
-                                     high_user_backexchange=float(options.highbkex),
-                                     high_backexchange_corr_fpath=options.highbkexcorr,
-                                     merged_backexchange_fpath=options.mergebkex,
-                                     merged_backexchange_correction_fpath=options.mergebkexcorr,
-                                     merged_data_fpath=options.mergedatapath,
-                                     factor_fpath=options.mergefactorpath,
-                                     merge_plot_fpath=options.mergeplotpath,
-                                     return_flag=False)
+# def run_from_parser():
+#
+#     parser_ = gen_parse_args()
+#     options = parser_.parse_args()
+#
+#     gen_high_low_merged_from_to_file(sequence=options.sequence,
+#                                      low_ph_data_fpath=options.lowphdata,
+#                                      low_d2o_frac=float(options.lowdfrac),
+#                                      low_d2o_purity=float(options.lowdpur),
+#                                      low_user_backexchange=float(options.lowbkex),
+#                                      low_backexchange_corr_fpath=options.lowbkexcorr,
+#                                      high_ph_data_fpath=options.highphdata,
+#                                      high_d2o_frac=float(options.highdfrac),
+#                                      high_d2o_purity=float(options.highdpur),
+#                                      high_user_backexchange=float(options.highbkex),
+#                                      high_backexchange_corr_fpath=options.highbkexcorr,
+#                                      merged_backexchange_fpath=options.mergebkex,
+#                                      merged_backexchange_correction_fpath=options.mergebkexcorr,
+#                                      merged_data_fpath=options.mergedatapath,
+#                                      factor_fpath=options.mergefactorpath,
+#                                      merge_plot_fpath=options.mergeplotpath,
+#                                      return_flag=False)
 
 
 def run_from_parser_v2():
@@ -582,30 +637,30 @@ if __name__ == '__main__':
 
     run_from_parser_v2()
 
-    # sequence = 'HMTQVHVDGVTYTFSNPEEAKKFADEMAKRKGGTWEIKDGHIHVE'
+    # sequence = 'HMKGTIVRLNNGFGFIKQEGSDKDLFFHANELKNVEFNDLREGDELTFEVAEGPKGLNAVEVNK'
     #
-    # low_ph_data_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib10/EEHEE_rd4_0871.pdb_10.46084_winner_multibody.cpickle.zlib.csv'
-    # high_ph_data_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib10/EEHEE_rd4_0871.pdb_8.86936_winner_multibody.cpickle.zlib.csv'
+    # low_ph_data_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib14/test_merge/A0A2N7Q862.1_179-240_16.29864_A0A2N7Q862.1_179-240_15.86652/A0A2N7Q862.1_179-240_16.29864_ph6_winner_multibody.cpickle.zlib.csv'
+    # high_ph_data_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib14/test_merge/A0A2N7Q862.1_179-240_16.29864_A0A2N7Q862.1_179-240_15.86652/A0A2N7Q862.1_179-240_15.86652_ph9_winner_multibody.cpickle.zlib.csv'
     #
     # d2o_frac = 0.95
     # d2o_pur = 0.95
     #
-    # low_bkexch_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib10/20213112_pH6_20220102_pH9/backexchange/low_ph_bkexch_corr.csv'
-    # high_bkexch_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib10/20213112_pH6_20220102_pH9/backexchange/high_ph_bkexch_corr.csv'
+    # low_bkexch_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib14/test_merge/low_ph_bkexch_corr.csv'
+    # high_bkexch_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib14/test_merge/high_ph_bkexch_corr.csv'
     #
-    # high_low_bkexch_list = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib10/20213112_pH6_20220102_pH9/backexchange/backexchange/high_low_backexchange_list.csv'
+    # high_low_bkexch_list = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib14/test_merge/high_low_backexchange_list.csv'
     #
-    # output_path = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib10'
+    # output_path = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib14/test_merge/A0A2N7Q862.1_179-240_16.29864_A0A2N7Q862.1_179-240_15.86652'
     #
     # gen_high_low_merged_from_to_file_v2(sequence=sequence,
     #                                     low_ph_data_fpath=low_ph_data_fpath,
-    #                                     low_ph_prot_name='EEHEE_rd4_0871.pdb_10.46084',
+    #                                     low_ph_prot_name='A0A2N7Q862.1_179-240_16.29864',
     #                                     low_d2o_frac=d2o_frac,
     #                                     low_d2o_purity=d2o_pur,
     #                                     low_user_backexchange=None,
     #                                     low_backexchange_corr_fpath=low_bkexch_corr_fpath,
     #                                     high_ph_data_fpath=high_ph_data_fpath,
-    #                                     high_ph_prot_name='EEHEE_rd4_0871.pdb_8.86936',
+    #                                     high_ph_prot_name='A0A2N7Q862.1_179-240_15.86652',
     #                                     high_d2o_frac=d2o_frac,
     #                                     high_d2o_purity=d2o_pur,
     #                                     high_user_backexchange=None,
