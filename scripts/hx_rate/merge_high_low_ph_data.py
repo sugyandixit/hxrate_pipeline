@@ -28,7 +28,10 @@ def interpol_and_calc_mse(log_high_tp_refac,
     # generate interpolated centroids on the new axis
     low_centroids_comp = low_interp_func(x=new_axis)
 
-    mse = mean_squared_error(y_true=high_centroids_comp, y_pred=low_centroids_comp)
+    try:
+        mse = mean_squared_error(y_true=high_centroids_comp, y_pred=low_centroids_comp)
+    except ValueError:
+        mse = 100
 
     return mse
 
@@ -637,10 +640,10 @@ if __name__ == '__main__':
 
     run_from_parser_v2()
 
-    # sequence = 'HMKGTIVRLNNGFGFIKQEGSDKDLFFHANELKNVEFNDLREGDELTFEVAEGPKGLNAVEVNK'
+    # sequence = 'HMKALYDYTAQDLDELTFKEGDVIEVLKEEAGGWWQGRIQGKEGLLPA'
     #
-    # low_ph_data_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib14/test_merge/A0A2N7Q862.1_179-240_16.29864_A0A2N7Q862.1_179-240_15.86652/A0A2N7Q862.1_179-240_16.29864_ph6_winner_multibody.cpickle.zlib.csv'
-    # high_ph_data_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib14/test_merge/A0A2N7Q862.1_179-240_16.29864_A0A2N7Q862.1_179-240_15.86652/A0A2N7Q862.1_179-240_15.86652_ph9_winner_multibody.cpickle.zlib.csv'
+    # low_ph_data_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib14/test_merge/A0A2J7PXL0.1_557-602_18.83343_A0A2J7PXL0.1_557-602_18.83343/A0A2J7PXL0.1_557-602_18.83343_ph6_winner_multibody.cpickle.zlib.csv'
+    # high_ph_data_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib14/test_merge/A0A2J7PXL0.1_557-602_18.83343_A0A2J7PXL0.1_557-602_18.83343/A0A2J7PXL0.1_557-602_18.83343_ph9_winner_multibody.cpickle.zlib.csv'
     #
     # d2o_frac = 0.95
     # d2o_pur = 0.95
@@ -650,7 +653,7 @@ if __name__ == '__main__':
     #
     # high_low_bkexch_list = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib14/test_merge/high_low_backexchange_list.csv'
     #
-    # output_path = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib14/test_merge/A0A2N7Q862.1_179-240_16.29864_A0A2N7Q862.1_179-240_15.86652'
+    # output_path = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/lib14/test_merge/A0A2J7PXL0.1_557-602_18.83343_A0A2J7PXL0.1_557-602_18.83343'
     #
     # gen_high_low_merged_from_to_file_v2(sequence=sequence,
     #                                     low_ph_data_fpath=low_ph_data_fpath,
