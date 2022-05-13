@@ -88,7 +88,6 @@ def write_hx_rate_output_bayes(hxrate_mean_array,
         outfile.close()
 
 
-
 def write_isotope_dist_timepoints(timepoints, isotope_dist_array, output_path):
 
     timepoint_str = ','.join(['%.4f' % x for x in timepoints])
