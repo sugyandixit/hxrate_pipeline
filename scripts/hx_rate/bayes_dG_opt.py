@@ -1387,13 +1387,13 @@ def gen_parser_args():
     parser_.add_argument('-pdb', '--pdbfpath', default="/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/EEHEE_rd4_0642.pdb", help='pdb filepath .pdb')
     parser_.add_argument('-dip', '--dgintpath', default="/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/refit_new_SA_weights/newrect.pickle", help='dg interpolation filepath .pickle')
     parser_.add_argument('-cf', '--compdgfpath', default=None, help='comp dg file path .csv')
-    parser_.add_argument('-p', '--ph', default=6.15, help='pH')
-    parser_.add_argument('-t', '--temp', default=295, help='temperature in Kelvin')
+    parser_.add_argument('-p', '--ph', default=6.15, type=float, help='pH')
+    parser_.add_argument('-t', '--temp', default=295, type=float, help='temperature in Kelvin')
     parser_.add_argument('-nt', '--nterm', default='HM', help='n terminal addition')
     parser_.add_argument('-ct', '--cterm', default='', help='c terminal addition')
     parser_.add_argument('-nc', '--netcharge', default=True, action=argparse.BooleanOptionalAction)
-    parser_.add_argument('-au', '--annealupdate', default=100, help='Anneal update interval')
-    parser_.add_argument('-at', '--annealtime', default=2.0, help='Anneal time')
+    parser_.add_argument('-au', '--annealupdate', default=100, type=int, help='Anneal update interval')
+    parser_.add_argument('-at', '--annealtime', default=2.0, type=float, help='Anneal time')
     parser_.add_argument('-tf', '--trajfile', default=None, help='trajectory file path .csv')
     parser_.add_argument('-af', '--annealfile', default=None, help='anneal data output file path .csv')
     parser_.add_argument('-df', '--dgfile', default=None, help='dg data output file path .csv')
@@ -1411,14 +1411,14 @@ def run_anneal_from_parser():
     dg_mapping(hx_rate_fpath=options.hxrate,
                pdb_fpath=options.pdbfpath,
                dg_intpol_fpath=options.dgintpath,
-               pH=float(options.ph),
-               temp=float(options.temp),
+               pH=options.ph,
+               temp=options.temp,
                comp_dg_fpath=options.compdgfpath,
                nterm=options.nterm,
                cterm=options.cterm,
                net_charge_corr=options.netcharge,
-               dg_length_mins=float(options.annealtime),
-               dg_update_interval=int(options.annealupdate),
+               dg_length_mins=options.annealtime,
+               dg_update_interval=options.annealupdate,
                traj_fpath=options.trajfile,
                anneal_data_output=options.annealfile,
                dg_csv_output=options.dgfile,
