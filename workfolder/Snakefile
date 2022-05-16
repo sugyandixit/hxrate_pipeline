@@ -11,12 +11,24 @@ configfile: 'config.yml'
 # set benchmark dirpath
 benchmark_dpath = config['output_dirpath'] + '/benchmark'
 rate_output_path = config['output_dirpath'] + '/rates'
+dg_output_path = config['output_dirpath'] + '/dG'
 backexchange_output_path = config['output_dirpath'] + '/backexchange'
 
 # set the python scripts path
+config_dirpath = config['path_to_repo'] + '/config'
 scripts_dirpath = config['path_to_repo'] + '/scripts/hx_rate'
 hx_rate_fit_python_path = scripts_dirpath + '/hx_rate_fit.py'
+dg_opt_python_path = scripts_dirpath + '/dG_opt.py'
 gen_time_specific_bkexch_path = scripts_dirpath + '/gen_time_specific_bkexch_corr.py'
+
+
+def gen_prot_name_from_rt_name(rt_name):
+    prot_name_chars = rt_name.split('_')
+    del prot_name_chars[-1]
+    prot_name = '_'.join(x for x in prot_name_chars)
+    if prot_name.endswith('.pdb'):
+        prot_name = prot_name.strip('.pdb')
+    return prot_name
 
 
 def gen_prot_name_seq_list(hxms_dist_top_dir, hxms_end_string, levels_to_fpaths, libinfo_fpath):
@@ -24,8 +36,10 @@ def gen_prot_name_seq_list(hxms_dist_top_dir, hxms_end_string, levels_to_fpaths,
     libinfo_df = pd.read_json(libinfo_fpath)
     hx_ms_dist_file_list = glob.glob(hxms_dist_top_dir+'/*'*levels_to_fpaths+hxms_end_string)
 
-    name_list = []
+
+    name_list = [] # protein rt group name
     name_seq_dict_ = dict()
+    rt_name_prot_name_dict_ = dict()
 
     for ind, hx_ms_dist_fpath in enumerate(hx_ms_dist_file_list):
 
@@ -45,11 +59,13 @@ def gen_prot_name_seq_list(hxms_dist_top_dir, hxms_end_string, levels_to_fpaths,
                     name_list.append(prot_name)
                     prot_seq = libinfo_df[libinfo_df['name'] == prot_name]['sequence'].values[0]
                     name_seq_dict_[prot_name] = prot_seq
+                    prot_name_ = gen_prot_name_from_rt_name(rt_name=prot_name)
+                    rt_name_prot_name_dict_[prot_name] =prot_name_
 
-    return name_list, name_seq_dict_
+    return name_list, name_seq_dict_, rt_name_prot_name_dict_
 
 
-prot_name_list, name_seq_dict = gen_prot_name_seq_list(hxms_dist_top_dir=config['hx_ms_dist_fpaths_top_dir'], hxms_end_string=config['hx_ms_fpath_delim_string'], levels_to_fpaths=config['levels_to_fpaths'], libinfo_fpath=config['library_info_json_fpath'])
+prot_name_list, name_seq_dict, rt_name_prot_name_dict_ = gen_prot_name_seq_list(hxms_dist_top_dir=config['hx_ms_dist_fpaths_top_dir'], hxms_end_string=config['hx_ms_fpath_delim_string'], levels_to_fpaths=config['levels_to_fpaths'], libinfo_fpath=config['library_info_json_fpath'])
 
 hx_dist_fpaths_gen_ = config['hx_ms_dist_fpaths_top_dir'] + '/{name}'*config['levels_to_fpaths'] + config['hx_ms_fpath_delim_string']
 
@@ -73,9 +89,22 @@ else:
         sample_backexchange_param = '--no-sample_backexchange'
         adjust_backexchange_param = '--no-adjust_backexchange'
 
+netcharge_param = ''
+if config['net_charge_corr']:
+    netcharge_param = '--netcharge'
+else:
+    netcharge_param = '--no-netcharge'
 
-rule all:
-    input:  expand(rate_output_path + '/{name}/{name}_hx_rate_fit.pickle', name=prot_name_list)
+
+if config['dg_calc']:
+    rule all:
+        input:  expand(dg_output_path + '/{name}/{name}_dg_data.pickle', name=prot_name_list) # change the prot name list to have the ones that has the pdb files present
+else:
+    rule all:
+        input: expand(rate_output_path + '/{name}/{name}_hx_rate_fit.pickle', name=prot_name_list)
+
+# rule all:
+#     input:  expand(rate_output_path + '/{name}/{name}_hx_rate_fit.pickle', name=prot_name_list)
 
 
 if config['backexchange_correction']:
@@ -166,6 +195,34 @@ else:
         shell:
             # rate_fit_shell_line
             'python ' + hx_rate_fit_python_path + ' -p {params.prot_name} -s {params.prot_seq} -i {input.hx_dist_fpath} -df {params.d2o_frac} -dp {params.d2o_purity} {params.adjust_backexchange} -nc {params.num_chains} -nw {params.num_warmups} -ns {params.num_samples} {params.sample_backexchange} -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -opp {output.posterior_plot_file} -od {output.iso_dist_file}'
+
+
+if config['dg_calc']:
+
+    rule dg_calc:
+        input:
+            hx_rate_csv_fpath = rate_output_path + '/{name}/{name}_hx_rate.csv',
+            dg_intpol_fpath = config_dirpath + '/dg_intpol.pickle',
+            pdb_fpath = lambda wildcards: config['pdb_fpaths_dir'] + '/'+rt_name_prot_name_dict_[wildcards.name] + '.pdb',
+        params:
+            pH = config['pH'],
+            temp = config['temp'],
+            nterm = config['nterm'],
+            cterm = config['cterm'],
+            net_charge_corr = netcharge_param,
+            anneal_time = config['anneal_time'],
+            anneal_update_interval = config['anneal_update_interval']
+        output:
+            traj_fpath = dg_output_path + '/{name}/{name}_dg_traj.csv',
+            anneal_data_csv = dg_output_path + '/{name}/{name}_anneal_data.csv',
+            dg_csv_output = dg_output_path + '/{name}/{name}_dg_data.csv',
+            dg_data_output = dg_output_path + '/{name}/{name}_dg_data.pickle',
+            dg_plot_path = dg_output_path + '/{name}/{name}_dg_data.pdf',
+        benchmark:
+            benchmark_dpath + '/{name}_dg_calc.benchmark.txt'
+        shell:
+            'python ' + dg_opt_python_path + ' -hx {input.hx_rate_csv_fpath} -pdb {input.pdb_fpath} -dip {input.dg_intpol_fpath} -p {params.pH} -t {params.temp} -nt {params.nterm} -ct {params.cterm} {params.net_charge_corr} -au {params.anneal_update_interval} -at {params.anneal_time} -tf {output.traj_fpath} -af {output.anneal_data_csv} -df {output.dg_csv_output} -dpf {output.dg_data_output} -po {output.dg_plot_path}'
+
 
 #
 # # this workflow processes the hx rate fitting
