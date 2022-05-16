@@ -10,6 +10,9 @@ hx_ms_dist_fpaths_top_dir: "/projects/p31346/suggie/hdx_ms_analysis"
 levels_to_fpaths: 2
 hx_ms_fpath_delim_string: "_winner.cpickle.zlib.csv"
 
+# pdb fpaths
+pdb_fpaths_dir: "/projejcts/p31346/suggie/pdbs"
+
 # library info filepath
 library_info_json_fpath: "/projects/p31346/suggie/hx_rates_workfolder/library_info.json"
 
@@ -45,3 +48,15 @@ sample_backexchange: False
 num_chains: 4
 num_warmups: 100
 num_samples: 500
+
+
+dg_calc: False
+# dg fitting parameters
+pH: 6.15
+temp: 295
+nterm: ''
+cterm:  ''
+net_charge_corr: True
+anneal_time: 2.0
+anneal_update_interval: 100
+
