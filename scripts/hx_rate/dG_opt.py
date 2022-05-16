@@ -173,9 +173,7 @@ class DgInput(object):
         # get intrinsic rate
         self.intrinsic_rates = calculate_intrinsic_exchange_rates_suggie(sequence_str=self.full_sequence,
                                                                          Temperature=temp,
-                                                                         pH=pH,
-                                                                         nterm_mode=nter,
-                                                                         cterm_mode=cter)
+                                                                         pH=pH)
         # first two rates to be zero
         self.intrinsic_rates[1] = 0.0
 
