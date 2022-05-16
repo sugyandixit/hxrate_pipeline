@@ -202,7 +202,7 @@ if config['dg_calc']:
     rule dg_calc:
         input:
             hx_rate_csv_fpath = rate_output_path + '/{name}/{name}_hx_rate.csv',
-            dg_intpol_fpath = config_dirpath + '/dg_intpol.pickle',
+            dg_intpol_fpath = config_dirpath + '/newrect.pickle',
             pdb_fpath = lambda wildcards: config['pdb_fpaths_dir'] + '/'+rt_name_prot_name_dict_[wildcards.name] + '.pdb',
         params:
             pH = config['pH'],
