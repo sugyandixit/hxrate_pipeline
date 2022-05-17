@@ -1312,8 +1312,8 @@ def dg_mapping(hx_rate_fpath,
                pH,
                temp,
                comp_dg_fpath=None,
-               nterm='',
-               cterm='',
+               nterm=None,
+               cterm=None,
                min_free_energy=-10,
                net_charge_corr=True,
                min_comp_free_energy=0.5,
@@ -1326,6 +1326,11 @@ def dg_mapping(hx_rate_fpath,
                dg_data_output=None,
                dg_plot_path=None,
                return_flag=False):
+
+    if nterm is None or nterm == 'None':
+        nterm = ''
+    if cterm is None or cterm == 'None':
+        cterm = ''
 
     dg_input = DgInput(hx_rate_fpath=hx_rate_fpath,
                        pdb_fpath=pdb_fpath,
@@ -1387,8 +1392,8 @@ def gen_parser_args():
     parser_.add_argument('-cf', '--compdgfpath', default=None, help='comp dg file path .csv')
     parser_.add_argument('-p', '--ph', default=6.15, type=float, help='pH')
     parser_.add_argument('-t', '--temp', default=295, type=float, help='temperature in Kelvin')
-    parser_.add_argument('-nt', '--nterm', default=None, help='n terminal addition')
-    parser_.add_argument('-ct', '--cterm', default=None, help='c terminal addition')
+    parser_.add_argument('-nt', '--nterm', default=None, type=str or None, help='n terminal addition')
+    parser_.add_argument('-ct', '--cterm', default=None, type=str or None, help='c terminal addition')
     parser_.add_argument('--netcharge', default=True, action=argparse.BooleanOptionalAction, help='correct fe using net charge from protein sequence')
     parser_.add_argument('-au', '--annealupdate', default=100, type=int, help='Anneal update interval')
     parser_.add_argument('-at', '--annealtime', default=2.0, type=float, help='Anneal time')
@@ -1406,23 +1411,14 @@ def run_anneal_from_parser():
     parser_ = gen_parser_args()
     options = parser_.parse_args()
 
-    nterm = ''
-    if options.nterm is not None:
-        nterm = options.nterm
-
-    cterm = ''
-    if options.cterm is not None:
-        cterm = options.cterm
-
-
     dg_mapping(hx_rate_fpath=options.hxrate,
                pdb_fpath=options.pdbfpath,
                dg_intpol_fpath=options.dgintpath,
                pH=options.ph,
                temp=options.temp,
                comp_dg_fpath=options.compdgfpath,
-               nterm=nterm,
-               cterm=cterm,
+               nterm=options.nterm,
+               cterm=options.cterm,
                net_charge_corr=options.netcharge,
                dg_length_mins=options.annealtime,
                dg_update_interval=options.annealupdate,
