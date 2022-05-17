@@ -54,7 +54,7 @@ dg_calc: False
 # dg fitting parameters
 pH: 6.15
 temp: 295
-nterm:
+nterm: 'HM'
 cterm:
 net_charge_corr: True
 anneal_time: 2.0
