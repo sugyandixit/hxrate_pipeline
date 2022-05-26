@@ -1,3 +1,4 @@
+import os
 import pickle
 import math
 import Bio
@@ -270,6 +271,13 @@ class DgInput(object):
 
 @dataclass
 class DGMapOut(object):
+    protein_name: str = None
+    protein_raw_sequence: str = None
+    protein_full_sequence: str = None
+    nterm_add: str = None
+    cterm_add: str = None
+    ph: float = None
+    temp: float = None
     state: np.ndarray = None
     anneal_data: object = None
     res_num: np.ndarray = None
@@ -1351,6 +1359,13 @@ def dg_mapping(hx_rate_fpath,
                                           traj_fpath=traj_fpath)
 
     dg_output = DGMapOut()
+    dg_output.protein_name = os.path.split(pdb_fpath)[-1]
+    dg_output.protein_full_sequence = dg_input.full_sequence
+    dg_output.protein_raw_sequence = dg_input.raw_sequence
+    dg_output.nterm_add = nterm
+    dg_output.cterm_add = cterm
+    dg_output.ph = pH
+    dg_output.temp = temp
     dg_output.state = deltag_anneal.best_state
     dg_output.anneal_data = get_the_best_anneal_data(dg_anneal=deltag_anneal)
     dg_output.dg_array = map_energy_to_res(free_energy_grid=dg_input.free_energy_grid,
