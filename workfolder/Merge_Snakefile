@@ -447,7 +447,7 @@ if config['dg_calc']:
             dg_intpol_fpath = config_dirpath + '/newrect.pickle',
             pdb_fpath = lambda wildcards: config['pdb_fpaths_dir'] + '/'+low_high_name_prot_name_dict_[wildcards.low_high_name] + '.pdb',
         params:
-            pH = config['pH'],
+            pH = config['low_pH'],
             temp = config['temp'],
             nterm = config['nterm'],
             cterm = config['cterm'],
@@ -472,7 +472,7 @@ if config['dg_calc']:
             dg_intpol_fpath = config_dirpath + '/newrect.pickle',
             pdb_fpath = lambda wildcards: config['pdb_fpaths_dir'] + '/'+lowph_nomatch_name_dict[wildcards.lowph_name_nomatch] + '.pdb',
         params:
-            pH = config['pH'],
+            pH = config['low_pH'],
             temp = config['temp'],
             nterm = config['nterm'],
             cterm = config['cterm'],
@@ -497,7 +497,7 @@ if config['dg_calc']:
             dg_intpol_fpath = config_dirpath + '/newrect.pickle',
             pdb_fpath = lambda wildcards: config['pdb_fpaths_dir'] + '/'+highph_nomatch_name_dict[wildcards.highph_name_nomatch] + '.pdb',
         params:
-            pH = config['pH'],
+            pH = config['high_pH'],
             temp = config['temp'],
             nterm = config['nterm'],
             cterm = config['cterm'],

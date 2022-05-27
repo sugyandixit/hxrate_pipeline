@@ -66,3 +66,15 @@ sample_backexchange: False
 num_chains: 4
 num_warmups: 100
 num_samples: 500
+
+dg_calc: False
+# dg fitting parameters
+low_pH: 6.15
+high_pH: 9.0
+temp: 295
+nterm: 'HM'
+cterm:
+net_charge_corr: True
+anneal_time: 2.0
+anneal_update_interval: 100
+
