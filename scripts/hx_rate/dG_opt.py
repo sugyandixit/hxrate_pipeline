@@ -1449,9 +1449,9 @@ if __name__ == '__main__':
 
     run_anneal_from_parser()
 
-    # hx_rate_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/merge_lib15_ph6_ph7/output/EEHEE_rd4_0642.pdb_9.047_EEHEE_rd4_0642.pdb_9.11541/EEHEE_rd4_0642.pdb_9.047_EEHEE_rd4_0642.pdb_9.11541_hx_rate.csv'
-    # dg_interpol_fpath = "/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/refit_new_SA_weights/newrect.pickle"
-    # pdb_fpath = "/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/EEHEE_rd4_0642.pdb"
+    # hx_rate_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/merge_lib15_ph6_ph7/output/EEHEE_rd4_0871.pdb_5.60674_EEHEE_rd4_0871.pdb_5.27916/EEHEE_rd4_0871.pdb_5.60674_EEHEE_rd4_0871.pdb_5.27916_hx_rate.csv'
+    # dg_interpol_fpath = "../../config/newrect.pickle"
+    # pdb_fpath = "/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/EEHEE_rd4_0871.pdb"
     #
     # dg_mapping(hx_rate_fpath=hx_rate_fpath,
     #            pdb_fpath=pdb_fpath,
@@ -1465,7 +1465,7 @@ if __name__ == '__main__':
     #            net_charge_corr=True,
     #            min_comp_free_energy=0.5,
     #            sa_energy_weights=None,
-    #            dg_length_mins=0.5,
+    #            dg_length_mins=2.,
     #            dg_update_interval=100,
     #            traj_fpath=hx_rate_fpath+'_anneal_traj.csv',
     #            anneal_data_output=hx_rate_fpath+'_anneal_data.csv',
