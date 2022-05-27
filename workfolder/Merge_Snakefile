@@ -16,6 +16,7 @@ backexchange_output_path = config['output_dirpath'] + '/backexchange'
 merge_dpath = config['output_dirpath'] + '/merge_distribution'
 hxrate_dpath = config['output_dirpath'] + '/rates'
 dg_output_path = config['output_dirpath'] + '/dG'
+summary_output_path = config['output_dirpath'] + '/summary'
 
 # set the python scripts path
 scripts_dirpath = config['path_to_repo'] + '/scripts/hx_rate'
@@ -25,6 +26,7 @@ gen_backexch_array_python = scripts_dirpath + '/generate_backexchange_for_protei
 gen_time_specific_bkexch_path = scripts_dirpath + '/gen_time_specific_bkexch_corr.py'
 gen_backexch_corr_low_high_python_path = scripts_dirpath + '/gen_backexchange_corr_low_high_ph.py'
 dg_opt_python_path = scripts_dirpath + '/dG_opt.py'
+summary_python_path = scripts_dirpath + '/gen_summary.py'
 
 
 def gen_prot_name_seq_list(hxms_dist_top_dir, hxms_end_string, levels_to_fpaths, libinfo_fpath):
@@ -186,6 +188,8 @@ highph_match_hx_dist_fpaths_gen_ = config['high_ph_hxms_fpath_dir'] + '/{highph_
 lowph_nomatch_hx_dist_fpaths_gen_ = config['low_ph_hxms_fpath_dir'] + '/{lowph_name_nomatch}'*config['level_to_fpaths_low_ph'] + config['low_ph_hxms_fpath_delim_str']
 highph_nomatch_hx_dist_fpaths_gen_ = config['high_ph_hxms_fpath_dir'] + '/{highph_name_nomatch}'*config['level_to_fpaths_high_ph'] + config['high_ph_hxms_fpath_delim_str']
 
+all_prot_name_list = low_high_name_ + lowph_rtname_no_match + highph_rtname_no_match
+
 # generate python shell commands here for hx rate fitting
 # set a default shell line with both adjust backexchange and sample backexchange options set to true
 sample_backexchange_param = '--sample_backexchange'
@@ -214,16 +218,27 @@ else:
     netcharge_param = '--no-netcharge'
 
 
+# if config['dg_calc']:
+#     rule all:
+#         input:  expand(dg_output_path + '/{low_high_name}/{low_high_name}_dg_data.pickle', low_high_name=low_high_name_),
+#                 expand(dg_output_path + '/{lowph_name_nomatch}/{lowph_name_nomatch}_dg_data.pickle', lowph_name_nomatch=lowph_rtname_no_match),
+#                 expand(dg_output_path + '/{highph_name_nomatch}/{highph_name_nomatch}_dg_data.pickle', highph_name_nomatch=highph_rtname_no_match)
+# else:
+#     rule all:
+#         input:  expand(hxrate_dpath + '/{low_high_name}/{low_high_name}_hx_rate_fit.pickle', low_high_name=low_high_name_),
+#                 expand(hxrate_dpath + '/{lowph_name_nomatch}/{lowph_name_nomatch}_hx_rate_fit.pickle', lowph_name_nomatch=lowph_rtname_no_match),
+#                 expand(hxrate_dpath + '/{highph_name_nomatch}/{highph_name_nomatch}_hx_rate_fit.pickle', highph_name_nomatch=highph_rtname_no_match)
+
+
 if config['dg_calc']:
     rule all:
-        input:  expand(dg_output_path + '/{low_high_name}/{low_high_name}_dg_data.pickle', low_high_name=low_high_name_),
-                expand(dg_output_path + '/{lowph_name_nomatch}/{lowph_name_nomatch}_dg_data.pickle', lowph_name_nomatch=lowph_rtname_no_match),
-                expand(dg_output_path + '/{highph_name_nomatch}/{highph_name_nomatch}_dg_data.pickle', highph_name_nomatch=highph_rtname_no_match)
+        input:  summary_output_path + '/summary_merge.csv',
+                summary_output_path + '/summary_rate.csv',
+                summary_output_path + '/summary_dg.csv'
 else:
     rule all:
-        input:  expand(hxrate_dpath + '/{low_high_name}/{low_high_name}_hx_rate_fit.pickle', low_high_name=low_high_name_),
-                expand(hxrate_dpath + '/{lowph_name_nomatch}/{lowph_name_nomatch}_hx_rate_fit.pickle', lowph_name_nomatch=lowph_rtname_no_match),
-                expand(hxrate_dpath + '/{highph_name_nomatch}/{highph_name_nomatch}_hx_rate_fit.pickle', highph_name_nomatch=highph_rtname_no_match)
+        input:  summary_output_path + '/summary_merge.csv',
+                summary_output_path + '/summary_rate.csv',
 
 
 if config['low_ph_backexchange_correction_fpath'] is None:
@@ -348,7 +363,7 @@ rule fit_hx_rates_merge_dist:
         backexch_array_file = merge_dpath + '/{low_high_name}/{low_high_name}_merge_backexchange.csv'
     params:
         prot_seq = lambda wildcards: low_high_name_seq_dict[wildcards.low_high_name],
-        prot_name = '{low_high_name}',
+        prot_name = lambda wildcards: low_high_name_prot_name_dict_[wildcards.low_high_name],
         d2o_frac = config['low_ph_d2o_frac'],
         d2o_pur = config['low_ph_d2o_pur'],
         adjust_backexchange = adjust_backexchange_param,
@@ -375,7 +390,7 @@ rule fit_hx_rates_no_match_low_ph:
         backexch_array_file = backexchange_output_path + '/low_ph_bkexch_corr.csv'
     params:
         prot_seq = lambda wildcards: lowph_nomatch_seq_dict[wildcards.lowph_name_nomatch],
-        prot_name = '{lowph_name_nomatch}',
+        prot_name = lambda wildcards: lowph_nomatch_name_dict[wildcards.lowph_name_nomatch],
         d2o_frac = config['low_ph_d2o_frac'],
         d2o_pur = config['low_ph_d2o_pur'],
         adjust_backexchange = adjust_backexchange_param,
@@ -401,8 +416,8 @@ rule fit_hx_rates_no_match_high_ph:
         hx_dist_fpath = highph_nomatch_hx_dist_fpaths_gen_,
         backexch_array_file = backexchange_output_path + '/high_ph_bkexch_corr.csv'
     params:
-        prot_seq = lambda wildcards: lowph_nomatch_seq_dict[wildcards.highph_name_nomatch],
-        prot_name = '{highph_name_nomatch}',
+        prot_seq = lambda wildcards: highph_nomatch_seq_dict[wildcards.highph_name_nomatch],
+        prot_name = lambda wildcards: highph_nomatch_name_dict[wildcards.highph_name_nomatch],
         d2o_frac = config['high_ph_d2o_frac'],
         d2o_pur = config['high_ph_d2o_pur'],
         adjust_backexchange = adjust_backexchange_param,
@@ -499,6 +514,47 @@ if config['dg_calc']:
             benchmark_dpath + '/{highph_name_nomatch}_dg_calc.benchmark.txt'
         shell:
             'python ' + dg_opt_python_path + ' -hx {input.hx_rate_csv_fpath} -pdb {input.pdb_fpath} -dip {input.dg_intpol_fpath} -p {params.pH} -t {params.temp} -nt {params.nterm} -ct {params.cterm} {params.net_charge_corr} -au {params.anneal_update_interval} -at {params.anneal_time} -tf {output.traj_fpath} -af {output.anneal_data_csv} -df {output.dg_csv_output} -dpf {output.dg_data_output} -po {output.dg_plot_path}'
+
+
+    rule summary_dg:
+        input:
+            list_of_files = expand(dg_output_path + '/{all_prot_name}/{all_prot_name}_dg_data.pickle', all_prot_name=all_prot_name_list)
+        params:
+            mode = 'dg'
+        output:
+            output_path = summary_output_path + '/summary_dg.csv'
+        benchmark:
+            benchmark_dpath + '/summary_dg.benchmark.txt'
+        shell:
+            'python ' + summary_python_path + ' -l {input.list_of_files} -m {params.mode} -o {output.output_path}'
+
+
+
+rule summary_merge:
+    input:
+        list_of_files = expand(merge_dpath + '/{low_high_name}/{low_high_name}_merge_factor.csv', low_high_name=low_high_name_)
+    params:
+        list_of_protein_names = low_high_name_,
+        mode = 'merge'
+    output:
+        output_path = summary_output_path + '/summary_merge.csv'
+    benchmark:
+        benchmark_dpath + '/summary_merge.benchmark.txt'
+    shell:
+        'python ' + summary_python_path + ' -l {input.list_of_files} -lp {params.list_of_protein_names} -m {params.mode} -o {output.output_path}'
+
+
+rule summary_rate:
+    input:
+        list_of_files = expand(hxrate_dpath + '/{all_prot_name}/{all_prot_name}_hx_rate_fit.pickle', all_prot_name=all_prot_name_list)
+    params:
+        mode = 'rate'
+    output:
+        output_path = summary_output_path + '/summary_rate.csv'
+    benchmark:
+        benchmark_dpath + '/summary_rate.benchmark.txt'
+    shell:
+        'python ' + summary_python_path + ' -l {input.list_of_files} -m {params.mode} -o {output.output_path}'
 
         #
 #
