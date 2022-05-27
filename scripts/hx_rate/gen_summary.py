@@ -43,7 +43,7 @@ def gen_parser_args():
     parser.add_argument('-l', '--listfiles', nargs='+', help='list of files')
     parser.add_argument('-lp', '--listprotnames', nargs='+', default=None, help='list of protein names')
     parser.add_argument('-d', '--delim', type=str, default='', help='file delim string')
-    parser.add_argument('-m', '--mode', type=str, choices=['rate', 'merge', 'dg'], help='summary writing mode')
+    parser.add_argument('-m', '--mode', type=str, choices=['merge', 'rate', 'dg'], help='summary writing mode')
     parser.add_argument('-o', '--output', type=str, help='output file path .csv')
 
     return parser
@@ -64,3 +64,19 @@ def run_from_parser():
 if __name__ == '__main__':
 
     run_from_parser()
+
+    # import glob
+    #
+    # merge_dir = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/merge_lib15_ph6_ph7/new_merge_dist/merge_distribution'
+    # merge_files = glob.glob(merge_dir+'/*/*_merge_factor.csv')
+    #
+    # rate_dir = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/merge_lib15_ph6_ph7/output'
+    # rate_files = glob.glob(rate_dir + '/*/*_hx_rate_fit.pickle')
+    #
+    # # list_of_dg_files = ['/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/merge_lib15_ph6_ph7/output/EEHEE_rd4_0871.pdb_5.60674_EEHEE_rd4_0871.pdb_5.27916/EEHEE_rd4_0871.pdb_5.60674_EEHEE_rd4_0871.pdb_5.27916_hx_rate_fit.pickle',
+    # #                     '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/merge_lib15_ph6_ph7/output/EEHEE_rd4_0642.pdb_9.047_EEHEE_rd4_0642.pdb_9.11541/EEHEE_rd4_0642.pdb_9.047_EEHEE_rd4_0642.pdb_9.11541_hx_rate_fit.pickle']
+    #
+    # write_summary(list_of_files=rate_files,
+    #               output_path=rate_dir+'/rate_summary.csv',
+    #               file_delim_str='',
+    #               mode='rate')
