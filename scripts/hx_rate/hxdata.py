@@ -47,7 +47,7 @@ def load_pickle_object(pickle_fpath):
     :param pickle_fpath: pickle filepath
     :return:
     """
-    with open(pickle_fpath, 'r') as pkfile:
+    with open(pickle_fpath, 'rb') as pkfile:
         pkobj = pickle.load(pkfile)
     return pkobj
 
@@ -196,7 +196,7 @@ def write_merge_dist_summary(list_of_csv_files, output_fpath, list_of_protein_na
             merge_name = os.path.split(csv_fpath)[-1].strip(file_delim_string)
             df = pd.read_csv(csv_fpath)
 
-            line = '{},{},{},{},{},{},{}\n'.format(merge_name,
+            line = '{},{},{},{},{},{},{},{}\n'.format(merge_name,
                                                    prot_name,
                                                    df['factor'].values[0],
                                                    df['mse'].values[0],
