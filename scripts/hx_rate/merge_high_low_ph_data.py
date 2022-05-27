@@ -208,7 +208,7 @@ def gen_merged_dstirbution(sequence: str,
                            high_d2o_purity: float,
                            high_user_backexchange: float,
                            high_backexchange_correction_dict: dict,
-                           factor_init_list: list = [1, 10, 100, 1000, 10000]) -> dict:
+                           factor_init_list: list = [0.1, 1, 10, 100, 1000, 10000]) -> dict:
     """
 
     :param sequence:
@@ -273,6 +273,12 @@ def gen_merged_dstirbution(sequence: str,
     min_mse_ind = np.argmin(mse_arr)
 
     opt_ = opt_list[min_mse_ind]
+
+    # if the factor value is less than 0
+    if opt_['opt_x'] < 0:
+        opt_['opt_x'] = 1.0
+        opt_['opt_success'] = False
+        opt_['opt_message'] = 'Negative factor value. Setting the value to 1.0'
 
     # generate the high ph timepoints with factor applied
     high_tp_factor = high_tp * opt_['opt_x']
