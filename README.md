@@ -69,7 +69,7 @@ $ nohup snakemake -s Snakefile_nomatches -j 1000 --keep-going --cluster "sbatch 
 
 you can find all the scripts in scripts/hx_rate/
 
-you can run the scripts on your own. Or you could import functions from these functions in your own script to run functions
+you can run the scripts on your own. Or you could import methods from these scripts in your own script to run functions
 
 
 **more description will be added soon**
