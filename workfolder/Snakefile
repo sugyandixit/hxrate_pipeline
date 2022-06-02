@@ -13,6 +13,7 @@ benchmark_dpath = config['output_dirpath'] + '/benchmark'
 rate_output_path = config['output_dirpath'] + '/rates'
 dg_output_path = config['output_dirpath'] + '/dG'
 backexchange_output_path = config['output_dirpath'] + '/backexchange'
+summary_output_path = config['output_dirpath'] + '/summary'
 
 # set the python scripts path
 config_dirpath = config['path_to_repo'] + '/config'
@@ -20,6 +21,7 @@ scripts_dirpath = config['path_to_repo'] + '/scripts/hx_rate'
 hx_rate_fit_python_path = scripts_dirpath + '/hx_rate_fit.py'
 dg_opt_python_path = scripts_dirpath + '/dG_opt.py'
 gen_time_specific_bkexch_path = scripts_dirpath + '/gen_time_specific_bkexch_corr.py'
+summary_python_path = scripts_dirpath + '/gen_summary.py'
 
 
 def gen_prot_name_from_rt_name(rt_name):
@@ -98,10 +100,13 @@ else:
 
 if config['dg_calc']:
     rule all:
-        input:  expand(dg_output_path + '/{name}/{name}_dg_data.pickle', name=prot_name_list) # change the prot name list to have the ones that has the pdb files present
+        input:  expand(dg_output_path + '/{name}/{name}_dg_data.pickle', name=prot_name_list), # change the prot name list to have the ones that has the pdb files present
+                summary_output_path + '/summary_rate.csv',
+                summary_output_path + '/summary_dg.csv'
 else:
     rule all:
-        input: expand(rate_output_path + '/{name}/{name}_hx_rate_fit.pickle', name=prot_name_list)
+        input:  expand(rate_output_path + '/{name}/{name}_hx_rate_fit.pickle', name=prot_name_list),
+                summary_output_path + '/summary_rate.csv'
 
 # rule all:
 #     input:  expand(rate_output_path + '/{name}/{name}_hx_rate_fit.pickle', name=prot_name_list)
@@ -197,6 +202,19 @@ else:
             'python ' + hx_rate_fit_python_path + ' -p {params.prot_name} -s {params.prot_seq} -i {input.hx_dist_fpath} -df {params.d2o_frac} -dp {params.d2o_purity} {params.adjust_backexchange} -nc {params.num_chains} -nw {params.num_warmups} -ns {params.num_samples} {params.sample_backexchange} -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -opp {output.posterior_plot_file} -od {output.iso_dist_file}'
 
 
+rule summary_rate:
+    input:
+        list_of_files = expand(rate_output_path + '/{name}/{name}_hx_rate_fit.pickle', name=prot_name_list)
+    params:
+        mode = 'rate'
+    output:
+        output_path = summary_output_path + '/summary_rate.csv'
+    benchmark:
+        benchmark_dpath + '/summary_rate.benchmark.txt'
+    shell:
+        'python ' + summary_python_path + ' -l {input.list_of_files} -m {params.mode} -o {output.output_path}'
+
+
 if config['dg_calc']:
 
     rule dg_calc:
@@ -222,6 +240,19 @@ if config['dg_calc']:
             benchmark_dpath + '/{name}_dg_calc.benchmark.txt'
         shell:
             'python ' + dg_opt_python_path + ' -hx {input.hx_rate_csv_fpath} -pdb {input.pdb_fpath} -dip {input.dg_intpol_fpath} -p {params.pH} -t {params.temp} -nt {params.nterm} -ct {params.cterm} {params.net_charge_corr} -au {params.anneal_update_interval} -at {params.anneal_time} -tf {output.traj_fpath} -af {output.anneal_data_csv} -df {output.dg_csv_output} -dpf {output.dg_data_output} -po {output.dg_plot_path}'
+
+
+    rule summary_dg:
+        input:
+            list_of_files = expand(dg_output_path + '/{name}/{name}_dg_data.pickle', name=prot_name_list)
+        params:
+            mode = 'dg'
+        output:
+            output_path = summary_output_path + '/summary_dg.csv'
+        benchmark:
+            benchmark_dpath + '/summary_rate.benchmark.txt'
+        shell:
+            'python ' + summary_python_path + ' -l {input.list_of_files} -m {params.mode} -o {output.output_path}'
 
 
 #
