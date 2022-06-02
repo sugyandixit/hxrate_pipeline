@@ -136,7 +136,7 @@ num_chains: int. Number of MCMC chains to use during rate fitting optimization
 
 num_warmups: int. Number of initial iteration that doesn't contribute to the samples collected in the MCMC process.
 
-num_samples: int. Number of sample of in the MCMC process.
+num_samples: int. Number of samples in the MCMC process.
 
 
 ## dg calc parameters
