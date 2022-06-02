@@ -87,6 +87,7 @@ Merge_Snakefile will create backexchange correction files which will be necessar
 ### hx_ms_dist_fpaths_top_dir: path to directory where hx ms files are located
 ### levels_to_fpaths: where the files are present under the directory. if its directly under the top dir, level is 1. if the files are top_dir/PROTEIN_RT_NAME/PROTEIN_RT_NAME_hxms.csv then the level is 2.
 ### library_info_json_fpath: library_info_json_fpath .json from HDX LIMIT Pipeline
+### protein_rt_column_name: name of column from which protein_rt to be extracted
 ### pdb_fpaths_dir: directory where you can find pdb files.
 ### output_dirpath: output directory path to specify. It doesn't need to actually exist but you need to specify where you would like the output files to go.
 
