@@ -1,11 +1,11 @@
-# hxrate
+# **hxrate**
 
 Set of scripts to obtain set of rates from HX MS data
 
 You can download the repo and use the modules
 
-################################
-### Input files ###
+
+## **Input files**
 hx_ms_files: hx_ms_files in csv format. Each column consists of intensity distribution over a range of mass.
 Example of hx_ms_file can be found at: workfoler/input_hx_dist/HEEH_rd4_0097_hx_mass_dist.csv
 
@@ -13,28 +13,26 @@ pdb_files: pdb file .pdb
 
 library_info file (for snakemake pipeline): library_info.json file from HDX LIMIT Pipeline
 
-################################
+## **How to**
 
-### How to ####
+### **Tips**
+### If you're using config files to run the program, you can run the program from any location as long as you specify the
+### path to repo in the config file.
 
-## Tips ##
-## If you're using config files to run the program, you can run the program from any location as long as you specify the
-## path to repo in the config file.
-##
-## You only need to download one copy of the repository. You can then make copies of the config files and Snakemake files
-## to run multiple instances of pipeline
-####
-
-# RUN VIA SNAKEMAKE
-
-## Tips ##
-## You can always do a dry run to make sure the pipeline will work with the way you've set up config file.
-## for dry run: $ snakemake -s Snakefile -j 1 --dry-run
-## if there are no errors, you're good to go. If there are errors, make sure everything is set up properly.
-## If you suspect the error is not your fault and there might be something wrong with the pipeline, contact me and I can help.
+### You only need to download one copy of the repository. You can then make copies of the config files and Snakemake files
+### to run multiple instances of pipeline
 
 
-## Single pH data
+## **RUN VIA SNAKEMAKE**
+
+### **Tips**
+### You can always do a dry run to make sure the pipeline will work with the way you've set up config file.
+### for dry run: $ snakemake -s Snakefile -j 1 --dry-run
+### if there are no errors, you're good to go. If there are errors, make sure everything is set up properly.
+### If you suspect the error is not your fault and there might be something wrong with the pipeline, contact me and I can help.
+
+
+## **Single pH data**
 
 configfile: config/config.yml. Config file has all the parameters set to run rate fitting + dg calculation.
 Snakefile: workfoler/Snakefile. Make sure to change the path to config file in the begining of the file to the correct one before running
@@ -43,7 +41,7 @@ Snakefile: workfoler/Snakefile. Make sure to change the path to config file in t
 $ nohup snakemake -s Snakefile -j 1000 --keep-going --cluster "sbatch -A p30802 -p short -N 1 -n 1 --mem=4GB -t 04:00:00" --max-jobs-per-second 3 > nohup_snakefile.out &
 
 
-## Low and high pH data
+## **Low and high pH data**
 
 configfile: config/config_merge.yml. This config file has all the parameters set to run 1) merge low and high ph data, 2) rate fitting, and 3) dg calculation
 Snakefile: workfoler/Merge_Snakefile & workfoler/Snakefile_nomatches. Run Merge_Snakefile before Snakefile_nomatches.
@@ -58,32 +56,32 @@ $ nohup snakemake -s Merge_Snakefile -j 1000 --keep-going --cluster "sbatch -A p
 $ nohup snakemake -s Snakefile_nomatches -j 1000 --keep-going --cluster "sbatch -A p30802 -p short -N 1 -n 1 --mem=4GB -t 04:00:00" --max-jobs-per-second 3 > nohup_snakefile_nomatches.out &
 
 
-## RUN VIA SCRIPTS
+## **RUN VIA SCRIPTS**
 
-## you can find all the scripts in scripts/hx_rate/
-## you can run the scripts on your own. Or you could import functions from these functions in your own script to run functions
+### you can find all the scripts in scripts/hx_rate/
+### you can run the scripts on your own. Or you could import functions from these functions in your own script to run functions
 
-## ** more description will be added soon **
+### ** more description will be added soon **
 
 
-## Rate fitting:
+## *Rate fitting**
 $ python scripts/hx_rate/hx_rate_fit.py - [Options]
 
-## Generte backexchange correlation between low and high ph data
+## *Generte backexchange correlation between low and high ph data**
 $ python scripts/hx_rate/gen_backexchange_corr_low_high_ph.py - [Options]
 
-## Merging files:
+## **Merging files**
 $ python scripts/hx_rate/merge_high_low_ph_data.py - [Options]
 
-## dG calculation:
+## **dG calculation**
 $ python scripts/hx_rate/dG_opt.py - [Options]
 
 
 #################################
 
-# Config Files
+# **Config Files**
 
-## config.yml
+## **config.yml**
 
 ## filepaths
 path_to_repo: path to this repo (path to hxrate)
@@ -121,11 +119,9 @@ anneal_time: float. Time to run the anneal in minutes.
 anneal_update_interval: int. Number of steps to save the trajectory information.
 
 
-## config_merge.yml
+## **config_merge.yml**
 
-## most of the params are similar as config.yml except you have to provide the parameters for high and low ph
+### **most of the params are similar as config.yml except you have to provide the parameters for high and low ph**
 
 ## merge parameters
 merge_rt_window: window to consider proteins for merging if protein name matches.
-
-##############################
