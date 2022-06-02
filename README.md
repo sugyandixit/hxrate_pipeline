@@ -18,11 +18,11 @@ library_info file (for snakemake pipeline): library_info.json file from HDX LIMI
 ### How to ####
 
 ## Tips ##
-# If you're using config files to run the program, you can run the program from any location as long as you specify the
-# path to repo in the config file.
-#
-# You only need to download one copy of the repository. You can then make copies of the config files and Snakemake files
-# to run multiple instances of pipeline
+## If you're using config files to run the program, you can run the program from any location as long as you specify the
+## path to repo in the config file.
+##
+## You only need to download one copy of the repository. You can then make copies of the config files and Snakemake files
+## to run multiple instances of pipeline
 ####
 
 ## RUN VIA SNAKEMAKE
