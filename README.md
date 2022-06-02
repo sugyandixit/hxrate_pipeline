@@ -64,10 +64,10 @@ $ nohup snakemake -s Snakefile_nomatches -j 1000 --keep-going --cluster "sbatch 
 ### **more description will be added soon**
 
 
-## *Rate fitting**
+## **Rate fitting**
 $ python scripts/hx_rate/hx_rate_fit.py - [Options]
 
-## *Generte backexchange correlation between low and high ph data**
+## **Generte backexchange correlation between low and high ph data**
 $ python scripts/hx_rate/gen_backexchange_corr_low_high_ph.py - [Options]
 
 ## **Merging files**
