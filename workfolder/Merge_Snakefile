@@ -17,7 +17,6 @@ merge_dpath = config['output_dirpath'] + '/merge_distribution'
 hxrate_dpath = config['output_dirpath'] + '/rates'
 dg_output_path = config['output_dirpath'] + '/dG'
 summary_output_path = config['output_dirpath'] + '/summary'
-nomatch_output_path = config['output_dirpath'] + '/no_match'
 
 # set the python scripts path
 scripts_dirpath = config['path_to_repo'] + '/scripts/hx_rate'
@@ -28,7 +27,6 @@ gen_time_specific_bkexch_path = scripts_dirpath + '/gen_time_specific_bkexch_cor
 gen_backexch_corr_low_high_python_path = scripts_dirpath + '/gen_backexchange_corr_low_high_ph.py'
 dg_opt_python_path = scripts_dirpath + '/dG_opt.py'
 summary_python_path = scripts_dirpath + '/gen_summary.py'
-no_match_prot_list_python_path = scripts_dirpath + '/gen_nomatch_sample_list.py'
 
 
 def gen_prot_name_seq_list(hxms_dist_top_dir, hxms_end_string, levels_to_fpaths, libinfo_fpath):
@@ -185,49 +183,17 @@ else:
     netcharge_param = '--no-netcharge'
 
 
-# if config['dg_calc']:
-#     rule all:
-#         input:  expand(dg_output_path + '/{low_high_name}/{low_high_name}_dg_data.pickle', low_high_name=low_high_name_),
-#                 expand(dg_output_path + '/{lowph_name_nomatch}/{lowph_name_nomatch}_dg_data.pickle', lowph_name_nomatch=lowph_rtname_no_match),
-#                 expand(dg_output_path + '/{highph_name_nomatch}/{highph_name_nomatch}_dg_data.pickle', highph_name_nomatch=highph_rtname_no_match)
-# else:
-#     rule all:
-#         input:  expand(hxrate_dpath + '/{low_high_name}/{low_high_name}_hx_rate_fit.pickle', low_high_name=low_high_name_),
-#                 expand(hxrate_dpath + '/{lowph_name_nomatch}/{lowph_name_nomatch}_hx_rate_fit.pickle', lowph_name_nomatch=lowph_rtname_no_match),
-#                 expand(hxrate_dpath + '/{highph_name_nomatch}/{highph_name_nomatch}_hx_rate_fit.pickle', highph_name_nomatch=highph_rtname_no_match)
-
-
 if config['dg_calc']:
     rule all:
         input:  expand(dg_output_path + '/{low_high_name}/{low_high_name}_dg_data.pickle', low_high_name=low_high_name_),
-                nomatch_output_path + '/no_match_protein_list.csv',
                 summary_output_path + '/summary_merge.csv',
                 summary_output_path + '/summary_rate.csv',
                 summary_output_path + '/summary_dg.csv'
 else:
     rule all:
         input:  expand(hxrate_dpath + '/{low_high_name}/{low_high_name}_hx_rate_fit.pickle', low_high_name=low_high_name_),
-                nomatch_output_path + '/no_match_protein_list.csv',
                 summary_output_path + '/summary_merge.csv',
                 summary_output_path + '/summary_rate.csv',
-
-
-rule gen_no_match_protein_list:
-    input:
-        low_ph_libinfo_fpath = config['low_ph_library_info'],
-        high_ph_libinfo_fpath = config['high_ph_library_info'],
-        low_ph_hxms_dirpath = config['low_ph_hxms_fpath_dir'],
-        high_ph_hxms_dirpath = config['high_ph_hxms_fpath_dir']
-    params:
-        low_ph_levels_to_fpaths = config['level_to_fpaths_low_ph'],
-        high_ph_levels_to_fpaths = config['level_to_fpaths_high_ph'],
-        low_ph_end_string = config['low_ph_hxms_fpath_delim_str'],
-        high_ph_end_string = config['high_ph_hxms_fpath_delim_str'],
-        rt_window = config['merge_rt_window'],
-    output:
-        protein_list_fpath = nomatch_output_path + '/no_match_protein_list.csv'
-    shell:
-        'python ' + no_match_prot_list_python_path + ' -llib {input.low_ph_libinfo_fpath} -hlib {input.high_ph_libinfo_fpath} -lfdir {input.low_ph_hxms_dirpath} -hfdir {input.high_ph_hxms_dirpath} -lfl {params.low_ph_levels_to_fpaths} -hfl {params.high_ph_levels_to_fpaths} -les {params.low_ph_end_string} -hes {params.high_ph_end_string} -rw {params.rt_window} -of {output.protein_list_fpath}'
 
 
 if config['low_ph_backexchange_correction_fpath'] is None:
