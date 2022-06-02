@@ -25,14 +25,13 @@ library_info file (for snakemake pipeline): library_info.json file from HDX LIMI
 ## to run multiple instances of pipeline
 ####
 
-## RUN VIA SNAKEMAKE
+# RUN VIA SNAKEMAKE
 
 ## Tips ##
-# You can always do a dry run to make sure the pipeline will work with the way you've set up config file.
-# for dry run: $ snakemake -s Snakefile -j 1 --dry-run
-# if there are no errors, you're good to go. If there are errors, make sure everything is set up properly.
-# If you suspect the error is not your fault and there might be something wrong with the pipeline, contact me and I can help.
-####
+## You can always do a dry run to make sure the pipeline will work with the way you've set up config file.
+## for dry run: $ snakemake -s Snakefile -j 1 --dry-run
+## if there are no errors, you're good to go. If there are errors, make sure everything is set up properly.
+## If you suspect the error is not your fault and there might be something wrong with the pipeline, contact me and I can help.
 
 
 ## Single pH data
@@ -61,32 +60,32 @@ $ nohup snakemake -s Snakefile_nomatches -j 1000 --keep-going --cluster "sbatch 
 
 ## RUN VIA SCRIPTS
 
-# you can find all the scripts in scripts/hx_rate/
-# you can run the scripts on your own. Or you could import functions from these functions in your own script to run functions
+## you can find all the scripts in scripts/hx_rate/
+## you can run the scripts on your own. Or you could import functions from these functions in your own script to run functions
 
-# ** more description will be added soon **
+## ** more description will be added soon **
 
 
-# Rate fitting:
+## Rate fitting:
 $ python scripts/hx_rate/hx_rate_fit.py - [Options]
 
-# Generte backexchange correlation between low and high ph data
+## Generte backexchange correlation between low and high ph data
 $ python scripts/hx_rate/gen_backexchange_corr_low_high_ph.py - [Options]
 
-# Merging files:
+## Merging files:
 $ python scripts/hx_rate/merge_high_low_ph_data.py - [Options]
 
-# dG calculation:
+## dG calculation:
 $ python scripts/hx_rate/dG_opt.py - [Options]
 
 
 #################################
 
-### Config Files
+# Config Files
 
 ## config.yml
 
-# filepaths
+## filepaths
 path_to_repo: path to this repo (path to hxrate)
 hx_ms_dist_fpaths_top_dir: path to directory where hx ms files are located
 levels_to_fpaths: where the files are present under the directory. if its directly under the top dir, level is 1. if the files are top_dir/PROTEIN_RT_NAME/PROTEIN_RT_NAME_hxms.csv then the level is 2.
@@ -94,25 +93,25 @@ library_info_json_fpath: library_info_json_fpath .json from HDX LIMIT Pipeline
 pdb_fpaths_dir: directory where you can find pdb files.
 output_dirpath: output directory path to specify. It doesn't need to actually exist but you need to specify where you would like the output files to go.
 
-# backexchange
+## backexchange
 backexchange_correction: bool. Whether to calculate backexchange_correction for timepoints
 rate_tol: max tolerance for change in mass
 min_num_points: at least 5 protein_rt instances need to have similar mass rate to calculate backexchange_correction for that specific timepoint.
 change_rate_threshold: threshold for rate of mass change
 backexchange_correction_fpath: file path .csv for backexchange_correction if already computed. Keep it empty if not already computed
 
-# exp params
+## exp params
 d2o_fraction: fraction of d2o used in experiment. 0.95
 d2o_purity: purity of d2o used in experiment. 0.95
 
-# rate_fitting_parameters
+## rate_fitting_parameters
 adjust_backexchange: Bool. Whether to adjust backexchange is the slowest rate is slower by >= 1.6.
 sample_backexchange: Bool. Whether to sample backexchange during rate fitting procedure
 num_chains: int. Number of MCMC chains to use during rate fitting optimization
 num_warmups: int. Number of initial iteration that doesn't contribute to the samples collected in the MCMC process.
 num_samples: int. Number of sample of in the MCMC process.
 
-# dg calc parameters
+## dg calc parameters
 pH: float. ph value
 temp: float. temp in Kelvin
 nterm: str. Any n terminal addition to the sequence that is not present in the structure file (example: 'HM'). Be careful to use this as it will add nterm to all the proteins in the pipeline. Keep it empty if you don't want additions.
@@ -122,11 +121,11 @@ anneal_time: float. Time to run the anneal in minutes.
 anneal_update_interval: int. Number of steps to save the trajectory information.
 
 
-##config_merge.yml
+## config_merge.yml
 
-# most of the params are similar as config.yml except you have to provide the parameters for high and low ph
+## most of the params are similar as config.yml except you have to provide the parameters for high and low ph
 
-# merge parameters
+## merge parameters
 merge_rt_window: window to consider proteins for merging if protein name matches.
 
 ##############################
