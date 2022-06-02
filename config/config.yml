@@ -15,6 +15,7 @@ pdb_fpaths_dir: "/projejcts/p31346/suggie/pdbs"
 
 # library info filepath
 library_info_json_fpath: "/projects/p31346/suggie/hx_rates_workfolder/library_info.json"
+protein_rt_column_name: "name_recentered"
 
 # output directory where all the outputs will be placed
 output_dirpath: "/projects/p31346/suggie/hx_rates_workfolder/output"

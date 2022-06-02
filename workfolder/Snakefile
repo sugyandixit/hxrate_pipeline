@@ -33,7 +33,7 @@ def gen_prot_name_from_rt_name(rt_name):
     return prot_name
 
 
-def gen_prot_name_seq_list(hxms_dist_top_dir, hxms_end_string, levels_to_fpaths, libinfo_fpath):
+def gen_prot_name_seq_list(hxms_dist_top_dir, hxms_end_string, levels_to_fpaths, libinfo_fpath, protein_rt_column_name='name_recentered'):
 
     libinfo_df = pd.read_json(libinfo_fpath)
     hx_ms_dist_file_list = glob.glob(hxms_dist_top_dir+'/*'*levels_to_fpaths+hxms_end_string)
@@ -56,10 +56,10 @@ def gen_prot_name_seq_list(hxms_dist_top_dir, hxms_end_string, levels_to_fpaths,
 
                 prot_name = hx_ms_dist_fname.strip(hxms_end_string)
 
-                if prot_name in libinfo_df['name'].values:
+                if prot_name in libinfo_df[protein_rt_column_name].values:
 
                     name_list.append(prot_name)
-                    prot_seq = libinfo_df[libinfo_df['name'] == prot_name]['sequence'].values[0]
+                    prot_seq = libinfo_df[libinfo_df[protein_rt_column_name] == prot_name]['sequence'].values[0]
                     name_seq_dict_[prot_name] = prot_seq
                     prot_name_ = gen_prot_name_from_rt_name(rt_name=prot_name)
                     rt_name_prot_name_dict_[prot_name] =prot_name_
@@ -67,7 +67,7 @@ def gen_prot_name_seq_list(hxms_dist_top_dir, hxms_end_string, levels_to_fpaths,
     return name_list, name_seq_dict_, rt_name_prot_name_dict_
 
 
-prot_name_list, name_seq_dict, rt_name_prot_name_dict_ = gen_prot_name_seq_list(hxms_dist_top_dir=config['hx_ms_dist_fpaths_top_dir'], hxms_end_string=config['hx_ms_fpath_delim_string'], levels_to_fpaths=config['levels_to_fpaths'], libinfo_fpath=config['library_info_json_fpath'])
+prot_name_list, name_seq_dict, rt_name_prot_name_dict_ = gen_prot_name_seq_list(hxms_dist_top_dir=config['hx_ms_dist_fpaths_top_dir'], hxms_end_string=config['hx_ms_fpath_delim_string'], levels_to_fpaths=config['levels_to_fpaths'], libinfo_fpath=config['library_info_json_fpath'], protein_rt_column_name=config['protein_rt_column_name'])
 
 hx_dist_fpaths_gen_ = config['hx_ms_dist_fpaths_top_dir'] + '/{name}'*config['levels_to_fpaths'] + config['hx_ms_fpath_delim_string']
 

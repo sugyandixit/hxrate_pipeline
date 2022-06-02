@@ -69,6 +69,8 @@ def find_no_match(prot_name_rt_arr, prot_name_rt_arr_match):
 
 def gen_match_protein_rt_list(low_ph_libinfo_fpath,
                               high_ph_libinfo_fpath,
+                              lowph_protein_rt_column_name,
+                              highph_protein_rt_column_name,
                               low_ph_hxms_dir,
                               low_ph_level_to_fpaths,
                               low_ph_hxms_end_string,
@@ -81,8 +83,8 @@ def gen_match_protein_rt_list(low_ph_libinfo_fpath,
     high_ph_libinfo_df = pd.read_json(high_ph_libinfo_fpath)
 
     # generate matching protein names from the library info first
-    low_ph_name_rt_arr = np.unique(low_ph_libinfo_df['name'].values)
-    high_ph_name_rt_arr = np.unique(high_ph_libinfo_df['name'].values)
+    low_ph_name_rt_arr = np.unique(low_ph_libinfo_df[lowph_protein_rt_column_name].values)
+    high_ph_name_rt_arr = np.unique(high_ph_libinfo_df[highph_protein_rt_column_name].values)
 
     low_ph_name_list = ['_'.join(x.split('_')[:-1]) for x in low_ph_name_rt_arr]
     high_ph_name_list = ['_'.join(x.split('_')[:-1]) for x in high_ph_name_rt_arr]
@@ -124,6 +126,8 @@ def gen_match_protein_rt_list(low_ph_libinfo_fpath,
 
 def gen_nomatch_protein_list(low_ph_libinfo_fpath,
                              high_ph_libinfo_fpath,
+                             lowph_protein_rt_column_name,
+                             highph_protein_rt_column_name,
                              low_ph_hxms_dir,
                              low_ph_level_to_fpaths,
                              low_ph_hxms_end_string,
@@ -138,8 +142,8 @@ def gen_nomatch_protein_list(low_ph_libinfo_fpath,
     high_ph_libinfo_df = pd.read_json(high_ph_libinfo_fpath)
 
     # generate matching protein names from the library info first
-    low_ph_name_rt_arr = np.unique(low_ph_libinfo_df['name'].values)
-    high_ph_name_rt_arr = np.unique(high_ph_libinfo_df['name'].values)
+    low_ph_name_rt_arr = np.unique(low_ph_libinfo_df[lowph_protein_rt_column_name].values)
+    high_ph_name_rt_arr = np.unique(high_ph_libinfo_df[highph_protein_rt_column_name].values)
 
     match_lowph_rtname, match_highph_rtname = gen_match_protein_rt_list(low_ph_libinfo_fpath=low_ph_libinfo_fpath,
         high_ph_libinfo_fpath=high_ph_libinfo_fpath,
@@ -176,7 +180,7 @@ def gen_nomatch_protein_list(low_ph_libinfo_fpath,
         if lowphrt_file_valid:
             prot_rt_name_list.append(lowphrtname_nomatch)
             hxfpath_dict[lowphrtname_nomatch] = lowphrt_fpath
-            lowph_prot_seq = low_ph_libinfo_df[low_ph_libinfo_df['name'] == lowphrtname_nomatch]['sequence'].values[0]
+            lowph_prot_seq = low_ph_libinfo_df[low_ph_libinfo_df[lowph_protein_rt_column_name] == lowphrtname_nomatch]['sequence'].values[0]
             prot_seq_dict[lowphrtname_nomatch] = lowph_prot_seq
             prot_name_dict[lowphrtname_nomatch] = gen_prot_name_from_rt_name(lowphrtname_nomatch)
             ph_dict[lowphrtname_nomatch] = low_ph_value
@@ -188,7 +192,7 @@ def gen_nomatch_protein_list(low_ph_libinfo_fpath,
             level_to_fpaths=high_ph_level_to_fpaths,
             file_end_string=high_ph_hxms_end_string)
         if highphrt_file_valid:
-            highph_prot_seq = high_ph_libinfo_df[high_ph_libinfo_df['name'] == highphrtname_nomatch]['sequence'].values[0]
+            highph_prot_seq = high_ph_libinfo_df[high_ph_libinfo_df[highph_protein_rt_column_name] == highphrtname_nomatch]['sequence'].values[0]
             prot_rt_name_list.append(highphrtname_nomatch)
             hxfpath_dict[highphrtname_nomatch] = highphrt_fpath
             prot_seq_dict[highphrtname_nomatch] = highph_prot_seq
@@ -198,7 +202,7 @@ def gen_nomatch_protein_list(low_ph_libinfo_fpath,
     return prot_rt_name_list, hxfpath_dict, prot_seq_dict, prot_name_dict, ph_dict
 
 
-prot_rt_name_list_, hxfpath_dict_, prot_seq_dict_, prot_name_dict_, ph_dict_ = gen_nomatch_protein_list(low_ph_libinfo_fpath=config['low_ph_library_info'], high_ph_libinfo_fpath=config['high_ph_library_info'], low_ph_hxms_dir=config['low_ph_hxms_fpath_dir'], low_ph_level_to_fpaths=config['level_to_fpaths_low_ph'], low_ph_hxms_end_string=config['low_ph_hxms_fpath_delim_str'], high_ph_hxms_dir=config['high_ph_hxms_fpath_dir'], high_ph_level_to_fpaths=config['level_to_fpaths_high_ph'], high_ph_hxms_end_string=config['high_ph_hxms_fpath_delim_str'], rt_window=config['merge_rt_window'], low_ph_value=config['low_pH'], high_ph_value=config['high_pH'])
+prot_rt_name_list_, hxfpath_dict_, prot_seq_dict_, prot_name_dict_, ph_dict_ = gen_nomatch_protein_list(low_ph_libinfo_fpath=config['low_ph_library_info'], lowph_protein_rt_column_name=config['lowph_protein_rt_column_name'], high_ph_libinfo_fpath=config['high_ph_library_info'], highph_protein_rt_column_name=config['highph_protein_rt_column_name'], low_ph_hxms_dir=config['low_ph_hxms_fpath_dir'], low_ph_level_to_fpaths=config['level_to_fpaths_low_ph'], low_ph_hxms_end_string=config['low_ph_hxms_fpath_delim_str'], high_ph_hxms_dir=config['high_ph_hxms_fpath_dir'], high_ph_level_to_fpaths=config['level_to_fpaths_high_ph'], high_ph_hxms_end_string=config['high_ph_hxms_fpath_delim_str'], rt_window=config['merge_rt_window'], low_ph_value=config['low_pH'], high_ph_value=config['high_pH'])
 
 
 # set_up_backexchange_correction_fpath

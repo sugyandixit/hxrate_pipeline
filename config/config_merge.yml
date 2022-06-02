@@ -7,9 +7,12 @@ path_to_repo: "/projects/p31346/suggie/hxrate"
 
 # low ph info
 low_ph_library_info: ""
+lowph_protein_rt_column_name: "name_recentered"
+
 low_ph_hxms_fpath_delim_str: "_winner.cpickle.zlib.csv"
 low_ph_hxms_fpath_dir: ""
 level_to_fpaths_low_ph: 1
+
 
 low_ph_d2o_frac: 0.95
 low_ph_d2o_pur: 0.95
@@ -19,6 +22,8 @@ low_ph_backexchange_correction_fpath:
 
 # high ph info
 high_ph_library_info: ""
+highph_protein_rt_column_name: "name_recentered"
+
 high_ph_hxms_fpath_delim_str: "_winner.cpickle.zlib.csv"
 high_ph_hxms_fpath_dir: ""
 level_to_fpaths_high_ph: 1
