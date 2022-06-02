@@ -61,7 +61,7 @@ $ nohup snakemake -s Snakefile_nomatches -j 1000 --keep-going --cluster "sbatch 
 ### you can find all the scripts in scripts/hx_rate/
 ### you can run the scripts on your own. Or you could import functions from these functions in your own script to run functions
 
-### ** more description will be added soon **
+### **more description will be added soon**
 
 
 ## *Rate fitting**
@@ -77,7 +77,6 @@ $ python scripts/hx_rate/merge_high_low_ph_data.py - [Options]
 $ python scripts/hx_rate/dG_opt.py - [Options]
 
 
-#################################
 
 # **Config Files**
 
