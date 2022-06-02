@@ -17,6 +17,7 @@ merge_dpath = config['output_dirpath'] + '/merge_distribution'
 hxrate_dpath = config['output_dirpath'] + '/rates'
 dg_output_path = config['output_dirpath'] + '/dG'
 summary_output_path = config['output_dirpath'] + '/summary'
+nomatch_output_path = config['output_dirpath'] + '/no_match'
 
 # set the python scripts path
 scripts_dirpath = config['path_to_repo'] + '/scripts/hx_rate'
@@ -91,6 +92,33 @@ def gen_prot_name_seq_dict(prot_name_rt, lib_info_dataframe, prot_name_uniq_pref
         rt_group_prot_name_dict[prot_name_uniq_prefix+prot_name_rt_] = prot_name_
 
     return rt_group_seq_dict, rt_group_prot_name_dict
+
+
+def gen_nomatch_protein_list(low_ph_libinfo_fpath, high_ph_libinfo_fpath, match_lowph_rtname, match_highph_rtname):
+
+    low_ph_libinfo_df = pd.read_json(low_ph_libinfo_fpath)
+    high_ph_libinfo_df = pd.read_json(high_ph_libinfo_fpath)
+
+    # generate matching protein names from the library info first
+    low_ph_name_rt_arr = np.unique(low_ph_libinfo_df['name'].values)
+    high_ph_name_rt_arr = np.unique(high_ph_libinfo_df['name'].values)
+
+    low_ph_rtname_nomatch = find_no_match(prot_name_rt_arr=low_ph_name_rt_arr, prot_name_rt_arr_match=match_lowph_rtname)
+    high_ph_rtname_nomatch = find_no_match(prot_name_rt_arr=high_ph_name_rt_arr, prot_name_rt_arr_match=match_highph_rtname)
+
+    prot_rt_name_list = []
+
+
+    for lowphrtname_nomatch in low_ph_rtname_nomatch:
+        low_ph_fpath = low_ph_hxms_dir + ('/'+ lowphrtname_nomatch)*low_ph_level_to_fpaths+low_ph_hxms_end_string
+        if os.path.exists(low_ph_fpath):
+            if os.stat(low_ph_fpath).st_size > 0:
+
+
+    if len(low_ph_rtname_nomatch) == 0:
+        low_ph_rtname_nomatch = [match_lowph_rtname[0]]
+    if len(high_ph_rtname_nomatch) == 0:
+        high_ph_rtname_nomatch = [match_highph_rtname[0]]
 
 
 # gen matching protein ids
@@ -276,6 +304,22 @@ else:
                 expand(hxrate_dpath + '/{nomatch_highph}/{nomatch_highph}_hx_rate_fit.pickle', nomatch_highph=high_ph_rtname_nomatch_str_list_),
                 summary_output_path + '/summary_merge.csv',
                 summary_output_path + '/summary_rate.csv',
+
+
+rule gen_nomatch_list:
+    input:
+        list_of_hx_fpaths =
+    params:
+        list_of_prot_rt_names =
+        list_of_prot_names =
+        list_of_prot_seqs =
+        list_of_ph_strings =
+    output:
+        no_match_fpath = nomatch_output_path + '/no_match_sample_list.csv'
+    benchmark:
+        benchmark_dpath + '/gen_nomatch_list.benchmark.txt'
+    shell:
+        'python '
 
 
 if config['low_ph_backexchange_correction_fpath'] is None:
