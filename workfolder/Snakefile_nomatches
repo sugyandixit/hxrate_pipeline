@@ -147,6 +147,8 @@ def gen_nomatch_protein_list(low_ph_libinfo_fpath,
 
     match_lowph_rtname, match_highph_rtname = gen_match_protein_rt_list(low_ph_libinfo_fpath=low_ph_libinfo_fpath,
         high_ph_libinfo_fpath=high_ph_libinfo_fpath,
+        lowph_protein_rt_column_name=lowph_protein_rt_column_name,
+        highph_protein_rt_column_name=highph_protein_rt_column_name,
         low_ph_hxms_dir=low_ph_hxms_dir,
         low_ph_level_to_fpaths=low_ph_level_to_fpaths,
         low_ph_hxms_end_string=low_ph_hxms_end_string,
