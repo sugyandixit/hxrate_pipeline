@@ -81,7 +81,7 @@ dg_calc: False
 low_pH: 6.15
 high_pH: 9.0
 temp: 295
-nterm: 'HM'
+nterm:
 cterm:
 net_charge_corr: True
 anneal_time: 2.0
