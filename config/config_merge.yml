@@ -6,12 +6,14 @@ path_to_repo: "/projects/p31346/suggie/hxrate"
 ###############################################
 
 # low ph info
-low_ph_library_info: ""
+low_ph_library_info: "/projects/b1107/allan/HDX_analysis/Lib15/20211225_pH6/hdx_limit-pipeline/resources/7_idotp_filter/checked_library_info.json"
 lowph_protein_rt_column_name: "name_recentered"
 
-low_ph_hxms_fpath_delim_str: "_winner.cpickle.zlib.csv"
-low_ph_hxms_fpath_dir: ""
+low_ph_hxms_fpath_delim_str: "_winner_multibody.cpickle.zlib.csv"
+low_ph_hxms_fpath_dir: "/projects/b1107/allan/HDX_analysis/Lib15/20211225_pH6/hdx_limit-pipeline/resources/10_ic_time_series"
 level_to_fpaths_low_ph: 1
+lowph_hdxlim_dirstruct: True
+low_hdxlim_pathtype_str: "multibody"
 
 
 low_ph_d2o_frac: 0.95
@@ -21,12 +23,14 @@ low_ph_backexchange_correction_fpath:
 
 
 # high ph info
-high_ph_library_info: ""
+high_ph_library_info: "/projects/b1107/allan/HDX_analysis/Lib15/20211223_pH9/hdx_limit-pipeline/resources/7_idotp_filter/checked_library_info.json"
 highph_protein_rt_column_name: "name_recentered"
 
-high_ph_hxms_fpath_delim_str: "_winner.cpickle.zlib.csv"
-high_ph_hxms_fpath_dir: ""
+high_ph_hxms_fpath_delim_str: "_winner_multibody.cpickle.zlib.csv"
+high_ph_hxms_fpath_dir: "projects/b1107/allan/HDX_analysis/Lib15/20211223_pH9/hdx_limit-pipeline/resources/10_ic_time_series"
 level_to_fpaths_high_ph: 1
+highph_hdxlim_dirstruct: True
+high_hdxlim_pathtype_str: "multibody"
 
 high_ph_d2o_frac: 0.95
 high_ph_d2o_pur: 0.95
@@ -43,7 +47,7 @@ saturation_mass_rate: 0.03
 
 # backexchange bounds for correlation
 backexhange_low_bound: 0.15
-backexchange_up_bound: 0.30
+backexchange_up_bound: 0.45
 
 
 
@@ -70,7 +74,7 @@ adjust_backexchange: True
 sample_backexchange: False
 num_chains: 4
 num_warmups: 100
-num_samples: 500
+num_samples: 250
 
 dg_calc: False
 # dg fitting parameters
