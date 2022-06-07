@@ -208,7 +208,7 @@ def gen_merged_dstirbution(sequence: str,
                            high_d2o_purity: float,
                            high_user_backexchange: float,
                            high_backexchange_correction_dict: dict,
-                           factor_init_list: list = [0.1, 1, 10, 100, 1000, 10000]) -> dict:
+                           factor_init_list: list = [1, 10, 100, 1000, 10000]) -> dict:
     """
 
     :param sequence:
@@ -648,8 +648,8 @@ if __name__ == '__main__':
 
     sequence = 'HMPDTVILDTSELVTVVALVKLHTDALHATRDEPVAFVLPGTAFRVSAGVAAEMTERGLARMQ'
 
-    low_ph_data_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/input_dir/low_ph_dist/PDB2LSM_28.2075_winner_multibody.cpickle.zlib.csv'
-    high_ph_data_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/input_dir/high_ph_dist/PDB2LSM_28.20754_winner_multibody.cpickle.zlib.csv'
+    low_ph_data_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/input_dir/low_ph_dist/PDB4N3X_25.75636_winner_multibody.cpickle.zlib.csv'
+    high_ph_data_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/input_dir/high_ph_dist/PDB4N3X_26.28687_winner_multibody.cpickle.zlib.csv'
 
     d2o_frac = 0.95
     d2o_pur = 0.95
@@ -659,17 +659,17 @@ if __name__ == '__main__':
 
     high_low_bkexch_list = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/backexchange/high_low_backexchange_list.csv'
 
-    output_path = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist/PDB2LSM_28.2075_PDB2LSM_28.20754'
+    output_path = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist/PDB4N3X_25.75636_PDB4N3X_26.28687'
 
     gen_high_low_merged_from_to_file_v2(sequence=sequence,
                                         low_ph_data_fpath=low_ph_data_fpath,
-                                        low_ph_prot_name='PDB2LSM_28.2075',
+                                        low_ph_prot_name='PDB4N3X_25.75636',
                                         low_d2o_frac=d2o_frac,
                                         low_d2o_purity=d2o_pur,
                                         low_user_backexchange=None,
                                         low_backexchange_corr_fpath=low_bkexch_corr_fpath,
                                         high_ph_data_fpath=high_ph_data_fpath,
-                                        high_ph_prot_name='PDB2LSM_28.20754',
+                                        high_ph_prot_name='PDB4N3X_26.28687',
                                         high_d2o_frac=d2o_frac,
                                         high_d2o_purity=d2o_pur,
                                         high_user_backexchange=None,

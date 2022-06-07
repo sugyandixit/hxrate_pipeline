@@ -98,6 +98,12 @@ def calc_back_exchange(sequence: str,
 
             backexchange_obj.backexchange_value = 1 - expit(opt)[0]
 
+            # check if backexchange value is 1
+            # if backexchange value is 1, set it to default of 0.98
+            if backexchange_obj.backexchange_value == 1:
+                print('\nIsotopeDistribution close to undeuterated state led to backexchange value of 1. Setting it to a default value of 0.98')
+                backexchange_obj.backexchange_value = 0.98
+
         else:
             print('\nSETTING USER BACK EXCHANGE ... ')
             backexchange_obj.backexchange_value = usr_backexchange
