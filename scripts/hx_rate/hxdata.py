@@ -101,12 +101,12 @@ def write_hx_rate_output_bayes(hxrate_mean_array,
 
 def write_isotope_dist_timepoints(timepoints, isotope_dist_array, output_path):
 
-    timepoint_str = ','.join([str(x) for x in timepoints])
+    timepoint_str = ','.join(['%.4f' % x for x in timepoints])
     header = 'ind,' + timepoint_str + '\n'
     data_string = ''
     for ind, arr in enumerate(isotope_dist_array.T):
         arr_str = ','.join([str(x) for x in arr])
-        data_string += '{:.4f},{}\n'.format(ind, arr_str)
+        data_string += '{},{}\n'.format(ind, arr_str)
 
     with open(output_path, 'w') as outfile:
         outfile.write(header + data_string)
