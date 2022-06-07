@@ -644,43 +644,43 @@ def run_from_parser_v2():
 
 if __name__ == '__main__':
 
-    # run_from_parser_v2()
+    run_from_parser_v2()
 
-    sequence = 'HMPDTVILDTSELVTVVALVKLHTDALHATRDEPVAFVLPGTAFRVSAGVAAEMTERGLARMQ'
-
-    low_ph_data_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/input_dir/low_ph_dist/PDB4N3X_25.75636_winner_multibody.cpickle.zlib.csv'
-    high_ph_data_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/input_dir/high_ph_dist/PDB4N3X_26.28687_winner_multibody.cpickle.zlib.csv'
-
-    d2o_frac = 0.95
-    d2o_pur = 0.95
-
-    low_bkexch_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/backexchange/low_ph_bkexch_corr.csv'
-    high_bkexch_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/backexchange/high_ph_bkexch_corr.csv'
-
-    high_low_bkexch_list = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/backexchange/high_low_backexchange_list.csv'
-
-    output_path = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist/PDB4N3X_25.75636_PDB4N3X_26.28687'
-
-    gen_high_low_merged_from_to_file_v2(sequence=sequence,
-                                        low_ph_data_fpath=low_ph_data_fpath,
-                                        low_ph_prot_name='PDB4N3X_25.75636',
-                                        low_d2o_frac=d2o_frac,
-                                        low_d2o_purity=d2o_pur,
-                                        low_user_backexchange=None,
-                                        low_backexchange_corr_fpath=low_bkexch_corr_fpath,
-                                        high_ph_data_fpath=high_ph_data_fpath,
-                                        high_ph_prot_name='PDB4N3X_26.28687',
-                                        high_d2o_frac=d2o_frac,
-                                        high_d2o_purity=d2o_pur,
-                                        high_user_backexchange=None,
-                                        high_backexchange_corr_fpath=high_bkexch_corr_fpath,
-                                        low_high_backexchange_list_fpath=high_low_bkexch_list,
-                                        merged_backexchange_fpath=output_path + '/merge_bkexch_.csv',
-                                        merged_data_fpath=output_path + '/merge_data_.csv',
-                                        merged_backexchange_correction_fpath=output_path + '/merge_bkexch_corr_.csv',
-                                        factor_fpath=output_path + '/merge_bkexch_factor_.csv',
-                                        merge_plot_fpath=output_path + '/merge_data_plot.pdf',
-                                        return_flag=False)
+    # sequence = 'HMPDTVILDTSELVTVVALVKLHTDALHATRDEPVAFVLPGTAFRVSAGVAAEMTERGLARMQ'
+    #
+    # low_ph_data_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/input_dir/low_ph_dist/PDB4N3X_25.75636_winner_multibody.cpickle.zlib.csv'
+    # high_ph_data_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/input_dir/high_ph_dist/PDB4N3X_26.28687_winner_multibody.cpickle.zlib.csv'
+    #
+    # d2o_frac = 0.95
+    # d2o_pur = 0.95
+    #
+    # low_bkexch_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/backexchange/low_ph_bkexch_corr.csv'
+    # high_bkexch_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/backexchange/high_ph_bkexch_corr.csv'
+    #
+    # high_low_bkexch_list = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/backexchange/high_low_backexchange_list.csv'
+    #
+    # output_path = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist/PDB4N3X_25.75636_PDB4N3X_26.28687'
+    #
+    # gen_high_low_merged_from_to_file_v2(sequence=sequence,
+    #                                     low_ph_data_fpath=low_ph_data_fpath,
+    #                                     low_ph_prot_name='PDB4N3X_25.75636',
+    #                                     low_d2o_frac=d2o_frac,
+    #                                     low_d2o_purity=d2o_pur,
+    #                                     low_user_backexchange=None,
+    #                                     low_backexchange_corr_fpath=low_bkexch_corr_fpath,
+    #                                     high_ph_data_fpath=high_ph_data_fpath,
+    #                                     high_ph_prot_name='PDB4N3X_26.28687',
+    #                                     high_d2o_frac=d2o_frac,
+    #                                     high_d2o_purity=d2o_pur,
+    #                                     high_user_backexchange=None,
+    #                                     high_backexchange_corr_fpath=high_bkexch_corr_fpath,
+    #                                     low_high_backexchange_list_fpath=high_low_bkexch_list,
+    #                                     merged_backexchange_fpath=output_path + '/merge_bkexch_.csv',
+    #                                     merged_data_fpath=output_path + '/merge_data_.csv',
+    #                                     merged_backexchange_correction_fpath=output_path + '/merge_bkexch_corr_.csv',
+    #                                     factor_fpath=output_path + '/merge_bkexch_factor_.csv',
+    #                                     merge_plot_fpath=output_path + '/merge_data_plot.pdf',
+    #                                     return_flag=False)
 
     # common_backexchange_filepath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bkexch_corr_output/common_2.csv_bkexchange.csv'
     # common_backexchange_df = pd.read_csv(common_backexchange_filepath)
