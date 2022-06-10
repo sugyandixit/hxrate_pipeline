@@ -1239,7 +1239,8 @@ def get_the_best_anneal_data(dg_anneal):
 def map_energy_to_res(free_energy_grid, anneal_state, protein_sequence, hx_allowed_index):
 
     free_energy_arr = np.array([free_energy_grid[ind][eng] for ind, eng in enumerate(anneal_state)])
-    out_energy_array = np.zeros(len(protein_sequence))
+    out_energy_array = np.empty(len(protein_sequence))
+    out_energy_array[:] = np.nan
     out_energy_array[hx_allowed_index] = free_energy_arr
 
     return out_energy_array
@@ -1276,7 +1277,6 @@ def plot_dg_dist_(mapped_energy, res_num, min_free_energy, output_path):
     res_num_re = res_num[res_num > 0]
     mapped_energy_re = mapped_energy[res_num > 0]
     mapped_energy_re[mapped_energy_re == min_free_energy] = 0.0
-    sort_map_energy = sorted(mapped_energy_re)[::-1]
 
     num_rows = 2
     num_columns = 1
@@ -1294,11 +1294,15 @@ def plot_dg_dist_(mapped_energy, res_num, min_free_energy, output_path):
     plt.grid(alpha=0.25)
     ax.tick_params(length=3, pad=3)
 
+    map_energy_no_nan = mapped_energy[~np.isnan(mapped_energy)]
+    sort_map_energy_no_nan = np.sort(map_energy_no_nan)[::-1]
+    # sort_map_energy = [~numpy.isnan(x)]
+
     ax2 = fig.add_subplot(gs[1, 0])
-    plt.plot(sort_map_energy, marker='o', ls='-', markerfacecolor='red', markeredgecolor='black', color='red')
+    plt.plot(sort_map_energy_no_nan, marker='o', ls='-', markerfacecolor='red', markeredgecolor='black', color='red')
     ax2.spines['right'].set_visible(False)
     ax2.spines['top'].set_visible(False)
-    ax2.set_xticks(range(0, len(res_num_re)+1, 2))
+    ax2.set_xticks(range(0, len(sort_map_energy_no_nan)+1, 2))
     plt.xlabel('Residue (ranked from most to least stable)')
     plt.ylabel('dG (kcal/mol)')
     plt.grid(alpha=0.25)
@@ -1465,7 +1469,7 @@ if __name__ == '__main__':
     #            net_charge_corr=True,
     #            min_comp_free_energy=0.5,
     #            sa_energy_weights=None,
-    #            dg_length_mins=2.,
+    #            dg_length_mins=0.5,
     #            dg_update_interval=100,
     #            traj_fpath=hx_rate_fpath+'_anneal_traj.csv',
     #            anneal_data_output=hx_rate_fpath+'_anneal_data.csv',
