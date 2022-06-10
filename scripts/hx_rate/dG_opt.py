@@ -1252,7 +1252,7 @@ def write_dg_data_to_csv(seq_num, dg_array, output_path):
     data = ''
 
     for ind, (res_num, dg) in enumerate(zip(seq_num, dg_array)):
-        data += '{},{},{}\n'.format(ind+1, res_num, dg)
+        data += '{},{},{}\n'.format(ind+1, int(res_num), dg)
 
     with open(output_path, 'w') as outfile:
         outfile.write(header+data)
