@@ -230,51 +230,58 @@ class DgInput(object):
                 hh_pairlist.append([aa1, aa2, hh_dist])
         hh_pairlist = np.array(hh_pairlist)
 
-        # todo: need a case when hh pair list is empty!!
+        if len(hh_pairlist) > 0:
 
-        hx_active_index = np.array([sum(self.hx_allowed_full_seq_bool[0:x]) for x in range(len(self.hx_allowed_full_seq_bool))],
-                                   dtype=object)
-        for num in range(len(hx_active_index)-1):
-            if hx_active_index[num+1] == hx_active_index[num]:
-                hx_active_index[num] = None
+            self.valid = True
 
-        self.active_aa1, self.active_aa2 = [], []
-        for aa1, aa2 in zip(hh_pairlist[:, 0], hh_pairlist[:, 1]):
-            if hx_active_index[int(aa1)] is not None:
-                if hx_active_index[int(aa2)] is not None:
-                    self.active_aa1.append(hx_active_index[int(aa1)])
-                    self.active_aa2.append(hx_active_index[int(aa2)])
-        self.active_aa1, self.active_aa2 = np.array(self.active_aa1), np.array(self.active_aa2)
+            hx_active_index = np.array([sum(self.hx_allowed_full_seq_bool[0:x]) for x in range(len(self.hx_allowed_full_seq_bool))],
+                                       dtype=object)
+            for num in range(len(hx_active_index)-1):
+                if hx_active_index[num+1] == hx_active_index[num]:
+                    hx_active_index[num] = None
 
-        self.pair_energies_multigrid = gen_pair_energies_multigrid(len_hx_allowed=self.len_hx_allowed,
-                                                                   active_aa1_array=self.active_aa1,
-                                                                   active_aa2_array=self.active_aa2,
-                                                                   hh_dist_array=hh_pairlist[:, 2],
-                                                                   free_energy_grid=self.free_energy_grid,
-                                                                   interpol_func=deltag_interpol)
+            self.active_aa1, self.active_aa2 = [], []
+            for aa1, aa2 in zip(hh_pairlist[:, 0], hh_pairlist[:, 1]):
+                if hx_active_index[int(aa1)] is not None:
+                    if hx_active_index[int(aa2)] is not None:
+                        self.active_aa1.append(hx_active_index[int(aa1)])
+                        self.active_aa2.append(hx_active_index[int(aa2)])
+            self.active_aa1, self.active_aa2 = np.array(self.active_aa1), np.array(self.active_aa2)
 
-        self.states = list(range(sum(self.hx_allowed_full_seq_bool)))
+            self.pair_energies_multigrid = gen_pair_energies_multigrid(len_hx_allowed=self.len_hx_allowed,
+                                                                       active_aa1_array=self.active_aa1,
+                                                                       active_aa2_array=self.active_aa2,
+                                                                       hh_dist_array=hh_pairlist[:, 2],
+                                                                       free_energy_grid=self.free_energy_grid,
+                                                                       interpol_func=deltag_interpol)
 
-        self.num_hbonds = sum(hbond_data.hbond_bool_num_list)
-        self.num_no_hbonds = len(self.states) - self.num_hbonds
-        hbond_rank_best_ranks = np.arange(self.num_no_hbonds, len(self.states))
-        self.hbond_rank_best = sum(hbond_rank_best_ranks)
-        self.hbond_rank_worst = sum(np.arange(self.num_hbonds))
+            self.states = list(range(sum(self.hx_allowed_full_seq_bool)))
 
-        self.hbond_bool_num_list = hbond_data.hbond_bool_num_list
+            self.num_hbonds = sum(hbond_data.hbond_bool_num_list)
+            self.num_no_hbonds = len(self.states) - self.num_hbonds
+            hbond_rank_best_ranks = np.arange(self.num_no_hbonds, len(self.states))
+            self.hbond_rank_best = sum(hbond_rank_best_ranks)
+            self.hbond_rank_worst = sum(np.arange(self.num_hbonds))
 
-        self.hbond_burial = hbond_data.hbond_burial
+            self.hbond_bool_num_list = hbond_data.hbond_bool_num_list
 
-        if comp_dg_fpath is not None:
-            self.deltag_comp_arr = get_comp_dg_array(comp_dg_fpath=comp_dg_fpath,
-                                                     sequence=self.raw_sequence,
-                                                     min_comp_free_energy=min_comp_free_energy)
+            self.hbond_burial = hbond_data.hbond_burial
+
+            if comp_dg_fpath is not None:
+                self.deltag_comp_arr = get_comp_dg_array(comp_dg_fpath=comp_dg_fpath,
+                                                         sequence=self.raw_sequence,
+                                                         min_comp_free_energy=min_comp_free_energy)
+            else:
+                self.deltag_comp_arr = None
+
         else:
-            self.deltag_comp_arr = None
+
+            self.valid = False
 
 
 @dataclass
 class DGMapOut(object):
+    dg_map_valid: bool = False
     protein_name: str = None
     protein_raw_sequence: str = None
     protein_full_sequence: str = None
@@ -1373,26 +1380,46 @@ def dg_mapping(hx_rate_fpath,
                        min_comp_free_energy=min_comp_free_energy,
                        sa_energy_weights=sa_energy_weights)
 
-    deltag_anneal = dg_opt_from_input_obj(dg_input=dg_input,
-                                          dg_length_mins=dg_length_mins,
-                                          dg_update_interval=dg_update_interval,
-                                          traj_fpath=traj_fpath)
+    # init dg output object
+    dg_output = DGMapOut(dg_map_valid=dg_input.valid,
+                         protein_name=os.path.split(pdb_fpath)[-1],
+                         protein_raw_sequence=dg_input.raw_sequence,
+                         protein_full_sequence=dg_input.full_sequence,
+                         nterm_add=nterm,
+                         cterm_add=cterm,
+                         ph=pH,
+                         temp=temp,
+                         res_num=dg_input.seq_num)
 
-    dg_output = DGMapOut()
-    dg_output.protein_name = os.path.split(pdb_fpath)[-1]
-    dg_output.protein_full_sequence = dg_input.full_sequence
-    dg_output.protein_raw_sequence = dg_input.raw_sequence
-    dg_output.nterm_add = nterm
-    dg_output.cterm_add = cterm
-    dg_output.ph = pH
-    dg_output.temp = temp
-    dg_output.state = deltag_anneal.best_state
-    dg_output.anneal_data = get_the_best_anneal_data(dg_anneal=deltag_anneal)
-    dg_output.dg_array = map_energy_to_res(free_energy_grid=dg_input.free_energy_grid,
-                                           anneal_state=deltag_anneal.best_state,
-                                           protein_sequence=dg_input.full_sequence,
-                                           hx_allowed_index=dg_input.hx_allowed_seq_index)
-    dg_output.res_num = dg_input.seq_num
+    if dg_input.valid:
+
+        deltag_anneal = dg_opt_from_input_obj(dg_input=dg_input,
+                                              dg_length_mins=dg_length_mins,
+                                              dg_update_interval=dg_update_interval,
+                                              traj_fpath=traj_fpath)
+
+        dg_output.state = deltag_anneal.best_state
+        dg_output.anneal_data = get_the_best_anneal_data(dg_anneal=deltag_anneal)
+        dg_output.dg_array = map_energy_to_res(free_energy_grid=dg_input.free_energy_grid,
+                                               anneal_state=deltag_anneal.best_state,
+                                               protein_sequence=dg_input.full_sequence,
+                                               hx_allowed_index=dg_input.hx_allowed_seq_index)
+
+    else:
+
+        print("Alert: dG calc not possible due to the structure ... Saving emtpy files")
+
+        dg_array = np.array([np.nan for _ in range(len(dg_input.seq_num))])
+        dg_output.dg_array = dg_array
+
+        dg_output.anneal_data = DGAnnealData(pair_energy=np.nan,
+                                             full_burial_corr=np.nan,
+                                             hbond_burial_corr=np.nan,
+                                             hbond_rank_factor=np.nan,
+                                             distance_to_nonpolar_res_corr=np.nan,
+                                             distance_to_sec_struct_corr=np.nan,
+                                             top_stdev=np.nan,
+                                             comp_deltaG_rmse_term=np.nan)
 
     if dg_csv_output is not None:
         write_dg_data_to_csv(seq_num=dg_output.res_num, dg_array=dg_output.dg_array, output_path=dg_csv_output)
