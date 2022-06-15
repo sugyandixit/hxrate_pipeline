@@ -239,7 +239,7 @@ def write_dg_fit_summary(list_of_dg_pk_files, output_fpath, file_delim_string):
 
     with open(output_fpath, 'w') as outfile:
 
-        header = 'fname,prot_name,sequence,opt_val,pair_energy,full_burial_corr,hbond_burial_corr,hbond_rank_factor,distance_to_nonpolar_res_corr,distance_to_sec_struct_corr,top_stdev,comp_deltag_rmse\n'
+        header = 'fname,prot_name,sequence,max_dg,opt_val,pair_energy,full_burial_corr,hbond_burial_corr,hbond_rank_factor,distance_to_nonpolar_res_corr,distance_to_sec_struct_corr,top_stdev,comp_deltag_rmse\n'
 
         outfile.write(header)
 
@@ -248,9 +248,10 @@ def write_dg_fit_summary(list_of_dg_pk_files, output_fpath, file_delim_string):
             pkfname = os.path.split(pkfpath)[-1].strip(file_delim_string)
             pkobj = load_pickle_object(pkfpath)
 
-            line = '{},{},{},{},{},{},{},{},{},{},{},{}\n'.format(pkfname,
+            line = '{},{},{},{},{},{},{},{},{},{},{},{},{}\n'.format(pkfname,
                                                                   pkobj['protein_name'],
                                                                   pkobj['protein_full_sequence'],
+                                                                  max(pkobj['dg_array']),
                                                                   pkobj['anneal_data']['opt_val'],
                                                                   pkobj['anneal_data']['pair_energy'],
                                                                   pkobj['anneal_data']['full_burial_corr'],
