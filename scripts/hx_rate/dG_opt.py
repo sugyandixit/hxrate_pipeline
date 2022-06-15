@@ -230,6 +230,8 @@ class DgInput(object):
                 hh_pairlist.append([aa1, aa2, hh_dist])
         hh_pairlist = np.array(hh_pairlist)
 
+        # todo: need a case when hh pair list is empty!!
+
         hx_active_index = np.array([sum(self.hx_allowed_full_seq_bool[0:x]) for x in range(len(self.hx_allowed_full_seq_bool))],
                                    dtype=object)
         for num in range(len(hx_active_index)-1):
@@ -238,8 +240,10 @@ class DgInput(object):
 
         self.active_aa1, self.active_aa2 = [], []
         for aa1, aa2 in zip(hh_pairlist[:, 0], hh_pairlist[:, 1]):
-            self.active_aa1.append(hx_active_index[int(aa1)])
-            self.active_aa2.append(hx_active_index[int(aa2)])
+            if hx_active_index[int(aa1)] is not None:
+                if hx_active_index[int(aa2)] is not None:
+                    self.active_aa1.append(hx_active_index[int(aa1)])
+                    self.active_aa2.append(hx_active_index[int(aa2)])
         self.active_aa1, self.active_aa2 = np.array(self.active_aa1), np.array(self.active_aa2)
 
         self.pair_energies_multigrid = gen_pair_energies_multigrid(len_hx_allowed=self.len_hx_allowed,
@@ -364,7 +368,11 @@ class DeltaGMapping(Annealer):
     def pair_energy(self):
         pair_e = []
         for aa1, aa2 in zip(self.dg_input.active_aa1, self.dg_input.active_aa2):
+            # print('indices')
+            # print(aa1, aa2, self.state[aa1], self.state[aa2])
             eng = self.dg_input.pair_energies_multigrid[aa1, aa2, self.state[aa1], self.state[aa2]]
+            # print('eng')
+            # print(eng)
             pair_e.append(eng)
         avg_pair_e = np.average(pair_e)
         return avg_pair_e
@@ -528,8 +536,16 @@ def gen_pair_energies_multigrid(len_hx_allowed,
                 fe1 = free_energy_grid[aa1, num1]
                 fe2 = free_energy_grid[aa2, num2]
                 fe_dist = abs(fe1 - fe2)
+                # if type(fe_dist) == np.ndarray:
+                #     sort_fedist = sorted(fe_dist[0])
+                #     fe_dist[0] = sort_fedist
+                #     # print('heha')
+                # else:
+                #     pass
+                # # print('hhdist: %s\nfedist: %s' % (hhdist, fe_dist))
                 interp = interpol_func(hhdist, fe_dist)
                 pair_e = -np.log(interp)
+                # print('paire: %s\nSuccess' % pair_e)
                 pair_energies_multigrid[aa1, aa2, num1, num2] = pair_e
 
     return pair_energies_multigrid
@@ -1451,29 +1467,83 @@ def run_anneal_from_parser():
 
 if __name__ == '__main__':
 
-    run_anneal_from_parser()
-
-    # hx_rate_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/merge_lib15_ph6_ph7/output/EEHEE_rd4_0871.pdb_5.60674_EEHEE_rd4_0871.pdb_5.27916/EEHEE_rd4_0871.pdb_5.60674_EEHEE_rd4_0871.pdb_5.27916_hx_rate.csv'
-    # dg_interpol_fpath = "../../config/newrect.pickle"
-    # pdb_fpath = "/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/EEHEE_rd4_0871.pdb"
+    # pdb_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/PDB1H8K.pdb'
     #
-    # dg_mapping(hx_rate_fpath=hx_rate_fpath,
+    # hx_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/rates/PDB1H8K_14.70437_PDB1H8K_14.73122/PDB1H8K_14.70437_PDB1H8K_14.73122_hx_rate.csv'
+    #
+    # dg_interpol_fpath = "../../config/newrect.pickle"
+    #
+    # dg_mapping(hx_rate_fpath=hx_fpath,
     #            pdb_fpath=pdb_fpath,
     #            dg_intpol_fpath=dg_interpol_fpath,
-    #            pH=6.15,
+    #            pH=6.00,
     #            temp=295,
     #            comp_dg_fpath=None,
-    #            nterm='HM',
-    #            cterm='',
     #            min_free_energy=-10,
     #            net_charge_corr=True,
     #            min_comp_free_energy=0.5,
     #            sa_energy_weights=None,
     #            dg_length_mins=0.5,
     #            dg_update_interval=100,
-    #            traj_fpath=hx_rate_fpath+'_anneal_traj.csv',
-    #            anneal_data_output=hx_rate_fpath+'_anneal_data.csv',
-    #            dg_csv_output=hx_rate_fpath+'_dg_data.csv',
-    #            dg_data_output=hx_rate_fpath+'_dg_data.pickle',
-    #            dg_plot_path=hx_rate_fpath+'_dg_data.pdf',
+    #            traj_fpath=hx_fpath+'_anneal_traj.csv',
+    #            anneal_data_output=hx_fpath+'_anneal_data.csv',
+    #            dg_csv_output=hx_fpath+'_dg_data.csv',
+    #            dg_data_output=hx_fpath+'_dg_data.pickle',
+    #            dg_plot_path=hx_fpath+'_dg_data.pdf',
+    #            return_flag=False)
+
+    # dg_input = DgInput(hx_rate_fpath=hx_fpath,
+    #                    pH=6.00,
+    #                    temp=295,
+    #                    pdb_fpath=pdb_fpath,
+    #                    dg_intpol_fpath=dg_interpol_fpath)
+
+
+
+    # hbond_obj = gen_hbond_data(pdb_fpath=pdb_fpath)
+    #
+    # hh_pairlist = []
+    # for pairlist in hbond_obj.pairlist:
+    #     aa1, aa2, hh_dist = pairlist[0], pairlist[1], pairlist[2]
+    #     if hbond_obj.hbond_bool_list[aa1] and hbond_obj.hbond_bool_list[aa2]:
+    #         hh_pairlist.append([aa1, aa2, hh_dist])
+    # hh_pairlist = np.array(hh_pairlist)
+
+    # print('heho')
+    #
+    run_anneal_from_parser()
+    #
+
+    # merge_names = ['PDB1H8K_14.70437_PDB1H8K_14.73122',
+    #                'PDB3NGP_12.98532_PDB3NGP_13.56409',
+    #                'PDB1W6X_22.07855_PDB1W6X_22.0786',
+    #                'PDB5FWB_16.10001_PDB5FWB_16.10955',
+    #                'PDB2J5Y_13.15926_PDB2J5Y_13.15708',
+    #                'PDB2KY5_9.238_PDB2KY5_9.23759']
+    #
+    # # 4th index is the working case
+    #
+    # num = 5
+    #
+    # hx_rate_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/rates/' + merge_names[num] + '/' + merge_names[num] + '_hx_rate.csv'
+    # dg_interpol_fpath = "../../config/newrect.pickle"
+    # pdb_fpath = "/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/pdbs/" + merge_names[num].split('_')[0] + ".pdb"
+    #
+    # dg_mapping(hx_rate_fpath=hx_rate_fpath,
+    #            pdb_fpath=pdb_fpath,
+    #            dg_intpol_fpath=dg_interpol_fpath,
+    #            pH=6.00,
+    #            temp=295,
+    #            comp_dg_fpath=None,
+    #            min_free_energy=-10,
+    #            net_charge_corr=True,
+    #            min_comp_free_energy=0.5,
+    #            sa_energy_weights=None,
+    #            dg_length_mins=2,
+    #            dg_update_interval=100,
+    #            traj_fpath=hx_rate_fpath+'_anneal_traj_3.csv',
+    #            anneal_data_output=hx_rate_fpath+'_anneal_data_3.csv',
+    #            dg_csv_output=hx_rate_fpath+'_dg_data_3.csv',
+    #            dg_data_output=hx_rate_fpath+'_dg_data_3.pickle',
+    #            dg_plot_path=hx_rate_fpath+'_dg_data_3.pdf',
     #            return_flag=False)
