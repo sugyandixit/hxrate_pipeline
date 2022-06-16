@@ -1420,6 +1420,7 @@ def dg_mapping(hx_rate_fpath,
                                              distance_to_sec_struct_corr=np.nan,
                                              top_stdev=np.nan,
                                              comp_deltaG_rmse_term=np.nan)
+        dg_output.anneal_data.opt_val = np.nan
 
     if dg_csv_output is not None:
         write_dg_data_to_csv(seq_num=dg_output.res_num, dg_array=dg_output.dg_array, output_path=dg_csv_output)
