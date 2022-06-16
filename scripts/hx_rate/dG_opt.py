@@ -1433,6 +1433,10 @@ def dg_mapping(hx_rate_fpath,
                       min_free_energy=dg_input.metadata.min_free_energy,
                       output_path=dg_plot_path)
 
+    if traj_fpath is not None:
+        write_traj_file(traj_fpath=traj_fpath,
+                        init_header=True)
+
     # convert dg output to dict
     dg_output.anneal_data = vars(dg_output.anneal_data)
     dg_output = vars(dg_output)
@@ -1550,7 +1554,7 @@ if __name__ == '__main__':
     #
     # # 4th index is the working case
     #
-    # num = 5
+    # num = 4
     #
     # hx_rate_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/rates/' + merge_names[num] + '/' + merge_names[num] + '_hx_rate.csv'
     # dg_interpol_fpath = "../../config/newrect.pickle"
@@ -1566,7 +1570,7 @@ if __name__ == '__main__':
     #            net_charge_corr=True,
     #            min_comp_free_energy=0.5,
     #            sa_energy_weights=None,
-    #            dg_length_mins=2,
+    #            dg_length_mins=0.5,
     #            dg_update_interval=100,
     #            traj_fpath=hx_rate_fpath+'_anneal_traj_3.csv',
     #            anneal_data_output=hx_rate_fpath+'_anneal_data_3.csv',
