@@ -30,10 +30,10 @@ def write_tp_backexchange_(sequence: str,
                                              bkex_tp=bkex_tp,
                                              usr_backexchange=usr_backexchange,
                                              backexchange_corr_dict=bkexch_corr_dict)
-
-    write_backexchange_array(timepoints=tp,
-                             backexchange_array=backexchange_object.backexchange_array,
-                             output_path=output_path)
+    if output_path is not None:
+        write_backexchange_array(timepoints=tp,
+                                 backexchange_array=backexchange_object.backexchange_array,
+                                 output_path=output_path)
 
     if return_flag:
         return backexchange_object
