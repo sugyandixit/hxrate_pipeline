@@ -173,6 +173,10 @@ def gen_list_of_bkexch_and_saturation_bool(filepath_list,
 
     return out_dict
 
+#
+# def gen_list_of_bkexch_and_saturation_bool_from_list_of_bkexch_files(bkexch_file_list,
+#                                                                      )
+
 
 def write_low_high_backexchange_array(low_ph_protein_name,
                                       high_ph_protein_name,
@@ -516,7 +520,147 @@ def gen_low_high_ph_bkexchange_from_file_list(list_of_low_ph_hxms_files: list,
         out_dict['low_ph_saturation_bool_list'] = low_ph_bkexch_satur['saturation_bool_list']
         out_dict['high_ph_saturation_bool_list'] = high_ph_bkexch_satur['saturation_bool_list']
         return out_dict
-
+#
+#
+# def gen_low_high_ph_bkexchange_from_bkexch_file_list(list_of_low_ph_bkexch_files: list,
+#                                                      list_of_high_ph_bkexch_files: list,
+#                                                      low_ph_protname_list: list,
+#                                                      high_ph_protname_list: list,
+#                                                      sequence_list: list,
+#                                                      low_ph_d2o_frac: float,
+#                                                      low_ph_d2o_pur: float,
+#                                                      high_ph_d2o_frac: float,
+#                                                      high_ph_d2o_pur: float,
+#                                                      bkexchange_ub: float,
+#                                                      bkexchange_lb: float,
+#                                                      saturation_mass_rate_threshold: float,
+#                                                      lowph_backexchange_correction_filepath: str,
+#                                                      highph_backexchange_correction_filepath: str,
+#                                                      plot_output_path: str = None,
+#                                                      bkexchange_corr_output_path: str = None,
+#                                                      bkexchange_output_path: str = None,
+#                                                      return_flag: bool = False):
+#     """
+#
+#     :param merge_sample_list_fpath:
+#     :param low_ph_d2o_frac:
+#     :param low_ph_d2o_pur:
+#     :param high_ph_d2o_frac:
+#     :param high_ph_d2o_pur:
+#     :param bkexchange_ub:
+#     :param bkexchange_lb:
+#     :param plot_output_path:
+#     :param bkexchange_corr_output_path:
+#     :param bkexchange_output_path:
+#     :param return_flag:
+#     :return:
+#     """
+#
+#     low_ph_bkexch_satur = gen_list_of_bkexch_and_saturation_bool(filepath_list=list_of_low_ph_hxms_files,
+#                                                                  sequence_list=sequence_list,
+#                                                                  d2o_fraction=low_ph_d2o_frac,
+#                                                                  d2o_purity=low_ph_d2o_pur,
+#                                                                  mass_rate_threshold=saturation_mass_rate_threshold,
+#                                                                  dist_indices=[-1, -3],
+#                                                                  bkexch_corr_fpath=lowph_backexchange_correction_filepath)
+#
+#     high_ph_bkexch_satur = gen_list_of_bkexch_and_saturation_bool(filepath_list=list_of_high_ph_hxms_files,
+#                                                                   sequence_list=sequence_list,
+#                                                                   d2o_fraction=high_ph_d2o_frac,
+#                                                                   d2o_purity=high_ph_d2o_pur,
+#                                                                   mass_rate_threshold=saturation_mass_rate_threshold,
+#                                                                   dist_indices=[-1, -3],
+#                                                                   bkexch_corr_fpath=highph_backexchange_correction_filepath)
+#
+#     check_saturation_bool = []
+#     for bool_low, bool_high in zip(low_ph_bkexch_satur['saturation_bool_list'], high_ph_bkexch_satur['saturation_bool_list']):
+#         if bool_low:
+#             if bool_high:
+#                 check_saturation_bool.append(True)
+#             else:
+#                 check_saturation_bool.append(False)
+#         else:
+#             check_saturation_bool.append(False)
+#
+#     corr_include_indices = []
+#     no_corr_indices = []
+#     for ind, (low_ph_bkexch_, high_ph_bkexch_) in enumerate(zip(low_ph_bkexch_satur['backexchange_array'],
+#                                                                 high_ph_bkexch_satur['backexchange_array'])):
+#         if check_saturation_bool[ind]:
+#             if bkexchange_lb <= low_ph_bkexch_ <= bkexchange_ub:
+#                 if bkexchange_lb <= high_ph_bkexch_ <= bkexchange_ub:
+#                     corr_include_indices.append(ind)
+#                 else:
+#                     no_corr_indices.append(ind)
+#             else:
+#                 no_corr_indices.append(ind)
+#         else:
+#             no_corr_indices.append(ind)
+#
+#     corr_include_indices = np.array(corr_include_indices)
+#     no_corr_indices = np.array(no_corr_indices)
+#
+#     low_ph_bkexch_corr = low_ph_bkexch_satur['backexchange_array'][corr_include_indices]
+#     high_ph_bkexch_corr = high_ph_bkexch_satur['backexchange_array'][corr_include_indices]
+#
+#     low_ph_bkexch_nocorr = low_ph_bkexch_satur['backexchange_array'][no_corr_indices]
+#     high_ph_bkexch_nocorr = high_ph_bkexch_satur['backexchange_array'][no_corr_indices]
+#
+#     # use orthogonal distance regression for low and high ph correlation
+#     data = odr.Data(x=low_ph_bkexch_corr, y=high_ph_bkexch_corr)
+#     odr_object = odr.ODR(data=data, model=odr.unilinear)
+#     odr_output = odr_object.run()
+#
+#     corr_coef = np.corrcoef(x=low_ph_bkexch_corr,
+#                             y=high_ph_bkexch_corr)
+#
+#     # generate low ph backexchange if saturation not achieved
+#     low_ph_bkexch_new_arr = np.zeros(len(low_ph_bkexch_satur['backexchange_array']))
+#     for ind, (low_ph_bkexch, high_ph_bkexch, low_ph_satur) in enumerate(zip(low_ph_bkexch_satur['backexchange_array'],
+#                                                                             high_ph_bkexch_satur['backexchange_array'],
+#                                                                             low_ph_bkexch_satur['saturation_bool_list'])):
+#         if low_ph_satur:
+#             low_ph_bkexch_new_arr[ind] = low_ph_bkexch
+#         else:
+#             new_low_ph_bkexch = (high_ph_bkexch - odr_output.beta[1])/odr_output.beta[0]
+#             low_ph_bkexch_new_arr[ind] = new_low_ph_bkexch
+#
+#     plot_backexchange_correlation(low_ph_bkexch_corr,
+#                                   high_ph_bkexch_corr,
+#                                   low_ph_nocorr_backexch=low_ph_bkexch_nocorr,
+#                                   high_ph_nocorr_backexch=high_ph_bkexch_nocorr,
+#                                   corr_slope=odr_output.beta[0],
+#                                   corr_intercept=odr_output.beta[1],
+#                                   corr_r=corr_coef[0, 1],
+#                                   output_path=plot_output_path)
+#
+#     write_low_high_backexchange_correlation(slope=odr_output.beta[0],
+#                                             intercept=odr_output.beta[1],
+#                                             rvalue=corr_coef[0, 1],
+#                                             std_slope_error=odr_output.sd_beta[0],
+#                                             std_intercept_error=odr_output.sd_beta[1],
+#                                             output_path=bkexchange_corr_output_path)
+#
+#     write_low_high_backexchange_array(low_ph_protein_name=low_ph_protname_list,
+#                                       high_ph_protein_name=high_ph_protname_list,
+#                                       sequence_array=sequence_list,
+#                                       low_ph_backexchange_array=low_ph_bkexch_satur['backexchange_array'],
+#                                       high_ph_backexchange_array=high_ph_bkexch_satur['backexchange_array'],
+#                                       low_ph_saturation=low_ph_bkexch_satur['saturation_bool_list'],
+#                                       high_ph_saturation=high_ph_bkexch_satur['saturation_bool_list'],
+#                                       corr_include_indices=corr_include_indices,
+#                                       low_ph_backexchange_new=low_ph_bkexch_new_arr,
+#                                       output_path=bkexchange_output_path)
+#
+#     if return_flag:
+#         out_dict = dict()
+#         out_dict['low_ph_backexchange_array'] = low_ph_bkexch_satur['backexchange_array']
+#         out_dict['high_ph_backexchange_array'] = high_ph_bkexch_satur['backexchange_array']
+#         out_dict['low_ph_saturation_bool_list'] = low_ph_bkexch_satur['saturation_bool_list']
+#         out_dict['high_ph_saturation_bool_list'] = high_ph_bkexch_satur['saturation_bool_list']
+#         return out_dict
+#
+#
 
 def gen_parser_args():
     """
