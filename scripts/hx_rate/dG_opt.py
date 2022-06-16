@@ -1422,6 +1422,10 @@ def dg_mapping(hx_rate_fpath,
                                              comp_deltaG_rmse_term=np.nan)
         dg_output.anneal_data.opt_val = np.nan
 
+        if traj_fpath is not None:
+            write_traj_file(traj_fpath=traj_fpath,
+                            init_header=True)
+
     if dg_csv_output is not None:
         write_dg_data_to_csv(seq_num=dg_output.res_num, dg_array=dg_output.dg_array, output_path=dg_csv_output)
 
@@ -1433,10 +1437,6 @@ def dg_mapping(hx_rate_fpath,
                       res_num=dg_output.res_num,
                       min_free_energy=dg_input.metadata.min_free_energy,
                       output_path=dg_plot_path)
-
-    if traj_fpath is not None:
-        write_traj_file(traj_fpath=traj_fpath,
-                        init_header=True)
 
     # convert dg output to dict
     dg_output.anneal_data = vars(dg_output.anneal_data)
