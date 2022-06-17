@@ -248,19 +248,25 @@ def write_dg_fit_summary(list_of_dg_pk_files, output_fpath, file_delim_string):
             pkfname = os.path.split(pkfpath)[-1].strip(file_delim_string)
             pkobj = load_pickle_object(pkfpath)
 
+            max_dg = np.nan
+            if pkobj['dg_map_valid']:
+                dg_arr = pkobj['dg_array']
+                dg_arr_nonan = dg_arr[~np.isnan(dg_arr)]
+                max_dg = max_dg(dg_arr_nonan)
+
             line = '{},{},{},{},{},{},{},{},{},{},{},{},{}\n'.format(pkfname,
-                                                                  pkobj['protein_name'],
-                                                                  pkobj['protein_full_sequence'],
-                                                                  max(pkobj['dg_array']),
-                                                                  pkobj['anneal_data']['opt_val'],
-                                                                  pkobj['anneal_data']['pair_energy'],
-                                                                  pkobj['anneal_data']['full_burial_corr'],
-                                                                  pkobj['anneal_data']['hbond_burial_corr'],
-                                                                  pkobj['anneal_data']['hbond_rank_factor'],
-                                                                  pkobj['anneal_data']['distance_to_nonpolar_res_corr'],
-                                                                  pkobj['anneal_data']['distance_to_sec_struct_corr'],
-                                                                  pkobj['anneal_data']['top_stdev'],
-                                                                  pkobj['anneal_data']['comp_deltaG_rmse_term'])
+                                                                     pkobj['protein_name'],
+                                                                     pkobj['protein_full_sequence'],
+                                                                     max_dg,
+                                                                     pkobj['anneal_data']['opt_val'],
+                                                                     pkobj['anneal_data']['pair_energy'],
+                                                                     pkobj['anneal_data']['full_burial_corr'],
+                                                                     pkobj['anneal_data']['hbond_burial_corr'],
+                                                                     pkobj['anneal_data']['hbond_rank_factor'],
+                                                                     pkobj['anneal_data']['distance_to_nonpolar_res_corr'],
+                                                                     pkobj['anneal_data']['distance_to_sec_struct_corr'],
+                                                                     pkobj['anneal_data']['top_stdev'],
+                                                                     pkobj['anneal_data']['comp_deltaG_rmse_term'])
             outfile.write(line)
 
         outfile.close()
