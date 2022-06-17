@@ -364,7 +364,7 @@ if config['dg_calc']:
         params:
             mode = 'dg'
         output:
-            output_path = summary_output_path + '/summary_dg.csv'
+            output_path = summary_output_path + '/summary_dg_nomatches.csv'
         benchmark:
             benchmark_dpath + '/summary_dg_nomatches.benchmark.txt'
         shell:
