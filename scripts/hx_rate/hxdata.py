@@ -252,7 +252,7 @@ def write_dg_fit_summary(list_of_dg_pk_files, output_fpath, file_delim_string):
             if pkobj['dg_map_valid']:
                 dg_arr = pkobj['dg_array']
                 dg_arr_nonan = dg_arr[~np.isnan(dg_arr)]
-                max_dg = max_dg(dg_arr_nonan)
+                max_dg = max(dg_arr_nonan)
 
             line = '{},{},{},{},{},{},{},{},{},{},{},{},{}\n'.format(pkfname,
                                                                      pkobj['protein_name'],
