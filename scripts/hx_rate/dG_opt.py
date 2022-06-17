@@ -1498,32 +1498,32 @@ def run_anneal_from_parser():
 
 if __name__ == '__main__':
 
-    pdb_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/pdbs/PDB1H8K.pdb'
-
-    hx_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/rates/PDB1H8K_14.70437_PDB1H8K_14.73122/PDB1H8K_14.70437_PDB1H8K_14.73122_hx_rate.csv'
-
-    dg_interpol_fpath = "../../config/newrect.pickle"
-
-    dg_mapping(hx_rate_fpath=hx_fpath,
-               pdb_fpath=pdb_fpath,
-               dg_intpol_fpath=dg_interpol_fpath,
-               pH=6.00,
-               temp=295,
-               comp_dg_fpath=None,
-               min_free_energy=-10,
-               net_charge_corr=True,
-               min_comp_free_energy=0.5,
-               sa_energy_weights=None,
-               dg_length_mins=0.5,
-               dg_update_interval=100,
-               traj_fpath=hx_fpath+'_anneal_traj.csv',
-               anneal_data_output=hx_fpath+'_anneal_data.csv',
-               dg_csv_output=hx_fpath+'_dg_data.csv',
-               dg_data_output=hx_fpath+'_dg_data.pickle',
-               dg_plot_path=hx_fpath+'_dg_data.pdf',
-               return_flag=False)
-
-    stop
+    # pdb_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/pdbs/PDB1H8K.pdb'
+    #
+    # hx_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/rates/PDB1H8K_14.70437_PDB1H8K_14.73122/PDB1H8K_14.70437_PDB1H8K_14.73122_hx_rate.csv'
+    #
+    # dg_interpol_fpath = "../../config/newrect.pickle"
+    #
+    # dg_mapping(hx_rate_fpath=hx_fpath,
+    #            pdb_fpath=pdb_fpath,
+    #            dg_intpol_fpath=dg_interpol_fpath,
+    #            pH=6.00,
+    #            temp=295,
+    #            comp_dg_fpath=None,
+    #            min_free_energy=-10,
+    #            net_charge_corr=True,
+    #            min_comp_free_energy=0.5,
+    #            sa_energy_weights=None,
+    #            dg_length_mins=0.5,
+    #            dg_update_interval=100,
+    #            traj_fpath=hx_fpath+'_anneal_traj.csv',
+    #            anneal_data_output=hx_fpath+'_anneal_data.csv',
+    #            dg_csv_output=hx_fpath+'_dg_data.csv',
+    #            dg_data_output=hx_fpath+'_dg_data.pickle',
+    #            dg_plot_path=hx_fpath+'_dg_data.pdf',
+    #            return_flag=False)
+    #
+    # stop
 
     # dg_input = DgInput(hx_rate_fpath=hx_fpath,
     #                    pH=6.00,
