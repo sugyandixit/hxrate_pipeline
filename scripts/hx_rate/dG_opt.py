@@ -1299,11 +1299,11 @@ def plot_dg_dist_(mapped_energy, res_num, min_free_energy, output_path):
 
     res_num_re = res_num[res_num > 0]
     mapped_energy_re = mapped_energy[res_num > 0]
-    mapped_energy_re[mapped_energy_re == min_free_energy] = 0.0
+    mapped_energy_re[mapped_energy_re == min_free_energy] = np.nan
 
     num_rows = 2
     num_columns = 1
-    fig_size = (7, 5 * num_rows)
+    fig_size = (7, 3 * num_rows)
     fig = plt.figure(figsize=fig_size)
     gs = fig.add_gridspec(nrows=num_rows, ncols=num_columns)
 
@@ -1317,9 +1317,8 @@ def plot_dg_dist_(mapped_energy, res_num, min_free_energy, output_path):
     plt.grid(alpha=0.25)
     ax.tick_params(length=3, pad=3)
 
-    map_energy_no_nan = mapped_energy[~np.isnan(mapped_energy)]
+    map_energy_no_nan = mapped_energy_re[~np.isnan(mapped_energy_re)]
     sort_map_energy_no_nan = np.sort(map_energy_no_nan)[::-1]
-    # sort_map_energy = [~numpy.isnan(x)]
 
     ax2 = fig.add_subplot(gs[1, 0])
     plt.plot(sort_map_energy_no_nan, marker='o', ls='-', markerfacecolor='red', markeredgecolor='black', color='red')
@@ -1499,30 +1498,32 @@ def run_anneal_from_parser():
 
 if __name__ == '__main__':
 
-    # pdb_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/PDB1H8K.pdb'
-    #
-    # hx_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/rates/PDB1H8K_14.70437_PDB1H8K_14.73122/PDB1H8K_14.70437_PDB1H8K_14.73122_hx_rate.csv'
-    #
-    # dg_interpol_fpath = "../../config/newrect.pickle"
-    #
-    # dg_mapping(hx_rate_fpath=hx_fpath,
-    #            pdb_fpath=pdb_fpath,
-    #            dg_intpol_fpath=dg_interpol_fpath,
-    #            pH=6.00,
-    #            temp=295,
-    #            comp_dg_fpath=None,
-    #            min_free_energy=-10,
-    #            net_charge_corr=True,
-    #            min_comp_free_energy=0.5,
-    #            sa_energy_weights=None,
-    #            dg_length_mins=0.5,
-    #            dg_update_interval=100,
-    #            traj_fpath=hx_fpath+'_anneal_traj.csv',
-    #            anneal_data_output=hx_fpath+'_anneal_data.csv',
-    #            dg_csv_output=hx_fpath+'_dg_data.csv',
-    #            dg_data_output=hx_fpath+'_dg_data.pickle',
-    #            dg_plot_path=hx_fpath+'_dg_data.pdf',
-    #            return_flag=False)
+    pdb_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/pdbs/PDB1H8K.pdb'
+
+    hx_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/rates/PDB1H8K_14.70437_PDB1H8K_14.73122/PDB1H8K_14.70437_PDB1H8K_14.73122_hx_rate.csv'
+
+    dg_interpol_fpath = "../../config/newrect.pickle"
+
+    dg_mapping(hx_rate_fpath=hx_fpath,
+               pdb_fpath=pdb_fpath,
+               dg_intpol_fpath=dg_interpol_fpath,
+               pH=6.00,
+               temp=295,
+               comp_dg_fpath=None,
+               min_free_energy=-10,
+               net_charge_corr=True,
+               min_comp_free_energy=0.5,
+               sa_energy_weights=None,
+               dg_length_mins=0.5,
+               dg_update_interval=100,
+               traj_fpath=hx_fpath+'_anneal_traj.csv',
+               anneal_data_output=hx_fpath+'_anneal_data.csv',
+               dg_csv_output=hx_fpath+'_dg_data.csv',
+               dg_data_output=hx_fpath+'_dg_data.pickle',
+               dg_plot_path=hx_fpath+'_dg_data.pdf',
+               return_flag=False)
+
+    stop
 
     # dg_input = DgInput(hx_rate_fpath=hx_fpath,
     #                    pH=6.00,
