@@ -187,7 +187,7 @@ def fit_rate_from_to_file(prot_name: str,
                           d2o_fraction: float,
                           d2o_purity: float,
                           ph: float = None,
-                          temp: float = NOne,
+                          temp: float = None,
                           usr_backexchange: float = None,
                           backexchange_corr_fpath: str = None,
                           backexchange_array_fpath: str = None,
@@ -319,6 +319,8 @@ def gen_parser_arguments():
     parser.add_argument('-i', '--hxdist', help='hx mass distribution input file .csv')
     parser.add_argument('-df', '--d2o_frac', help='d2o fracion', default=0.95)
     parser.add_argument('-dp', '--d2o_pur', help='d2o purity', default=0.95)
+    parser.add_argument('-ph', '--phval', help='ph value', type=float, default=6.0)
+    parser.add_argument('-tm', '--temp', help='temp value K', type=float, default=295)
     parser.add_argument('-ub', '--user_bkexchange', help='user defined backexchange', default=None)
     parser.add_argument('-bcf', '--bkexchange_corr_fpath', help='backexchange correction filepath .csv')
     parser.add_argument('-baf', '--bkexchange_array_fpath', help='backexchange array filepath .csv')
@@ -355,6 +357,8 @@ def hx_rate_fitting_from_parser(parser):
                           hx_ms_dist_fpath=options.hxdist,
                           d2o_fraction=float(options.d2o_frac),
                           d2o_purity=float(options.d2o_pur),
+                          ph=options.phval,
+                          temp=options.temp,
                           usr_backexchange=user_backexchange,
                           backexchange_corr_fpath=options.bkexchange_corr_fpath,
                           backexchange_array_fpath=options.bkexchange_array_fpath,
