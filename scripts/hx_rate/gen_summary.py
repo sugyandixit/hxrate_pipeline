@@ -2,13 +2,19 @@ import argparse
 from hxdata import write_merge_dist_summary, write_rate_fit_summary, write_dg_fit_summary
 
 
-def write_summary(list_of_files, output_path, file_delim_str='', list_of_protein_names=None, mode='rate'):
+def write_summary(list_of_files,
+                  output_path,
+                  file_delim_str='',
+                  list_of_protein_names=None,
+                  list_of_ph=None,
+                  mode='rate'):
     """
 
     :param list_of_files:
     :param output_path:
     :param file_delim_str:
     :param list_of_protein_names:
+    :param list_of_ph:
     :param mode:
     :return:
     """
@@ -16,6 +22,7 @@ def write_summary(list_of_files, output_path, file_delim_str='', list_of_protein
     if mode == 'rate':
 
         write_rate_fit_summary(list_of_ratefit_pk_files=list_of_files,
+                               list_of_ph=list_of_ph,
                                output_fpath=output_path,
                                file_delim_string=file_delim_str)
 
@@ -29,6 +36,7 @@ def write_summary(list_of_files, output_path, file_delim_str='', list_of_protein
     elif mode == 'dg':
 
         write_dg_fit_summary(list_of_dg_pk_files=list_of_files,
+                             list_of_ph=list_of_ph,
                              output_fpath=output_path,
                              file_delim_string=file_delim_str)
 
@@ -59,6 +67,7 @@ def run_from_parser():
                   output_path=options.output,
                   file_delim_str=options.delim,
                   list_of_protein_names=options.listprotnames,
+                  list_of_ph=options.listph,
                   mode=options.mode)
 
 
