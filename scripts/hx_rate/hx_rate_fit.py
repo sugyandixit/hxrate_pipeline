@@ -23,6 +23,10 @@ class ExpData(object):
     timepoints: np.ndarray = None
     exp_isotope_dist_array: np.ndarray = None
     gauss_fit: list = None
+    d2o_frac: float = None
+    d2o_pur: float = None
+    temp: float = None
+    ph: float = None
 
 
 @dataclass
@@ -53,6 +57,8 @@ def fit_rate_bayes_(prot_name: str,
                     num_chains: int,
                     num_warmups: int,
                     num_samples: int,
+                    ph: float = None,
+                    temp: float = None,
                     sample_backexchange: bool = False,
                     return_posterior_distribution: bool = False,
                     adj_backexchange: bool = True,
@@ -71,7 +77,11 @@ def fit_rate_bayes_(prot_name: str,
     expdata = ExpData(protein_name=prot_name,
                       protein_sequence=sequence,
                       timepoints=time_points,
-                      exp_isotope_dist_array=norm_mass_distribution_array)
+                      exp_isotope_dist_array=norm_mass_distribution_array,
+                      d2o_frac=d2o_fraction,
+                      d2o_pur=d2o_purity,
+                      ph=ph,
+                      temp=temp)
 
     # fit gaussian to exp data
     expdata.gauss_fit = gauss_fit_to_isotope_dist_array(norm_mass_distribution_array)
@@ -176,6 +186,8 @@ def fit_rate_from_to_file(prot_name: str,
                           hx_ms_dist_fpath: str,
                           d2o_fraction: float,
                           d2o_purity: float,
+                          ph: float = None,
+                          temp: float = NOne,
                           usr_backexchange: float = None,
                           backexchange_corr_fpath: str = None,
                           backexchange_array_fpath: str = None,
@@ -222,6 +234,8 @@ def fit_rate_from_to_file(prot_name: str,
                                     num_chains=num_chains,
                                     num_samples=num_samples,
                                     num_warmups=num_warmups,
+                                    ph=ph,
+                                    temp=temp,
                                     sample_backexchange=sample_backexchange,
                                     return_posterior_distribution=return_posterior_distribution,
                                     adj_backexchange=adjust_backexchange,
