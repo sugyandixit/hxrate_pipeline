@@ -211,11 +211,12 @@ def write_merge_dist_summary(list_of_csv_files, output_fpath, list_of_protein_na
 
 
 def write_rate_fit_summary(list_of_ratefit_pk_files, output_fpath,
+                           ph='merge',
                            file_delim_string='_hx_rate_fit.pickle'):
 
     with open(output_fpath, 'w') as outfile:
 
-        header = 'fname,prot_name,sequence,backexchange,backexchange_res_subtract,rate_fit_rmse\n'
+        header = 'fname,ph,prot_name,sequence,backexchange,backexchange_res_subtract,rate_fit_rmse\n'
         outfile.write(header)
 
         for ind, pkfpath in enumerate(list_of_ratefit_pk_files):
@@ -223,23 +224,24 @@ def write_rate_fit_summary(list_of_ratefit_pk_files, output_fpath,
             pkfname = os.path.split(pkfpath)[-1].strip(file_delim_string)
             pkobj = load_pickle_object(pkfpath)
 
-            line = '{},{},{},{},{},{}\n'.format(pkfname,
-                                                pkobj['exp_data']['protein_name'],
-                                                pkobj['exp_data']['protein_sequence'],
-                                                pkobj['back_exchange']['backexchange_value'],
-                                                pkobj['back_exchange_res_subtract'],
-                                                pkobj['bayesfit_output']['rmse']['total'])
+            line = '{},{},{},{},{},{},{}\n'.format(pkfname,
+                                                   ph,
+                                                   pkobj['exp_data']['protein_name'],
+                                                   pkobj['exp_data']['protein_sequence'],
+                                                   pkobj['back_exchange']['backexchange_value'],
+                                                   pkobj['back_exchange_res_subtract'],
+                                                   pkobj['bayesfit_output']['rmse']['total'])
 
             outfile.write(line)
 
         outfile.close()
 
 
-def write_dg_fit_summary(list_of_dg_pk_files, output_fpath, file_delim_string):
+def write_dg_fit_summary(list_of_dg_pk_files, output_fpath, ph='merge', file_delim_string='_dg_data.pickle'):
 
     with open(output_fpath, 'w') as outfile:
 
-        header = 'fname,prot_name,sequence,max_dg,opt_val,pair_energy,full_burial_corr,hbond_burial_corr,hbond_rank_factor,distance_to_nonpolar_res_corr,distance_to_sec_struct_corr,top_stdev,comp_deltag_rmse\n'
+        header = 'fname,ph,prot_name,sequence,max_dg,opt_val,pair_energy,full_burial_corr,hbond_burial_corr,hbond_rank_factor,distance_to_nonpolar_res_corr,distance_to_sec_struct_corr,top_stdev,comp_deltag_rmse\n'
 
         outfile.write(header)
 
@@ -254,19 +256,20 @@ def write_dg_fit_summary(list_of_dg_pk_files, output_fpath, file_delim_string):
                 dg_arr_nonan = dg_arr[~np.isnan(dg_arr)]
                 max_dg = max(dg_arr_nonan)
 
-            line = '{},{},{},{},{},{},{},{},{},{},{},{},{}\n'.format(pkfname,
-                                                                     pkobj['protein_name'],
-                                                                     pkobj['protein_full_sequence'],
-                                                                     max_dg,
-                                                                     pkobj['anneal_data']['opt_val'],
-                                                                     pkobj['anneal_data']['pair_energy'],
-                                                                     pkobj['anneal_data']['full_burial_corr'],
-                                                                     pkobj['anneal_data']['hbond_burial_corr'],
-                                                                     pkobj['anneal_data']['hbond_rank_factor'],
-                                                                     pkobj['anneal_data']['distance_to_nonpolar_res_corr'],
-                                                                     pkobj['anneal_data']['distance_to_sec_struct_corr'],
-                                                                     pkobj['anneal_data']['top_stdev'],
-                                                                     pkobj['anneal_data']['comp_deltaG_rmse_term'])
+            line = '{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n'.format(pkfname,
+                                                                        ph,
+                                                                        pkobj['protein_name'],
+                                                                        pkobj['protein_full_sequence'],
+                                                                        max_dg,
+                                                                        pkobj['anneal_data']['opt_val'],
+                                                                        pkobj['anneal_data']['pair_energy'],
+                                                                        pkobj['anneal_data']['full_burial_corr'],
+                                                                        pkobj['anneal_data']['hbond_burial_corr'],
+                                                                        pkobj['anneal_data']['hbond_rank_factor'],
+                                                                        pkobj['anneal_data']['distance_to_nonpolar_res_corr'],
+                                                                        pkobj['anneal_data']['distance_to_sec_struct_corr'],
+                                                                        pkobj['anneal_data']['top_stdev'],
+                                                                        pkobj['anneal_data']['comp_deltaG_rmse_term'])
             outfile.write(line)
 
         outfile.close()
