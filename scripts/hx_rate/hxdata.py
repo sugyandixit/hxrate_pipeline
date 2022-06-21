@@ -197,13 +197,13 @@ def write_merge_dist_summary(list_of_csv_files, output_fpath, list_of_protein_na
             df = pd.read_csv(csv_fpath)
 
             line = '{},{},{},{},{},{},{},{}\n'.format(merge_name,
-                                                   prot_name,
-                                                   df['factor'].values[0],
-                                                   df['mse'].values[0],
-                                                   df['opt_nfev'].values[0],
-                                                   df['opt_nit'].values[0],
-                                                   df['opt_success'].values[0],
-                                                   df['opt_message'].values[0])
+                                                      prot_name,
+                                                      df['factor'].values[0],
+                                                      df['mse'].values[0],
+                                                      df['opt_nfev'].values[0],
+                                                      df['opt_nit'].values[0],
+                                                      df['opt_success'].values[0],
+                                                      df['opt_message'].values[0])
 
             outfile.write(line)
 
