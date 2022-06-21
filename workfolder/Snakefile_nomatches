@@ -300,6 +300,7 @@ rule fit_hx_rates_:
         prot_name = lambda wildcards: prot_name_dict_[wildcards.prot_rt_name],
         d2o_frac = lambda wildcards: d2o_frac_dict[ph_dict_[wildcards.prot_rt_name]],
         d2o_pur = lambda wildcards: d2o_pur_dict[ph_dict_[wildcards.prot_rt_name]],
+        ph= lambda wildcards: ph_dict_[wildcards.prot_rt_name],
         adjust_backexchange = adjust_backexchange_param,
         sample_backexchange = sample_backexchange_param,
         num_chains = config['num_chains'],
@@ -315,14 +316,14 @@ rule fit_hx_rates_:
         benchmark_dpath + '/{prot_rt_name}_fit_hx_rate.benchmark.txt'
     # threads: config['num_chains']
     shell:
-        'python ' + hx_rate_fit_python_path + ' -p {params.prot_name} -s {params.prot_seq} -i {input.hx_dist_fpath} -df {params.d2o_frac} -dp {params.d2o_pur} -bcf {input.bkexch_corr_fpath} {params.adjust_backexchange} -nc {params.num_chains} -nw {params.num_warmups} -ns {params.num_samples} {params.sample_backexchange} -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -opp {output.posterior_plot_file} -od {output.iso_dist_file}'
+        'python ' + hx_rate_fit_python_path + ' -p {params.prot_name} -s {params.prot_seq} -i {input.hx_dist_fpath} -df {params.d2o_frac} -dp {params.d2o_pur} -ph {params.ph} -bcf {input.bkexch_corr_fpath} {params.adjust_backexchange} -nc {params.num_chains} -nw {params.num_warmups} -ns {params.num_samples} {params.sample_backexchange} -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -opp {output.posterior_plot_file} -od {output.iso_dist_file}'
 
 
 rule summary_rate:
     input:
         list_of_files = expand(hxrate_dpath + '/{prot_rt_name}/{prot_rt_name}_hx_rate_fit.pickle', prot_rt_name=prot_rt_name_list_)
     params:
-        mode = 'rate'
+        mode = 'rate',
     output:
         output_path = summary_output_path + '/summary_rate_nomatches.csv'
     benchmark:
