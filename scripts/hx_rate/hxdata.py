@@ -211,11 +211,11 @@ def write_merge_dist_summary(list_of_csv_files, output_fpath, list_of_protein_na
 
 
 def write_rate_fit_summary(list_of_ratefit_pk_files, output_fpath,
-                           ph=None,
+                           list_of_ph=None,
                            file_delim_string='_hx_rate_fit.pickle'):
 
-    if ph is None:
-        ph = ['UNK' for _ in range(len(list_of_ratefit_pk_files))]
+    if list_of_ph is None:
+        list_of_ph = ['UNK' for _ in range(len(list_of_ratefit_pk_files))]
 
     with open(output_fpath, 'w') as outfile:
 
@@ -228,7 +228,7 @@ def write_rate_fit_summary(list_of_ratefit_pk_files, output_fpath,
             pkobj = load_pickle_object(pkfpath)
 
             line = '{},{},{},{},{},{},{}\n'.format(pkfname,
-                                                   ph[ind],
+                                                   list_of_ph[ind],
                                                    pkobj['exp_data']['protein_name'],
                                                    pkobj['exp_data']['protein_sequence'],
                                                    pkobj['back_exchange']['backexchange_value'],
@@ -240,10 +240,10 @@ def write_rate_fit_summary(list_of_ratefit_pk_files, output_fpath,
         outfile.close()
 
 
-def write_dg_fit_summary(list_of_dg_pk_files, output_fpath, ph=None, file_delim_string='_dg_data.pickle'):
+def write_dg_fit_summary(list_of_dg_pk_files, output_fpath, list_of_ph=None, file_delim_string='_dg_data.pickle'):
 
-    if ph is None:
-        ph = ['UNK' for _ in range(len(list_of_dg_pk_files))]
+    if list_of_ph is None:
+        list_of_ph = ['UNK' for _ in range(len(list_of_dg_pk_files))]
 
     with open(output_fpath, 'w') as outfile:
 
@@ -263,7 +263,7 @@ def write_dg_fit_summary(list_of_dg_pk_files, output_fpath, ph=None, file_delim_
                 max_dg = max(dg_arr_nonan)
 
             line = '{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n'.format(pkfname,
-                                                                        ph[ind],
+                                                                        list_of_ph[ind],
                                                                         pkobj['protein_name'],
                                                                         pkobj['protein_full_sequence'],
                                                                         max_dg,
