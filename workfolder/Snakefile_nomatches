@@ -13,10 +13,10 @@ configfile: 'config_merge.yml'
 config_dirpath = config['path_to_repo'] + '/config'
 benchmark_dpath = config['output_dirpath'] + '/benchmark'
 backexchange_output_path = config['output_dirpath'] + '/backexchange'
-merge_dpath = config['output_dirpath'] + '/merge_distribution'
-hxrate_dpath = config['output_dirpath'] + '/rates'
-dg_output_path = config['output_dirpath'] + '/dG'
-summary_output_path = config['output_dirpath'] + '/summary'
+
+hxrate_dpath = config['output_dirpath'] + '/nomatches/rates'
+dg_output_path = config['output_dirpath'] + '/nomatches/dG'
+summary_output_path = config['output_dirpath'] + '/nomatches/summary'
 
 # set the python scripts path
 scripts_dirpath = config['path_to_repo'] + '/scripts/hx_rate'
