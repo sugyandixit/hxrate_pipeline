@@ -6,7 +6,6 @@ def write_summary(list_of_files,
                   output_path,
                   file_delim_str='',
                   list_of_protein_names=None,
-                  list_of_ph=None,
                   mode='rate'):
     """
 
@@ -22,7 +21,6 @@ def write_summary(list_of_files,
     if mode == 'rate':
 
         write_rate_fit_summary(list_of_ratefit_pk_files=list_of_files,
-                               list_of_ph=list_of_ph,
                                output_fpath=output_path,
                                file_delim_string=file_delim_str)
 
@@ -36,7 +34,6 @@ def write_summary(list_of_files,
     elif mode == 'dg':
 
         write_dg_fit_summary(list_of_dg_pk_files=list_of_files,
-                             list_of_ph=list_of_ph,
                              output_fpath=output_path,
                              file_delim_string=file_delim_str)
 
