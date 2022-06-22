@@ -13,7 +13,6 @@ def write_summary(list_of_files,
     :param output_path:
     :param file_delim_str:
     :param list_of_protein_names:
-    :param list_of_ph:
     :param mode:
     :return:
     """
