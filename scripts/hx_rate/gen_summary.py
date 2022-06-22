@@ -47,7 +47,6 @@ def gen_parser_args():
     parser = argparse.ArgumentParser(prog='WRITE SUMMARY')
     parser.add_argument('-l', '--listfiles', nargs='+', help='list of files')
     parser.add_argument('-lp', '--listprotnames', nargs='+', default=None, help='list of protein names')
-    parser.add_argument('-lph', '--listph', nargs='+', default=None, help='list of phs')
     parser.add_argument('-d', '--delim', type=str, default='', help='file delim string')
     parser.add_argument('-m', '--mode', type=str, choices=['merge', 'rate', 'dg'], help='summary writing mode')
     parser.add_argument('-o', '--output', type=str, help='output file path .csv')
@@ -64,7 +63,6 @@ def run_from_parser():
                   output_path=options.output,
                   file_delim_str=options.delim,
                   list_of_protein_names=options.listprotnames,
-                  list_of_ph=options.listph,
                   mode=options.mode)
 
 
