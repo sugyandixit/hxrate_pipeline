@@ -27,13 +27,13 @@ to run multiple instances of pipeline
 
 Install Snakemake first!
 
-'conda install -n base -c conda-forge mamba'
+`conda install -n base -c conda-forge mamba`
 
-'conda activate base'
-'mamba create -c conda-forge -c bioconda -n snakemake snakemake'
+`conda activate base`
+`mamba create -c conda-forge -c bioconda -n snakemake snakemake`
 
 Activate snakemake environment
-'conda activate snakemake or $ source activate snakemake'
+`conda activate snakemake or $ source activate snakemake`
 
 Snakemake installation instructions can be found here: https://snakemake.readthedocs.io/en/stable/getting_started/installation.html
 
@@ -56,7 +56,7 @@ configfile: config/config.yml. Config file has all the parameters set to run rat
 Snakefile: workfoler/Snakefile. Make sure to change the path to config file in the begining of the file to the correct one before running
 
 
-'nohup snakemake -s Snakefile -j 1000 --use-conda --keep-going --cluster "sbatch -A p30802 -p short -N 1 -n 1 --mem=4GB -t 04:00:00" --max-jobs-per-second 3 > nohup_snakefile.out &'
+`nohup snakemake -s Snakefile -j 1000 --use-conda --keep-going --cluster "sbatch -A p30802 -p short -N 1 -n 1 --mem=4GB -t 04:00:00" --max-jobs-per-second 3 > nohup_snakefile.out &`
 
 
 ## **Low and high pH data**
@@ -73,9 +73,9 @@ Snakefile_nomatches looks for proteins that didn't match and runs rate fitting -
 Merge_Snakefile will create backexchange correction files which will be necessary to run Snakefile_nomatches so make sure you run Snakefile_nomatches after backexchange correction files are produced
 
 
-'nohup snakemake -s Merge_Snakefile -j 1000 --use-conda --keep-going --cluster "sbatch -A p30802 -p short -N 1 -n 1 --mem=4GB -t 04:00:00" --max-jobs-per-second 3 > nohup_merge_snakefile.out &'
+`nohup snakemake -s Merge_Snakefile -j 1000 --use-conda --keep-going --cluster "sbatch -A p30802 -p short -N 1 -n 1 --mem=4GB -t 04:00:00" --max-jobs-per-second 3 > nohup_merge_snakefile.out &`
 
-'nohup snakemake -s Snakefile_nomatches -j 1000 --use-conda --keep-going --cluster "sbatch -A p30802 -p short -N 1 -n 1 --mem=4GB -t 04:00:00" --max-jobs-per-second 3 > nohup_snakefile_nomatches.out &'
+`nohup snakemake -s Snakefile_nomatches -j 1000 --use-conda --keep-going --cluster "sbatch -A p30802 -p short -N 1 -n 1 --mem=4GB -t 04:00:00" --max-jobs-per-second 3 > nohup_snakefile_nomatches.out &`
 
 
 ## **RUN VIA SCRIPTS**
