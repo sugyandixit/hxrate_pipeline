@@ -20,5 +20,6 @@ dependencies:
   - pip:
       - biopython==1.79
       - molmass==2021.6.18
-      - jax
-      - jaxlib>=0.3.7
+      - jax==0.2.25
+      - jaxlib==0.1.74
+      - psutil==5.8.0
