@@ -40,7 +40,7 @@ Activate snakemake environment
  or
 
  `source activate snakemake`
- 
+
 
 Snakemake installation instructions can be found here: https://snakemake.readthedocs.io/en/stable/getting_started/installation.html
 
@@ -81,6 +81,7 @@ Merge_Snakefile will create backexchange correction files which will be necessar
 
 
 `nohup snakemake -s Merge_Snakefile -j 1000 --use-conda --keep-going --cluster "sbatch -A p30802 -p short -N 1 -n 1 --mem=4GB -t 04:00:00" --max-jobs-per-second 3 > nohup_merge_snakefile.out &`
+
 
 `nohup snakemake -s Snakefile_nomatches -j 1000 --use-conda --keep-going --cluster "sbatch -A p30802 -p short -N 1 -n 1 --mem=4GB -t 04:00:00" --max-jobs-per-second 3 > nohup_snakefile_nomatches.out &`
 
