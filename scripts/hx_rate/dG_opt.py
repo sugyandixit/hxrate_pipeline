@@ -1498,6 +1498,8 @@ def run_anneal_from_parser():
 
 if __name__ == '__main__':
 
+    run_anneal_from_parser()
+
     # pdb_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/pdbs/PDB1H8K.pdb'
     #
     # hx_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/rates/PDB1H8K_14.70437_PDB1H8K_14.73122/PDB1H8K_14.70437_PDB1H8K_14.73122_hx_rate.csv'
@@ -1544,8 +1546,8 @@ if __name__ == '__main__':
 
     # print('heho')
     #
-    run_anneal_from_parser()
-    #
+
+    ############################################################
 
     # merge_names = ['PDB1H8K_14.70437_PDB1H8K_14.73122',
     #                'PDB3NGP_12.98532_PDB3NGP_13.56409',
