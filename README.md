@@ -30,10 +30,17 @@ Install Snakemake first!
 `conda install -n base -c conda-forge mamba`
 
 `conda activate base`
+
 `mamba create -c conda-forge -c bioconda -n snakemake snakemake`
 
 Activate snakemake environment
-`conda activate snakemake or $ source activate snakemake`
+
+`conda activate snakemake`
+
+ or
+
+ `source activate snakemake`
+ 
 
 Snakemake installation instructions can be found here: https://snakemake.readthedocs.io/en/stable/getting_started/installation.html
 
