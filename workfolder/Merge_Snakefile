@@ -28,6 +28,9 @@ gen_backexch_corr_low_high_python_path = scripts_dirpath + '/gen_backexchange_co
 dg_opt_python_path = scripts_dirpath + '/dG_opt.py'
 summary_python_path = scripts_dirpath + '/gen_summary.py'
 
+# set the environment file
+env_fpath = config['path_to_repo'] + '/envs/hxrate.yml'
+
 
 def gen_prot_name_seq_list(hxms_dist_top_dir,
                            hdxlim_dir_struct,
@@ -277,6 +280,8 @@ if config['low_ph_backexchange_correction_fpath'] is None:
             corr_plot_path = backexchange_output_path + '/low_ph_bkexch_corr.pdf'
         benchmark:
             benchmark_dpath + '/gen_tp_specific_bkexch_low.benchmark.txt'
+        conda:
+            env_fpath
         shell:
             'python ' + gen_time_specific_bkexch_path + ' -l {input.list_of_hx_fpaths} -s {params.delim_string} -r {params.rate_tol} -c {params.change_rate_threshold} -m {params.min_num_points} -p {output.corr_plot_path} -o {output.corr_fpath}'
 
@@ -289,6 +294,8 @@ else:
             backexchange_output_path + '/low_ph_bkexch_corr.csv'
         benchmark:
             benchmark_dpath + '/copy_bkexch_corr_low_ph_fpath.benchmark.txt'
+        conda:
+            env_fpath
         shell:
             "cp {input.input_corr_fpath} {output}"
 
@@ -308,6 +315,8 @@ if config['high_ph_backexchange_correction_fpath'] is None:
             corr_plot_path = backexchange_output_path + '/high_ph_bkexch_corr.pdf'
         benchmark:
             benchmark_dpath + '/gen_tp_specific_bkexch_high.benchmark.txt'
+        conda:
+            env_fpath
         shell:
             'python ' + gen_time_specific_bkexch_path + ' -l {input.list_of_hx_fpaths} -s {params.delim_string} -r {params.rate_tol} -c {params.change_rate_threshold} -m {params.min_num_points} -p {output.corr_plot_path} -o {output.corr_fpath}'
 
@@ -320,6 +329,8 @@ else:
             backexchange_output_path + '/high_ph_bkexch_corr.csv'
         benchmark:
             benchmark_dpath + '/copy_bkexch_corr_high_ph_fpath.benchmark.txt'
+        conda:
+            env_fpath
         shell:
             "cp {input.input_corr_fpath} {output}"
 
@@ -347,6 +358,8 @@ rule gen_backexchange_correlation_low_high:
         bkexch_high_low_csv_path = backexchange_output_path + '/high_low_backexchange_list.csv'
     benchmark:
         benchmark_dpath + '/gen_backexchange_correlation_low_high.benchmark.txt'
+    conda:
+        env_fpath
     shell:
         'python ' + gen_backexch_corr_low_high_python_path + ' -lpfl {input.low_ph_file_list} -hpfl {input.high_ph_file_list} -lpnl {params.lowph_protname_list} -hpnl {params.highph_protname_list} -sl {params.prot_seq_list} -ldf {params.low_ph_d2o_frac} -ldp {params.low_ph_d2o_pur} -hdf {params.high_ph_d2o_frac} -hdp {params.high_ph_d2o_pur} -smr {params.sautration_mass_rate_threshold} -blb {params.bkexch_low_bound} -bub {params.bkexch_up_bound} -hbc {input.high_backexch_corr_path} -lbc {input.low_backexch_corr_path} -bco {output.bkexch_corr_path} -bcp {output.bkexch_corr_plot} -bko {output.bkexch_high_low_csv_path}'
 
@@ -374,6 +387,8 @@ rule merge_data_high_low:
         merge_plot_output = merge_dpath + '/{low_high_name}/{low_high_name}_merge_hxms_dist_plot.pdf'
     benchmark:
         benchmark_dpath + '/{low_high_name}_merge_data_high_low.benchmark.txt'
+    conda:
+        env_fpath
     shell:
         'python ' + merge_data_high_low_python + ' -seq {params.prot_seq} -ldata {input.lowph_fpath} -lpn {params.low_prot_name} -ldf {params.lowph_d2o_frac} -ldp {params.lowph_d2o_pur} -lbkc {input.lowph_corr_fpath} -hdata {input.highph_fpath} -hpn {params.high_prot_name} -hdf {params.highph_d2o_frac} -hdp {params.highph_d2o_pur} -hbkc {input.highph_corr_fpath} -lhblf {input.high_low_ph_backexchange_list_fpath} -mbk {output.mergebkex_output} -mbkc {output.mergebkex_corr_output} -mdp {output.merge_dist_output} -mpp {output.merge_plot_output} -mfp {output.merge_factor_output}'
 
@@ -400,6 +415,8 @@ rule fit_hx_rates_merge_dist:
         posterior_plot_file = hxrate_dpath + '/{low_high_name}/{low_high_name}_posteriors.pdf'
     benchmark:
         benchmark_dpath + '/{low_high_name}_fit_hx_rate.benchmark.txt'
+    conda:
+        env_fpath
     # threads: config['num_chains']
     shell:
         'python ' + hx_rate_fit_python_path + ' -p {params.prot_name} -s {params.prot_seq} -i {input.hx_dist_fpath} -df {params.d2o_frac} -dp {params.d2o_pur} -baf {input.backexch_array_file} {params.adjust_backexchange} -nc {params.num_chains} -nw {params.num_warmups} -ns {params.num_samples} {params.sample_backexchange} -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -opp {output.posterior_plot_file} -od {output.iso_dist_file}'
@@ -428,6 +445,8 @@ if config['dg_calc']:
             dg_plot_path = dg_output_path + '/{low_high_name}/{low_high_name}_dg_data.pdf',
         benchmark:
             benchmark_dpath + '/{low_high_name}_dg_calc.benchmark.txt'
+        conda:
+            env_fpath
         shell:
             'python ' + dg_opt_python_path + ' -hx {input.hx_rate_csv_fpath} -pdb {input.pdb_fpath} -dip {input.dg_intpol_fpath} -p {params.pH} -t {params.temp} -nt {params.nterm} -ct {params.cterm} {params.net_charge_corr} -au {params.anneal_update_interval} -at {params.anneal_time} -tf {output.traj_fpath} -af {output.anneal_data_csv} -df {output.dg_csv_output} -dpf {output.dg_data_output} -po {output.dg_plot_path}'
 
@@ -441,6 +460,8 @@ if config['dg_calc']:
             output_path = summary_output_path + '/summary_dg.csv'
         benchmark:
             benchmark_dpath + '/summary_dg.benchmark.txt'
+        conda:
+            env_fpath
         shell:
             'python ' + summary_python_path + ' -l {input.list_of_files} -m {params.mode} -o {output.output_path}'
 
@@ -456,6 +477,8 @@ rule summary_merge:
         output_path = summary_output_path + '/summary_merge.csv'
     benchmark:
         benchmark_dpath + '/summary_merge.benchmark.txt'
+    conda:
+        env_fpath
     shell:
         'python ' + summary_python_path + ' -l {input.list_of_files} -lp {params.list_of_protein_names} -m {params.mode} -o {output.output_path}'
 
@@ -469,6 +492,8 @@ rule summary_rate:
         output_path = summary_output_path + '/summary_rate.csv'
     benchmark:
         benchmark_dpath + '/summary_rate.benchmark.txt'
+    conda:
+        env_fpath
     shell:
         'python ' + summary_python_path + ' -l {input.list_of_files} -m {params.mode} -o {output.output_path}'
 
