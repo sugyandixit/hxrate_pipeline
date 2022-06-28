@@ -296,8 +296,10 @@ def gen_merged_dstirbution(sequence: str,
     ind = 0
     while ind < len(sorted_merged_tp)-1:
         t_diff = sorted_merged_tp[ind+1] - sorted_merged_tp[ind]
-        if t_diff < 0.1:
+        if t_diff <= 0.1:
             sorted_merged_tp[ind+1] = sorted_merged_tp[ind+1] + 0.1
+        if t_diff == 0:
+            sorted_merged_tp[ind+1] = sorted_merged_tp[ind+1] + 0.5
         ind += 1
 
     # generate a sorted merged distributions
