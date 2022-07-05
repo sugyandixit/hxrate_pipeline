@@ -18,10 +18,10 @@ import argparse
 @dataclass
 class HXRate(object):
     mean: np.ndarray
-    median: np.ndarray
-    std: np.ndarray
-    ci_5: np.ndarray
-    ci_95: np.ndarray
+    median: np.ndarray = None
+    std: np.ndarray = None
+    ci_5: np.ndarray = None
+    ci_95: np.ndarray = None
 
 
 @dataclass
@@ -85,7 +85,7 @@ class TrajData(object):
 class DgInput(object):
 
     def __init__(self,
-                 hx_rate_fpath,
+                 hxrate_obj,
                  pH,
                  temp,
                  pdb_fpath,
@@ -131,7 +131,7 @@ class DgInput(object):
                                         r_constant=r_constant,
                                         min_comp_free_energy=min_comp_free_energy)
 
-        self.metadata.hxrate_fpath = hx_rate_fpath
+        # self.metadata.hxrate_fpath = hx_rate_fpath
         self.metadata.pdb_fpath = pdb_fpath
         self.metadata.deltag_interpol_fpath = dg_intpol_fpath
         self.metadata.comp_dg_fpath = comp_dg_fpath
@@ -198,7 +198,8 @@ class DgInput(object):
         self.hx_allowed_seq_index = np.array(self.hx_allowed_seq_index)
 
         # hx rates
-        self.hx_rates = load_hx_rates(fpath=hx_rate_fpath)
+        # self.hx_rates = load_hx_rates(fpath=hx_rate_fpath)
+        self.hx_rates = hxrate_obj
 
         # active hx measured and intrinsic rates
         self.active_hx_rates = np.exp(sorted(self.hx_rates.mean[0:self.len_hx_allowed]))
@@ -614,8 +615,12 @@ def gen_free_energy_grid_from_hx_rates(active_hx_rates, active_intrinsic_hx_rate
                                                     r_constant)
                 if net_charge_corr:
                     fe_corr = corr_fe_with_net_charge(fe, net_charge)
+                    if fe_corr == np.inf:
+                        fe_corr = min_free_energy
                     free_energy_arr[ind1, ind2] = fe_corr
                 else:
+                    if fe == np.inf:
+                        fe = min_free_energy
                     free_energy_arr[ind1, ind2] = fe
                 # free_energy_arr[ind1, ind2] = calc_free_energy_from_hx_rates(intrinsic_hx_rate, fit_hx_rate, temp,
                 #                                                          r_constant)
@@ -1366,7 +1371,8 @@ def dg_mapping(hx_rate_fpath,
     if cterm is None or cterm == 'None':
         cterm = ''
 
-    dg_input = DgInput(hx_rate_fpath=hx_rate_fpath,
+    hxrate_obj = load_hx_rates(hx_rate_fpath)
+    dg_input = DgInput(hxrate_obj=hxrate_obj,
                        pdb_fpath=pdb_fpath,
                        dg_intpol_fpath=dg_intpol_fpath,
                        pH=pH,
@@ -1378,6 +1384,7 @@ def dg_mapping(hx_rate_fpath,
                        net_charge_corr=net_charge_corr,
                        min_comp_free_energy=min_comp_free_energy,
                        sa_energy_weights=sa_energy_weights)
+    dg_input.metadata.hxrate_fpath = hx_rate_fpath
 
     # init dg output object
     dg_output = DGMapOut(dg_map_valid=dg_input.valid,
