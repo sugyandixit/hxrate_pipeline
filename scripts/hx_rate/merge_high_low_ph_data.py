@@ -195,6 +195,43 @@ def optimize_factor_for_alignment(low_tp: np.ndarray,
     return out_dict
 
 
+def gen_diff_array(array):
+
+    diff_arr = np.zeros(len(array)-1)
+    for num in range(len(diff_arr)):
+        diff_arr[num] = array[num+1] - array[num]
+
+    return diff_arr
+
+
+def check_diff_arr(arr):
+
+    unique = True
+    num = 0
+    for ind, item in enumerate(arr):
+        if item == 0:
+            unique = False
+            num = ind
+            break
+
+    return unique, num
+
+
+def modify_to_add_uniq_values(array, add_value=0.4):
+
+    diff_arr = gen_diff_array(array)
+
+    uniq, num = check_diff_arr(diff_arr)
+
+    while not uniq:
+
+        array[num+1] = array[num+1] + add_value
+        diff_arr = gen_diff_array(array)
+        uniq, num = check_diff_arr(diff_arr)
+
+    return array
+
+
 def gen_merged_dstirbution(sequence: str,
                            low_tp: np.ndarray,
                            low_dist: np.ndarray,
@@ -293,22 +330,30 @@ def gen_merged_dstirbution(sequence: str,
     sorted_merged_tp = merge_tp[tp_sort_index]
 
     # if timepoints are less that 0.1 apart, make it at least 0.1 apart
-    ind = 0
-    while ind < len(sorted_merged_tp)-1:
-        t_diff = sorted_merged_tp[ind+1] - sorted_merged_tp[ind]
-        if t_diff <= 0.1:
-            sorted_merged_tp[ind+1] = sorted_merged_tp[ind+1] + 0.1
-        if t_diff == 0:
-            sorted_merged_tp[ind+1] = sorted_merged_tp[ind+1] + 0.5
-        ind += 1
+    mod_sorted_merge_tp = modify_to_add_uniq_values(array=sorted_merged_tp, add_value=0.4)
+    # generate index for sorting
+    tp_sort_index_2 = np.argsort(mod_sorted_merge_tp)
+    sorted_merged_tp = mod_sorted_merge_tp[tp_sort_index_2]
+
+    # ind = 0
+    # while ind < len(sorted_merged_tp)-1:
+    #     t_diff = sorted_merged_tp[ind+1] - sorted_merged_tp[ind]
+    #     if t_diff <= 0.1:
+    #         sorted_merged_tp[ind+1] = sorted_merged_tp[ind+1] + 0.1
+    #     # if t_diff == 0:
+    #     #     sorted_merged_tp[ind+1] = sorted_merged_tp[ind+1] + 0.5
+    #     ind += 1
 
     # generate a sorted merged distributions
     merge_dist = np.concatenate([low_dist, high_dist[1:, :]], axis=0)
     sorted_merged_dist = merge_dist[tp_sort_index, :]
+    sorted_merged_dist = sorted_merged_dist[tp_sort_index_2, :]
 
     # generate a sorted merged backexchange array
     merged_backexchange = np.concatenate([low_backexchange_obj.backexchange_array, high_backexchange_obj.backexchange_array[1:]])
     sorted_merged_backexchange = merged_backexchange[tp_sort_index]
+    sorted_merged_backexchange = sorted_merged_backexchange[tp_sort_index_2]
+
     merged_backexchange_correction_array = methods.gen_backexchange_correction_from_backexchange_array(backexchange_array=sorted_merged_backexchange)
 
     out_dict = dict()
@@ -656,30 +701,30 @@ if __name__ == '__main__':
 
     run_from_parser_v2()
 
-    # sequence = 'HMPDTVILDTSELVTVVALVKLHTDALHATRDEPVAFVLPGTAFRVSAGVAAEMTERGLARMQ'
-    #
-    # low_ph_data_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/input_dir/low_ph_dist/PDB4N3X_25.75636_winner_multibody.cpickle.zlib.csv'
-    # high_ph_data_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/input_dir/high_ph_dist/PDB4N3X_26.28687_winner_multibody.cpickle.zlib.csv'
-    #
+    # sequence = 'HMVIPDFTGMKVEDAKVKVIESKLTYKVDGIGDVVLDQSPKPGAYAKEGSTIFLYASK'
+    # #
+    # low_ph_data_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/Lib11/input/lowph/A0A1M4T304.1_578-633_14.88156_winner_multibody.cpickle.zlib.csv'
+    # high_ph_data_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/Lib11/input/highph/A0A1M4T304.1_578-633_14.67927_winner_multibody.cpickle.zlib.csv'
+    # #
     # d2o_frac = 0.95
     # d2o_pur = 0.95
-    #
-    # low_bkexch_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/backexchange/low_ph_bkexch_corr.csv'
-    # high_bkexch_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/backexchange/high_ph_bkexch_corr.csv'
-    #
-    # high_low_bkexch_list = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/backexchange/high_low_backexchange_list.csv'
-    #
-    # output_path = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist/PDB4N3X_25.75636_PDB4N3X_26.28687'
-    #
+    # #
+    # low_bkexch_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/Lib11/backexchange/low_ph_bkexch_corr.csv'
+    # high_bkexch_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/Lib11/backexchange/high_ph_bkexch_corr.csv'
+    # #
+    # high_low_bkexch_list = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/Lib11/backexchange/high_low_backexchange_list.csv'
+    # #
+    # output_path = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/Lib11/merge_distribution/A0A1M4T304.1_578-633_14.88156_A0A1M4T304.1_578-633_14.67927'
+    # #
     # gen_high_low_merged_from_to_file_v2(sequence=sequence,
     #                                     low_ph_data_fpath=low_ph_data_fpath,
-    #                                     low_ph_prot_name='PDB4N3X_25.75636',
+    #                                     low_ph_prot_name='A0A1M4T304.1_578-633_14.88156',
     #                                     low_d2o_frac=d2o_frac,
     #                                     low_d2o_purity=d2o_pur,
     #                                     low_user_backexchange=None,
     #                                     low_backexchange_corr_fpath=low_bkexch_corr_fpath,
     #                                     high_ph_data_fpath=high_ph_data_fpath,
-    #                                     high_ph_prot_name='PDB4N3X_26.28687',
+    #                                     high_ph_prot_name='A0A1M4T304.1_578-633_14.67927',
     #                                     high_d2o_frac=d2o_frac,
     #                                     high_d2o_purity=d2o_pur,
     #                                     high_user_backexchange=None,
