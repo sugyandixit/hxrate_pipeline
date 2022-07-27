@@ -80,14 +80,18 @@ num_chains: 4
 num_warmups: 100
 num_samples: 250
 
-dg_calc: False
+dg_calc: True
 # dg fitting parameters
 low_pH: 6.15
 high_pH: 9.0
+min_fe: -2.0
 temp: 295
-nterm:
-cterm:
 net_charge_corr: True
-anneal_time: 2.0
-anneal_update_interval: 100
+
+# old params for dg opt routine #
+#nterm:
+#cterm:
+
+#anneal_time: 2.0
+#anneal_update_interval: 100
 
