@@ -284,6 +284,36 @@ def write_dg_fit_summary(list_of_dg_pk_files, output_fpath, file_delim_string='_
         outfile.close()
 
 
+def write_dg_calc_summary(list_of_dg_pk_files, output_fpath, file_delim_string='_dg_data.pickle'):
+
+    with open(output_fpath, 'w') as outfile:
+
+        header = 'fname,ph,prot_name,sequence,net_charge,int_rate,max_dg\n'
+
+        outfile.write(header)
+
+        for ind, pkfpath in enumerate(list_of_dg_pk_files):
+
+            pkfname = os.path.split(pkfpath)[-1].strip(file_delim_string)
+            pkobj = load_pickle_object(pkfpath)
+
+            if pkobj['ph'] is None:
+                ph = np.nan
+            else:
+                ph = pkobj['ph']
+
+            line = '{},{},{},{},{},{},{}\n'.format(pkfname,
+                                                   ph,
+                                                   pkobj['protein_name'],
+                                                   pkobj['sequence'],
+                                                   pkobj['netcharge'],
+                                                   pkobj['intrinsic_rates_median'],
+                                                   pkobj['sorted_free_energy'][0])
+            outfile.write(line)
+
+        outfile.close()
+
+
 if __name__ == '__main__':
 
     pass
