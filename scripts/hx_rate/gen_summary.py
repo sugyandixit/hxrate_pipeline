@@ -1,5 +1,5 @@
 import argparse
-from hxdata import write_merge_dist_summary, write_rate_fit_summary, write_dg_fit_summary
+from hxdata import write_merge_dist_summary, write_rate_fit_summary, write_dg_fit_summary, write_dg_calc_summary
 
 
 def write_summary(list_of_files,
@@ -36,9 +36,14 @@ def write_summary(list_of_files,
                              output_fpath=output_path,
                              file_delim_string=file_delim_str)
 
+    elif mode == 'dg_calc':
+        write_dg_calc_summary(list_of_dg_pk_files=list_of_files,
+                              output_fpath=output_path,
+                              file_delim_string=file_delim_str)
+
     else:
 
-        print('Invalid writing mode. Use one of the following: rate, merge, dg')
+        print('Invalid writing mode. Use one of the following: rate, merge, dg, dg_calc')
 
 
 def gen_parser_args():
@@ -47,7 +52,7 @@ def gen_parser_args():
     parser.add_argument('-l', '--listfiles', nargs='+', help='list of files')
     parser.add_argument('-lp', '--listprotnames', nargs='+', default=None, help='list of protein names')
     parser.add_argument('-d', '--delim', type=str, default='', help='file delim string')
-    parser.add_argument('-m', '--mode', type=str, choices=['merge', 'rate', 'dg'], help='summary writing mode')
+    parser.add_argument('-m', '--mode', type=str, choices=['merge', 'rate', 'dg', 'dg_calc'], help='summary writing mode')
     parser.add_argument('-o', '--output', type=str, help='output file path .csv')
 
     return parser
