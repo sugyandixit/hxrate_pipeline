@@ -264,7 +264,7 @@ def dg_calc(sequence: str,
             ph: float,
             netcharge_corr: bool = True,
             protein_name: str = 'PROTEIN',
-            sort_min_val: float = 0.0):
+            min_fe_val: float = 0.0):
     """
 
     :param sequence:
@@ -306,7 +306,7 @@ def dg_calc(sequence: str,
                                                        net_charge=dgoutput.netcharge)
 
     dgoutput.sorted_free_energy = gen_sorted_array(array=dgoutput.free_energy,
-                                                   min_value=sort_min_val,
+                                                   min_value=min_fe_val,
                                                    reverse=True)
 
     return dgoutput
@@ -316,7 +316,7 @@ def dg_calc_from_file(hxrate_pickle_fpath: str,
                       temp: float,
                       ph: float,
                       netcharge_corr: bool = True,
-                      sort_min_val: float = 0.0,
+                      min_fe_val: float = 0.0,
                       output_picklepath: str = None,
                       dg_csv_fpath: str = None,
                       dg_plot_fpath: str = None,
@@ -343,7 +343,7 @@ def dg_calc_from_file(hxrate_pickle_fpath: str,
                         ph=ph,
                         netcharge_corr=netcharge_corr,
                         protein_name=hxrate_obj['exp_data']['protein_name'],
-                        sort_min_val=sort_min_val)
+                        min_fe_val=min_fe_val)
 
     if output_picklepath is not None:
         dg_output.to_pickle(filepath=output_picklepath)
@@ -366,6 +366,7 @@ def gen_parser_args():
     parser_.add_argument('-i', '--input', type=str, description='HX rate fit .pickle file path')
     parser_.add_argument('-t', '--temp', type=float, default=295, description='temperature in K')
     parser_.add_argument('-p', '--ph', type=float, default=6.0, description='ph')
+    parser_.add_argument('-m', '-minfe', type=float, default=-2.0, description='min fe value')
     parser_.add_argument('-n', '--netcharge', default=True, action=argparse.BooleanOptionalAction)
     parser_.add_argument('-opk', '--output_pickle', type=str, description='dg output .pickle file path')
     parser_.add_argument('-oc', '--output_csv', type=str, description='dg output .csv file path')
@@ -384,7 +385,7 @@ def run_from_parser():
                       temp=options.temp,
                       ph=options.ph,
                       netcharge_corr=options.netcharge,
-                      sort_min_val=0.0,
+                      min_fe_val=options.minfe,
                       output_picklepath=options.output_pickle,
                       dg_csv_fpath=options.output_csv,
                       dg_plot_fpath=options.output_pdf,
