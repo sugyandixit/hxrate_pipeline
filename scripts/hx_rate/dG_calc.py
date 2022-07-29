@@ -363,14 +363,14 @@ def gen_parser_args():
     import argparse
 
     parser_ = argparse.ArgumentParser(prog='DG Calculation')
-    parser_.add_argument('-i', '--input', type=str, description='HX rate fit .pickle file path')
-    parser_.add_argument('-t', '--temp', type=float, default=295, description='temperature in K')
-    parser_.add_argument('-p', '--ph', type=float, default=6.0, description='ph')
-    parser_.add_argument('-m', '-minfe', type=float, default=-2.0, description='min fe value')
+    parser_.add_argument('-i', '--input', type=str, help='HX rate fit .pickle file path')
+    parser_.add_argument('-t', '--temp', type=float, default=295, help='temperature in K')
+    parser_.add_argument('-p', '--ph', type=float, default=6.0, help='ph')
+    parser_.add_argument('-m', '-minfe', type=float, default=-2.0, help='min fe value')
     parser_.add_argument('-n', '--netcharge', default=True, action=argparse.BooleanOptionalAction)
-    parser_.add_argument('-opk', '--output_pickle', type=str, description='dg output .pickle file path')
-    parser_.add_argument('-oc', '--output_csv', type=str, description='dg output .csv file path')
-    parser_.add_argument('-opd', '--output_pdf', type=str, description='dg output plot .pdf file path')
+    parser_.add_argument('-opk', '--output_pickle', type=str, help='dg output .pickle file path')
+    parser_.add_argument('-oc', '--output_csv', type=str, help='dg output .csv file path')
+    parser_.add_argument('-opd', '--output_pdf', type=str, help='dg output plot .pdf file path')
 
     return parser_
 
