@@ -366,7 +366,7 @@ def gen_parser_args():
     parser_.add_argument('-i', '--input', type=str, help='HX rate fit .pickle file path')
     parser_.add_argument('-t', '--temp', type=float, default=295, help='temperature in K')
     parser_.add_argument('-p', '--ph', type=float, default=6.0, help='ph')
-    parser_.add_argument('-m', '-minfe', type=float, default=-2.0, help='min fe value')
+    parser_.add_argument('-m', '--minfe', type=float, default=-2.0, help='min fe value')
     parser_.add_argument('-n', '--netcharge', default=True, action=argparse.BooleanOptionalAction)
     parser_.add_argument('-opk', '--output_pickle', type=str, help='dg output .pickle file path')
     parser_.add_argument('-oc', '--output_csv', type=str, help='dg output .csv file path')
