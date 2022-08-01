@@ -92,6 +92,10 @@ class DGOutput(object):
     intrinsic_rates: np.ndarray = None
     intrinsic_rates_median: float = None
     measured_rates: np.ndarray = None
+    rate_fit_rmse: float = None
+    merge: bool = False
+    merge_factor: float = None
+    merge_mse: float = None
     netcharge_corr: bool = True
     free_energy: np.ndarray = None
     sorted_free_energy: np.ndarray = None
@@ -345,6 +349,11 @@ def dg_calc_from_file(hxrate_pickle_fpath: str,
                         protein_name=hxrate_obj_['exp_data']['protein_name'],
                         min_fe_val=min_fe_val)
 
+    dg_output.rate_fit_rmse = hxrate_obj_['bayesfit_output']['rmse']['total']
+    dg_output.merge = hxrate_obj_['merge_data']['merge']
+    dg_output.merge_factor = hxrate_obj_['merge_data']['factor']
+    dg_output.merge_mse = hxrate_obj_['merge_data']['mse']
+
     if output_picklepath is not None:
         dg_output.to_pickle(filepath=output_picklepath)
 
@@ -363,7 +372,7 @@ def gen_parser_args():
     import argparse
 
     parser_ = argparse.ArgumentParser(prog='DG Calculation')
-    parser_.add_argument('-i', '--input', type=str, help='HX rate fit .pickle file path')
+    parser_.add_argument('-i', '--input_', type=str, help='HX rate fit .pickle file path')
     parser_.add_argument('-t', '--temp', type=float, default=295, help='temperature in K')
     parser_.add_argument('-p', '--ph', type=float, default=6.0, help='ph')
     parser_.add_argument('-m', '--minfe', type=float, default=-2.0, help='min fe value')
@@ -381,7 +390,7 @@ def run_from_parser():
 
     options = parser_.parse_args()
 
-    dg_calc_from_file(hxrate_pickle_fpath=options.input,
+    dg_calc_from_file(hxrate_pickle_fpath=options.input_,
                       temp=options.temp,
                       ph=options.ph,
                       netcharge_corr=options.netcharge,
