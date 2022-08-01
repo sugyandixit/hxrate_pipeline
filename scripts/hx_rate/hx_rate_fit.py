@@ -345,6 +345,7 @@ def gen_parser_arguments():
     parser.add_argument('-ub', '--user_bkexchange', help='user defined backexchange', default=None)
     parser.add_argument('-bcf', '--bkexchange_corr_fpath', help='backexchange correction filepath .csv')
     parser.add_argument('-baf', '--bkexchange_array_fpath', help='backexchange array filepath .csv')
+    parser.add_argument('-mfp', '--merge_fact_path', help='merge_factor.csv filepath', default=None)
     parser.add_argument('--adjust_backexchange', help='adjust backexchange boolean', default=True, action=argparse.BooleanOptionalAction)
     parser.add_argument('-nc', '--num_chains', help='number of independent markov chains for MCMC', default=4)
     parser.add_argument('-nw', '--num_warmups', help='number of warmups for MCMC', default=100)
@@ -383,6 +384,7 @@ def hx_rate_fitting_from_parser(parser):
                           usr_backexchange=user_backexchange,
                           backexchange_corr_fpath=options.bkexchange_corr_fpath,
                           backexchange_array_fpath=options.bkexchange_array_fpath,
+                          merge_stat_csv_path=options.merge_fact_path,
                           adjust_backexchange=options.adjust_backexchange,
                           num_chains=int(options.num_chains),
                           num_warmups=int(options.num_warmups),
