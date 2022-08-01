@@ -4,6 +4,7 @@
 import argparse
 import numpy as np
 from dataclasses import dataclass
+import pandas as pd
 from bayesopt import BayesRateFit
 from methods import normalize_mass_distribution_array, gauss_fit_to_isotope_dist_array,  \
     convert_hxrate_object_to_dict, plot_hx_rate_fitting_bayes
@@ -11,6 +12,13 @@ from backexchange import calc_back_exchange
 from hxdata import load_data_from_hdx_ms_dist_, write_pickle_object, write_hx_rate_output_bayes, \
     write_isotope_dist_timepoints, load_tp_dependent_dict
 from plot_posterior_samples import plot_posteriors
+
+
+@dataclass
+class MergeData(object):
+    merge: bool = False
+    factor: float = None
+    mse: float = None
 
 
 @dataclass
@@ -36,6 +44,7 @@ class HXRate(object):
     """
     exp_data: object = None
     back_exchange: object = None
+    merge_data: object = None
     back_exchange_res_subtract: int = None
     optimization_cost: float = None
     optimization_func_evals: int = None
@@ -188,6 +197,7 @@ def fit_rate_from_to_file(prot_name: str,
                           d2o_purity: float,
                           ph: float = None,
                           temp: float = None,
+                          merge_stat_csv_path: str = None,
                           usr_backexchange: float = None,
                           backexchange_corr_fpath: str = None,
                           backexchange_array_fpath: str = None,
@@ -242,6 +252,17 @@ def fit_rate_from_to_file(prot_name: str,
                                     backexchange_value=usr_backexchange,
                                     backexchange_correction_dict=bkexch_corr_dict,
                                     backexchange_array=backexchange_array)
+
+    # gen merge_data object
+    merge_obj = MergeData()
+    if merge_stat_csv_path is not None:
+        df = pd.read_csv(merge_stat_csv_path)
+
+        merge_obj = MergeData(merge=True,
+                              factor=df['factor'].values[0],
+                              mse=df['mse'].values[0])
+
+    hxrate_object.merge_data = merge_obj
 
     # write hxrate as a csv file
     if hx_rate_csv_output_path is not None:
