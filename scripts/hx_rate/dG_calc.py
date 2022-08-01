@@ -335,14 +335,14 @@ def dg_calc_from_file(hxrate_pickle_fpath: str,
     :return:
     """
 
-    hxrate_obj = load_pickle_object(hxrate_pickle_fpath)
+    hxrate_obj_ = load_pickle_object(hxrate_pickle_fpath)
 
-    dg_output = dg_calc(sequence=hxrate_obj['exp_data']['protein_sequence'],
-                        measured_hx_rates=hxrate_obj['bayesfit_output']['rate']['mean'],
+    dg_output = dg_calc(sequence=hxrate_obj_['exp_data']['protein_sequence'],
+                        measured_hx_rates=hxrate_obj_['bayesfit_output']['rate']['mean'],
                         temp=temp,
                         ph=ph,
                         netcharge_corr=netcharge_corr,
-                        protein_name=hxrate_obj['exp_data']['protein_name'],
+                        protein_name=hxrate_obj_['exp_data']['protein_name'],
                         min_fe_val=min_fe_val)
 
     if output_picklepath is not None:
