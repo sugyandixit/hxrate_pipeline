@@ -321,6 +321,7 @@ def dg_calc_from_file(hxrate_pickle_fpath: str,
                       ph: float,
                       netcharge_corr: bool = True,
                       min_fe_val: float = 0.0,
+                      merge_factor_fpath: str = None,
                       output_picklepath: str = None,
                       dg_csv_fpath: str = None,
                       dg_plot_fpath: str = None,
@@ -350,9 +351,21 @@ def dg_calc_from_file(hxrate_pickle_fpath: str,
                         min_fe_val=min_fe_val)
 
     dg_output.rate_fit_rmse = hxrate_obj_['bayesfit_output']['rmse']['total']
-    dg_output.merge = hxrate_obj_['merge_data']['merge']
-    dg_output.merge_factor = hxrate_obj_['merge_data']['factor']
-    dg_output.merge_mse = hxrate_obj_['merge_data']['mse']
+
+    hxrate_obj_keys = list(hxrate_obj_.keys())
+    if 'merge_data' in hxrate_obj_keys:
+        dg_output.merge = hxrate_obj_['merge_data']['merge']
+        dg_output.merge_factor = hxrate_obj_['merge_data']['factor']
+        dg_output.merge_mse = hxrate_obj_['merge_data']['mse']
+    elif merge_factor_fpath is not None:
+        df = pd.read_csv(merge_factor_fpath)
+        dg_output.merge = True
+        dg_output.merge_factor = df['factor'].values[0]
+        dg_output.merge_mse = df['mse'].values[0]
+    else:
+        dg_output.merge = False
+        dg_output.merge_factor = None
+        dg_output.merge_mse = None
 
     if output_picklepath is not None:
         dg_output.to_pickle(filepath=output_picklepath)
@@ -377,6 +390,7 @@ def gen_parser_args():
     parser_.add_argument('-p', '--ph', type=float, default=6.0, help='ph')
     parser_.add_argument('-m', '--minfe', type=float, default=-2.0, help='min fe value')
     parser_.add_argument('-n', '--netcharge', default=True, action=argparse.BooleanOptionalAction)
+    parser_.add_argument('-mfp', '--merge_fact_path', type=str, default=None)
     parser_.add_argument('-opk', '--output_pickle', type=str, help='dg output .pickle file path')
     parser_.add_argument('-oc', '--output_csv', type=str, help='dg output .csv file path')
     parser_.add_argument('-opd', '--output_pdf', type=str, help='dg output plot .pdf file path')
@@ -395,6 +409,7 @@ def run_from_parser():
                       ph=options.ph,
                       netcharge_corr=options.netcharge,
                       min_fe_val=options.minfe,
+                      merge_factor_fpath=options.merge_fact_path,
                       output_picklepath=options.output_pickle,
                       dg_csv_fpath=options.output_csv,
                       dg_plot_fpath=options.output_pdf,
