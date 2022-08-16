@@ -84,7 +84,7 @@ dg_calc: True
 # dg fitting parameters
 low_pH: 6.15
 high_pH: 9.0
-min_fe: -2.0
+min_fe: 0.0
 temp: 295
 net_charge_corr: True
 
