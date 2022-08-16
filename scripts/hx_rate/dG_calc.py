@@ -89,10 +89,14 @@ class DGOutput(object):
     ph: float = None
     temp: float = None
     netcharge: float = None
+    timepoints: np.ndarray = None
     intrinsic_rates: np.ndarray = None
     intrinsic_rates_median: float = None
     measured_rates: np.ndarray = None
     rate_fit_rmse: float = None
+    backexchange: float = None
+    backexchange_per_timepoint: np.ndarray = None
+    backexchange_res_subtract: int = None
     merge: bool = False
     merge_factor: float = None
     merge_mse: float = None
@@ -351,6 +355,10 @@ def dg_calc_from_file(hxrate_pickle_fpath: str,
                         min_fe_val=min_fe_val)
 
     dg_output.rate_fit_rmse = hxrate_obj_['bayesfit_output']['rmse']['total']
+    dg_output.timepoints = hxrate_obj_['exp_data']['timepoints']
+    dg_output.backexchange = hxrate_obj_['back_exchange']['backexchange_value']
+    dg_output.backexchange_per_timepoint = hxrate_obj_['back_exchange']['backexchange_array']
+    dg_output.backexchange_res_subtract = hxrate_obj_['back_exchange_res_subtract']
 
     hxrate_obj_keys = list(hxrate_obj_.keys())
     if 'merge_data' in hxrate_obj_keys:
