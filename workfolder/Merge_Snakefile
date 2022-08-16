@@ -77,8 +77,8 @@ def gen_prot_name_from_rt_name(rt_name):
     prot_name_chars = rt_name.split('_')
     del prot_name_chars[-1]
     prot_name = '_'.join(x for x in prot_name_chars)
-    if prot_name.endswith('.pdb'):
-        prot_name = prot_name.strip('.pdb')
+    # if prot_name.endswith('.pdb'):
+    #     prot_name = prot_name.strip('.pdb')
     return prot_name
 
 
@@ -397,7 +397,8 @@ rule merge_data_high_low:
 rule fit_hx_rates_merge_dist:
     input:
         hx_dist_fpath = merge_dpath + '/{low_high_name}/{low_high_name}_merge_hxms_dist.csv',
-        backexch_array_file = merge_dpath + '/{low_high_name}/{low_high_name}_merge_backexchange.csv'
+        backexch_array_file = merge_dpath + '/{low_high_name}/{low_high_name}_merge_backexchange.csv',
+        merge_factor_fpath = merge_dpath + '/{low_high_name}/{low_high_name}_merge_factor.csv',
     params:
         prot_seq = lambda wildcards: low_high_name_seq_dict[wildcards.low_high_name],
         prot_name = lambda wildcards: low_high_name_prot_name_dict_[wildcards.low_high_name],
@@ -420,7 +421,7 @@ rule fit_hx_rates_merge_dist:
         env_fpath
     # threads: config['num_chains']
     shell:
-        'python ' + hx_rate_fit_python_path + ' -p {params.prot_name} -s {params.prot_seq} -i {input.hx_dist_fpath} -df {params.d2o_frac} -dp {params.d2o_pur} -baf {input.backexch_array_file} {params.adjust_backexchange} -nc {params.num_chains} -nw {params.num_warmups} -ns {params.num_samples} {params.sample_backexchange} -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -opp {output.posterior_plot_file} -od {output.iso_dist_file}'
+        'python ' + hx_rate_fit_python_path + ' -p {params.prot_name} -s {params.prot_seq} -i {input.hx_dist_fpath} -df {params.d2o_frac} -dp {params.d2o_pur} -baf {input.backexch_array_file} -mfp {input.merge_factor_fpath} {params.adjust_backexchange} -nc {params.num_chains} -nw {params.num_warmups} -ns {params.num_samples} {params.sample_backexchange} -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -opp {output.posterior_plot_file} -od {output.iso_dist_file}'
 
 
 rule summary_merge:
@@ -458,7 +459,8 @@ if config['dg_calc']:
 
     rule dg_calc_merge_dist:
         input:
-            hx_rate_pickle_fpath = hxrate_dpath + '/{low_high_name}/{low_high_name}_hx_rate_fit.pickle'
+            hx_rate_pickle_fpath = hxrate_dpath + '/{low_high_name}/{low_high_name}_hx_rate_fit.pickle',
+            merge_factor_fpath = merge_dpath + '/{low_high_name}/{low_high_name}_merge_factor.csv',
         params:
             pH = config['low_pH'],
             temp = config['temp'],
@@ -473,8 +475,7 @@ if config['dg_calc']:
         conda:
             env_fpath
         shell:
-            'python ' + dg_calc_python_path + ' -i {input.hx_rate_pickle_fpath} -p {params.pH} -t {params.temp} {params.net_charge_corr} -m {params.minfe} -opk {output.dg_data_output} -oc {output.dg_csv_output} -opd {output.dg_plot_path}'
-
+            "python " + dg_calc_python_path + " -i {input.hx_rate_pickle_fpath} -p {params.pH} -t {params.temp} {params.net_charge_corr} -mfp {input.merge_factor_fpath} -m {params.minfe} -opk {output.dg_data_output} -oc {output.dg_csv_output} -opd {output.dg_plot_path}"
 
     rule summary_dg:
         input:
@@ -488,7 +489,7 @@ if config['dg_calc']:
         conda:
             env_fpath
         shell:
-            'python ' + summary_python_path + ' -l {input.list_of_files} -m {params.mode} -o {output.output_path}'
+            "python " + summary_python_path + " -l {input.list_of_files} -m {params.mode} -o {output.output_path}"
 
 #
 # if config['dg_calc']:

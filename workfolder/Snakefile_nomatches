@@ -63,8 +63,8 @@ def gen_prot_name_from_rt_name(rt_name):
     prot_name_chars = rt_name.split('_')
     del prot_name_chars[-1]
     prot_name = '_'.join(x for x in prot_name_chars)
-    if prot_name.endswith('.pdb'):
-        prot_name = prot_name.strip('.pdb')
+    # if prot_name.endswith('.pdb'):
+    #     prot_name = prot_name.strip('.pdb')
     return prot_name
 
 
