@@ -302,13 +302,15 @@ def write_dg_calc_summary(list_of_dg_pk_files, output_fpath, file_delim_string='
             else:
                 ph = pkobj['ph']
 
-            line = '{},{},{},{},{},{},{}\n'.format(pkfname,
-                                                   ph,
-                                                   pkobj['protein_name'],
-                                                   pkobj['sequence'],
-                                                   pkobj['netcharge'],
-                                                   pkobj['intrinsic_rates_median'],
-                                                   pkobj['sorted_free_energy'][0])
+            if len(pkobj['sorted_free_energy']) > 0:
+
+                line = '{},{},{},{},{},{},{}\n'.format(pkfname,
+                                                       ph,
+                                                       pkobj['protein_name'],
+                                                       pkobj['sequence'],
+                                                       pkobj['netcharge'],
+                                                       pkobj['intrinsic_rates_median'],
+                                                       pkobj['sorted_free_energy'][0])
             outfile.write(line)
 
         outfile.close()
