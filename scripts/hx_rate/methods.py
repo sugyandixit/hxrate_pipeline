@@ -489,7 +489,7 @@ def convert_hxrate_object_to_dict(hxrate_object):
     hxrate_object.back_exchange = vars(hxrate_object.back_exchange)
 
     # convert merge object to dict
-    hxrate_object.merge_obj = vars(hxrate_object.merge_obj)
+    hxrate_object.merge_data = vars(hxrate_object.merge_data)
 
     # convert hxrate object to dict
     hxrate_dict = vars(hxrate_object)
