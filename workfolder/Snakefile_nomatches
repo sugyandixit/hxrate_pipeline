@@ -343,7 +343,7 @@ if config['dg_calc']:
 
     rule dg_calc_merge_dist:
         input:
-            hx_rate_pickle_fpath = hxrate_dpath + '/{prot_rt_name}/{prot_rt_name}_hx_rate.csv'
+            hx_rate_pickle_fpath = hxrate_dpath + '/{prot_rt_name}/{prot_rt_name}_hx_rate_fit.pickle'
         params:
             pH = lambda wildcards: ph_dict_[wildcards.prot_rt_name],
             temp = config['temp'],
