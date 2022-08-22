@@ -88,8 +88,14 @@ class DGOutput(object):
     sequence: str = None
     ph: float = None
     temp: float = None
+    d2o_frac: float = None
+    d2o_pur: float = None
     netcharge: float = None
     timepoints: np.ndarray = None
+    exp_ms_dist: np.ndarray = None
+    exp_ms_dist_gauss_list: list = None
+    thr_ms_dist: np.ndarray = None
+    thr_ms_dist_gauss_list: list = None
     intrinsic_rates: np.ndarray = None
     intrinsic_rates_median: float = None
     measured_rates: np.ndarray = None
@@ -281,7 +287,7 @@ def dg_calc(sequence: str,
     :param ph:
     :param netcharge_corr:
     :param protein_name:
-    :param sort_min_val:
+    :param min_fe_val:
     :return:
     """
 
@@ -332,6 +338,8 @@ def dg_calc_from_file(hxrate_pickle_fpath: str,
                       retun_flag: bool = False):
     """
 
+    :param min_fe_val:
+    :param merge_factor_fpath:
     :param hxrate_pickle_fpath:
     :param temp:
     :param ph:
@@ -355,10 +363,19 @@ def dg_calc_from_file(hxrate_pickle_fpath: str,
                         min_fe_val=min_fe_val)
 
     dg_output.rate_fit_rmse = hxrate_obj_['bayesfit_output']['rmse']['total']
-    dg_output.timepoints = hxrate_obj_['exp_data']['timepoints']
     dg_output.backexchange = hxrate_obj_['back_exchange']['backexchange_value']
     dg_output.backexchange_per_timepoint = hxrate_obj_['back_exchange']['backexchange_array']
     dg_output.backexchange_res_subtract = hxrate_obj_['back_exchange_res_subtract']
+
+    # save exp data
+    dg_output.timepoints = hxrate_obj_['exp_data']['timepoints']
+    dg_output.d2o_frac = hxrate_obj_['exp_data']['d2o_frac']
+    dg_output.d2o_pur = hxrate_obj_['exp_data']['d2o_pur']
+    dg_output.exp_ms_dist = hxrate_obj_['exp_data']['exp_isotope_dist_array']
+    dg_output.exp_ms_dist_gauss_list = hxrate_obj_['exp_data']['gauss_fit']
+    dg_output.thr_ms_dist = hxrate_obj_['thr_isotope_dist_array']
+    dg_output.thr_ms_dist_gauss_list = hxrate_obj_['thr_isotope_dist_gauss_fit']
+
 
     hxrate_obj_keys = list(hxrate_obj_.keys())
     if 'merge_data' in hxrate_obj_keys:
