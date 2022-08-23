@@ -209,7 +209,7 @@ def check_diff_arr(arr):
     unique = True
     num = 0
     for ind, item in enumerate(arr):
-        if item == 0:
+        if item <= 1e-1:
             unique = False
             num = ind
             break
@@ -701,21 +701,21 @@ if __name__ == '__main__':
 
     run_from_parser_v2()
 
-    # sequence = 'HMVIPDFTGMKVEDAKVKVIESKLTYKVDGIGDVVLDQSPKPGAYAKEGSTIFLYASK'
-    # #
-    # low_ph_data_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/Lib11/input/lowph/A0A1M4T304.1_578-633_14.88156_winner_multibody.cpickle.zlib.csv'
-    # high_ph_data_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/Lib11/input/highph/A0A1M4T304.1_578-633_14.67927_winner_multibody.cpickle.zlib.csv'
-    # #
+    # sequence = 'HMYTVKEGETLAQIAKNYKTSLEEIIKANKIEDPSLLSIGQRLFIP'
+    # # #
+    # low_ph_data_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/test_repo/merge_test/ph6/A0A1J4VH79.1_187-230_17.85463_winner_multibody.cpickle.zlib.csv'
+    # high_ph_data_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/test_repo/merge_test/ph9/A0A1J4VH79.1_187-230_17.85472_winner_multibody.cpickle.zlib.csv'
+    # # #
     # d2o_frac = 0.95
     # d2o_pur = 0.95
-    # #
-    # low_bkexch_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/Lib11/backexchange/low_ph_bkexch_corr.csv'
-    # high_bkexch_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/Lib11/backexchange/high_ph_bkexch_corr.csv'
-    # #
+    # # #
+    # low_bkexch_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/test_repo/merge_test/backexchange/low_ph_bkexch_corr.csv'
+    # high_bkexch_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/test_repo/merge_test/backexchange/high_ph_bkexch_corr.csv'
+    # # #
     # high_low_bkexch_list = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/Lib11/backexchange/high_low_backexchange_list.csv'
-    # #
-    # output_path = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/Lib11/merge_distribution/A0A1M4T304.1_578-633_14.88156_A0A1M4T304.1_578-633_14.67927'
-    # #
+    # # #
+    # output_path = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/hx_rates_library/test_repo/merge_test/test_output'
+    # # #
     # gen_high_low_merged_from_to_file_v2(sequence=sequence,
     #                                     low_ph_data_fpath=low_ph_data_fpath,
     #                                     low_ph_prot_name='A0A1M4T304.1_578-633_14.88156',
