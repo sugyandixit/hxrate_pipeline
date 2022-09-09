@@ -368,13 +368,14 @@ def dg_calc_from_file(hxrate_pickle_fpath: str,
     dg_output.backexchange_res_subtract = hxrate_obj_['back_exchange_res_subtract']
 
     # save exp data
+    dg_output.ph = hxrate_obj_['exp_data']['ph']
     dg_output.timepoints = hxrate_obj_['exp_data']['timepoints']
     dg_output.d2o_frac = hxrate_obj_['exp_data']['d2o_frac']
     dg_output.d2o_pur = hxrate_obj_['exp_data']['d2o_pur']
     dg_output.exp_ms_dist = hxrate_obj_['exp_data']['exp_isotope_dist_array']
     dg_output.exp_ms_dist_gauss_list = hxrate_obj_['exp_data']['gauss_fit']
     dg_output.thr_ms_dist = hxrate_obj_['bayesfit_output']['pred_distribution']
-    dg_output.thr_ms_dist_gauss_list = hxrate_obj_['bayesfit_output']['pred_dist_gauss_fit']
+    dg_output.thr_ms_dist_gauss_list = hxrate_obj_['thr_isotope_dist_gauss_fit']
 
     hxrate_obj_keys = list(hxrate_obj_.keys())
     if 'merge_data' in hxrate_obj_keys:

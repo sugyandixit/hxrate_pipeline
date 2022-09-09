@@ -250,7 +250,7 @@ def fit_rate_from_to_file(prot_name: str,
                                     backexchange_array=backexchange_array)
 
     # fit gaussian to thr pred distribution
-    hxrate_object.bayesfit_output['pred_dist_gauss_fit'] = gauss_fit_to_isotope_dist_array(isotope_dist=hxrate_object.bayesfit_output['pred_distribution'])
+    hxrate_object.thr_isotope_dist_gauss_fit = gauss_fit_to_isotope_dist_array(isotope_dist=hxrate_object.bayesfit_output['pred_distribution'])
 
     # gen merge_data object
     merge_obj = MergeData()
