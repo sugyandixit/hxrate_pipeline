@@ -50,10 +50,6 @@ class HXRate(object):
     optimization_func_evals: int = None
     optimization_init_rate_guess: np.ndarray = None
     hx_rates: np.ndarray = None
-    thr_isotope_dist_array: np.ndarray = None
-    thr_isotope_dist_gauss_fit: list = None
-    fit_rmse_each_timepoint: np.ndarray = None
-    total_fit_rmse: float = None
     bayesfit_output: dict = None
 
 
@@ -253,6 +249,9 @@ def fit_rate_from_to_file(prot_name: str,
                                     backexchange_correction_dict=bkexch_corr_dict,
                                     backexchange_array=backexchange_array)
 
+    # fit gaussian to thr pred distribution
+    hxrate_object.bayesfit_output['pred_dist_gauss_fit'] = gauss_fit_to_isotope_dist_array(isotope_dist=hxrate_object.bayesfit_output['pred_distribution'])
+
     # gen merge_data object
     merge_obj = MergeData()
     if merge_stat_csv_path is not None:
@@ -287,10 +286,8 @@ def fit_rate_from_to_file(prot_name: str,
         exp_centroid_arr = np.array([x.centroid for x in hxrate_object.exp_data.gauss_fit])
         exp_width_arr = np.array([x.width for x in hxrate_object.exp_data.gauss_fit])
 
-        pred_dist_gauss_fit = gauss_fit_to_isotope_dist_array(isotope_dist=hxrate_object.bayesfit_output['pred_distribution'])
-
-        thr_centroid_arr = np.array([x.centroid for x in pred_dist_gauss_fit])
-        thr_width_arr = np.array([x.width for x in pred_dist_gauss_fit])
+        thr_centroid_arr = np.array([x.centroid for x in hxrate_object.bayesfit_output['pred_dist_gauss_fit']])
+        thr_width_arr = np.array([x.width for x in hxrate_object.bayesfit_output['pred_dist_gauss_fit']])
 
         hxrate_error = np.zeros((2, len(hxrate_object.bayesfit_output['rate']['mean'])))
         hxrate_error[0] = np.subtract(hxrate_object.bayesfit_output['rate']['mean'], hxrate_object.bayesfit_output['rate']['5percent'])
