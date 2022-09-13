@@ -364,7 +364,7 @@ def dg_calc_from_file(hxrate_pickle_fpath: str,
                         min_fe_val=min_fe_val)
 
     dg_output.rate_fit_rmse = hxrate_obj_['bayesfit_output']['rmse']['total']
-    dg_output.rate_fit_rmse_per_timepoint = hxrate_obj_['bayesfit_output']['rmse']['total']
+    dg_output.rate_fit_rmse_per_timepoint = hxrate_obj_['bayesfit_output']['rmse']['per_timepoint']
     dg_output.backexchange = hxrate_obj_['back_exchange']['backexchange_value']
     dg_output.backexchange_per_timepoint = hxrate_obj_['back_exchange']['backexchange_array']
     dg_output.backexchange_res_subtract = hxrate_obj_['back_exchange_res_subtract']
