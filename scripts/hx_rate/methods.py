@@ -290,7 +290,7 @@ def calculate_intrinsic_exchange_rates_suggie(sequence_str, Temperature, pH, nte
 
 
     IntrinsicEnchangeRates = np.array(IntrinsicEnchangeRates)
-    IntrinsicEnchangeRates_min = np.array(IntrinsicEnchangeRates_min)
+    # IntrinsicEnchangeRates_min = np.array(IntrinsicEnchangeRates_min)
 
     return IntrinsicEnchangeRates
 
