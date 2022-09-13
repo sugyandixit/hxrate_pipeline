@@ -85,6 +85,7 @@ class DGOutput(object):
 
     """
     protein_name: str = 'PROTEIN'
+    protein_rt_name: str = 'PROTEIN_RT'
     sequence: str = None
     ph: float = None
     temp: float = None
@@ -368,6 +369,7 @@ def dg_calc_from_file(hxrate_pickle_fpath: str,
     dg_output.backexchange_res_subtract = hxrate_obj_['back_exchange_res_subtract']
 
     # save exp data
+    dg_output.protein_rt_name = hxrate_obj_['exp_data']['protein_rt_name']
     dg_output.ph = hxrate_obj_['exp_data']['ph']
     dg_output.timepoints = hxrate_obj_['exp_data']['timepoints']
     dg_output.d2o_frac = hxrate_obj_['exp_data']['d2o_frac']
