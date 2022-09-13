@@ -101,6 +101,7 @@ class DGOutput(object):
     intrinsic_rates_median: float = None
     measured_rates: np.ndarray = None
     rate_fit_rmse: float = None
+    rate_fit_rmse_per_timepoint: np.ndarray = None
     backexchange: float = None
     backexchange_per_timepoint: np.ndarray = None
     backexchange_res_subtract: int = None
@@ -279,17 +280,16 @@ def dg_calc(sequence: str,
             ph: float,
             netcharge_corr: bool = True,
             protein_name: str = 'PROTEIN',
-            min_fe_val: float = 0.0):
+            min_fe_val: float = 0.0) -> object:
     """
-
-    :param sequence:
-    :param measured_hx_rates:
-    :param temp:
-    :param ph:
-    :param netcharge_corr:
-    :param protein_name:
-    :param min_fe_val:
-    :return:
+    :param sequence: protein sequence
+    :param measured_hx_rates: measured hx rates
+    :param temp: temperature
+    :param ph: ph
+    :param netcharge_corr: for correcting fe using netcharge of the protein
+    :param protein_name: protein name
+    :param min_fe_val: minimum free energy value
+    :return: dg_calc object
     """
 
     # init dg output
@@ -364,6 +364,7 @@ def dg_calc_from_file(hxrate_pickle_fpath: str,
                         min_fe_val=min_fe_val)
 
     dg_output.rate_fit_rmse = hxrate_obj_['bayesfit_output']['rmse']['total']
+    dg_output.rate_fit_rmse_per_timepoint = hxrate_obj_['bayesfit_output']['rmse']['total']
     dg_output.backexchange = hxrate_obj_['back_exchange']['backexchange_value']
     dg_output.backexchange_per_timepoint = hxrate_obj_['back_exchange']['backexchange_array']
     dg_output.backexchange_res_subtract = hxrate_obj_['back_exchange_res_subtract']
