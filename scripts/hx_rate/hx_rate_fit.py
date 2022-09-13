@@ -27,6 +27,7 @@ class ExpData(object):
     class container to store exp data
     """
     protein_name: str = None
+    protein_rt_name: str = None
     protein_sequence: str = None
     timepoints: np.ndarray = None
     exp_isotope_dist_array: np.ndarray = None
@@ -62,6 +63,7 @@ def fit_rate_bayes_(prot_name: str,
                     num_chains: int,
                     num_warmups: int,
                     num_samples: int,
+                    prot_rt_name: str = 'PROTEIN_RT',
                     ph: float = None,
                     temp: float = None,
                     sample_backexchange: bool = False,
@@ -80,6 +82,7 @@ def fit_rate_bayes_(prot_name: str,
 
     # store exp data in the object
     expdata = ExpData(protein_name=prot_name,
+                      protein_rt_name=prot_rt_name,
                       protein_sequence=sequence,
                       timepoints=time_points,
                       exp_isotope_dist_array=norm_mass_distribution_array,
@@ -191,6 +194,7 @@ def fit_rate_from_to_file(prot_name: str,
                           hx_ms_dist_fpath: str,
                           d2o_fraction: float,
                           d2o_purity: float,
+                          prot_rt_name: str = 'PROTEIN_RT',
                           ph: float = None,
                           temp: float = None,
                           merge_stat_csv_path: str = None,
@@ -232,6 +236,7 @@ def fit_rate_from_to_file(prot_name: str,
 
     # fit rate
     hxrate_object = fit_rate_bayes_(prot_name=prot_name,
+                                    prot_rt_name=prot_rt_name,
                                     sequence=sequence,
                                     time_points=timepoints,
                                     norm_mass_distribution_array=norm_dist,
@@ -333,6 +338,7 @@ def gen_parser_arguments():
 
     parser = argparse.ArgumentParser(prog='HX_RATE_FIT', description='Run HX rate fitting algorithm')
     parser.add_argument('-p', '--protname', help='protein name', default='PROTEIN')
+    parser.add_argument('-pr', '--protrtname', help='protein rt name', default='PROTEIN_RT')
     parser.add_argument('-s', '--sequence', help='protein sequence one letter amino acid', default='PROTEIN')
     parser.add_argument('-i', '--hxdist', help='hx mass distribution input file .csv')
     parser.add_argument('-df', '--d2o_frac', help='d2o fracion', default=0.95)
@@ -372,6 +378,7 @@ def hx_rate_fitting_from_parser(parser):
         user_backexchange = float(options.user_bkexchange)
 
     fit_rate_from_to_file(prot_name=options.protname,
+                          prot_rt_name=options.protrtname,
                           sequence=options.sequence,
                           hx_ms_dist_fpath=options.hxdist,
                           d2o_fraction=float(options.d2o_frac),
