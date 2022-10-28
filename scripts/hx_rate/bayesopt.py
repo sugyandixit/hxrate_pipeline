@@ -1,3 +1,4 @@
+import copy
 import numpy as np
 from sklearn.metrics import mean_squared_error
 import numpyro
@@ -5,9 +6,217 @@ from jax import random
 from numpyro.infer import NUTS, MCMC
 import jax.numpy as jnp
 import molmass
+from scipy.ndimage import center_of_mass
+from scipy.optimize import curve_fit
+from scipy.stats import linregress
+from dataclasses import dataclass
+import matplotlib.gridspec as gridspec
+import matplotlib.pyplot as plt
+from itertools import cycle
+import pickle
+import time
 
 # global variables
 r_constant = 0.0019872036
+
+
+@dataclass
+class GaussFit(object):
+    """
+    class container to store gauss fit data
+    """
+    fit_success: bool
+    gauss_fit_dist: np.ndarray
+    y_baseline: float
+    amplitude: float
+    centroid: float
+    width: float
+    r_sq: float
+    rmse: float
+
+
+@dataclass
+class BayesOutputSample(object):
+    posterior_samples_by_chain: np.ndarray = None
+    mean: np.ndarray or float = None
+    median: np.ndarray or float = None
+    std: np.ndarray or float = None
+    ci_5: np.ndarray or float = None
+    ci_95: np.ndarray or float = None
+    n_eff: np.ndarray or float = None
+    rhat: np.ndarray or float = None
+
+
+class ExpDataRateFit(object):
+
+    """
+    Prepare experiment data for rate fitting
+    """
+
+    def __init__(self,
+                 sequence: str,
+                 prot_name: str,
+                 prot_rt_name: str,
+                 timepoints: list or np.ndarray,
+                 exp_distribution: list or np.ndarray,
+                 backexchange: list or np.ndarray,
+                 merge_exp: bool,
+                 d2o_purity: float,
+                 d2o_fraction: float):
+
+        """
+        init params
+        :param sequence: protein sequence
+        :param timepoints: timepoints array
+        :param exp_distribution: ms exp distribution
+        :param backexchange: backexchange array timepoints
+        :param merge_exp: bool. whether to merge timepoints or not
+        :param d2o_purity: d2o purity
+        :param d2o_fraction: d2o fraction
+        """
+
+        self.protein_name = prot_name
+        self.protein_rt_name = prot_rt_name
+        self.sequence = sequence
+        self.d2o_purity = d2o_purity
+        self.d2o_fraction = d2o_fraction
+        self.merge_exp = merge_exp
+
+        self.timepoints = timepoints
+        self.exp_distribution = exp_distribution
+        self.backexchange = backexchange
+
+        self.num_rates = self.gen_num_exchange_rates()
+
+        self.num_bins_ms = self.num_bins_ms_data()
+
+        self.num_merge_facs = 0
+
+        # update data if merging data
+        # delete the first timepoint zero for list elements in 1:
+        if self.merge_exp:
+
+            self.num_merge_facs = len(self.timepoints) - 1
+            self.update_backexchange_and_expdist_for_additional_exp()
+
+            # save the input exp_dist, bkexchange, and tp list
+            self.exp_distribution_list = self.exp_distribution
+            self.backexchange_list = self.backexchange
+            self.timepoints_list = self.timepoints
+
+            # concat backexchange list
+            self.backexchange = np.concatenate(self.backexchange)
+
+            # concat timepoints
+            # self.timepoints = np.concatenate(self.timepoints_list)
+
+            # update exp distribution to get same number of bins
+            self.check_num_bins_and_update_exp_dist(num_bins_ref=self.num_bins_ms)
+
+            # stack exp distribution
+            self.exp_distribution_stack = np.vstack(self.exp_distribution_list)
+
+        self.flat_nonzero_exp_dist, self.nonzero_exp_dist_indices = self.gen_flat_nonzero_exp_dist()
+
+    def gen_num_exchange_rates(self):
+
+        temp_rates = gen_temp_rates(sequence=self.sequence)
+        zero_indices = np.where(temp_rates == 0)[0]
+        num_rates = len(temp_rates) - len(zero_indices)
+        return num_rates
+
+    def num_bins_ms_data(self):
+
+        if self.merge_exp:
+            num_bins = len(self.exp_distribution[0][0])
+        else:
+            num_bins = len(self.exp_distribution[0])
+
+        return num_bins
+
+    def check_num_bins_and_update_exp_dist(self, num_bins_ref: int):
+
+        for ind, exp_dist_arr in enumerate(self.exp_distribution):
+
+            for ind2, dist_arr in enumerate(exp_dist_arr):
+
+                num_bins = len(exp_dist_arr[0])
+
+                if num_bins != num_bins_ref:
+
+                    print('Num bins unmatch for exp_distribution[%s][%s]' % (ind, ind2))
+
+                    if num_bins < num_bins_ref:
+                        pad_width = num_bins_ref - num_bins
+                        print('Padding with %s 0s' % pad_width)
+                        update_arr = np.pad(dist_arr, pad_width=pad_width)
+                    else:
+                        print('Trimming to match num bins')
+                        update_arr = dist_arr[:num_bins_ref]
+
+                    self.exp_distribution[ind][ind2] = update_arr
+
+    def gen_flat_nonzero_exp_dist(self):
+
+        if self.merge_exp:
+            concat_arr_list = []
+            for exp_arr in self.exp_distribution:
+                concat_exp_arr = np.concatenate(exp_arr)
+                concat_arr_list.append(concat_exp_arr)
+            flat_exp_dist = np.concatenate(concat_arr_list)
+        else:
+            flat_exp_dist = np.concatenate(self.exp_distribution)
+
+        non_zero_exp_dist_indices = np.nonzero(flat_exp_dist)[0]
+        flat_exp_dist_non_zero = flat_exp_dist[non_zero_exp_dist_indices]
+
+        return flat_exp_dist_non_zero, non_zero_exp_dist_indices
+
+    def update_backexchange_and_expdist_for_additional_exp(self):
+
+        if self.merge_exp:
+
+            backexchange_list = []
+            exp_dist_list = []
+            update_tp_list = []
+
+            for ind, (tp_arr, bkexch_arr, exp_dist_arr) in enumerate(zip(self.timepoints,
+                                                                         self.backexchange,
+                                                                         self.exp_distribution)):
+
+                if ind == 0:
+                    exp_dist_list.append(exp_dist_arr)
+                    backexchange_list.append(bkexch_arr)
+                    update_tp_list.append(tp_arr)
+
+                else:
+
+                    update_bkexch = []
+                    update_exp_dist = []
+                    update_tp_ = []
+
+                    for ind_, tp_ in enumerate(tp_arr):
+                        if tp_ != 0:
+                            update_bkexch.append(bkexch_arr[ind_])
+                            update_exp_dist.append(exp_dist_arr[ind_])
+                            update_tp_.append(tp_)
+
+                    update_bkexch_arr = np.array(update_bkexch)
+                    update_exp_dist_arr = np.array(update_exp_dist)
+                    update_tp_arr = np.array(update_tp_)
+
+                    backexchange_list.append(update_bkexch_arr)
+                    exp_dist_list.append(update_exp_dist_arr)
+                    update_tp_list.append(update_tp_arr)
+
+
+            # update backexchange and exp dist list
+            self.backexchange = backexchange_list
+            self.exp_distribution = exp_dist_list
+            self.timepoints = update_tp_list
+
+        else:
+            print('del_zero_tp_backexchange: No operations to be done')
 
 
 class BayesRateFit(object):
@@ -15,8 +224,11 @@ class BayesRateFit(object):
     Bayes Rate Fit class
     """
 
-    def __init__(self, num_chains=4, num_warmups=100, num_samples=500, return_posterior_distributions=True,
-                 sample_backexchange=False):
+    def __init__(self,
+                 num_chains: int = 4,
+                 num_warmups: int = 100,
+                 num_samples: int = 500,
+                 sample_backexchange: bool = False):
         """
         initialize the class with mcmc key parameters
         :param num_chains: number of chains
@@ -29,50 +241,20 @@ class BayesRateFit(object):
         self.num_chains = num_chains
         self.num_warmups = num_warmups
         self.num_samples = num_samples
-        self.return_posterior_distributions = return_posterior_distributions
         self.sample_backexchange = sample_backexchange
         self.output = None
 
-    def fit_rate(self, sequence, timepoints, exp_distribution, back_exchange_array, d2o_fraction, d2o_purity):
-        """
-        fit rate using mcmc opt and generate key outputs in the self.output attribute
-        :param sequence: protein sequence
-        :param timepoints: timepoints array
-        :param exp_distribution: experimental distribution array
-        :param back_exchange_array: backexchange array
-        :param d2o_fraction: d2o fraction
-        :param d2o_purity: d2o purity
-        :return: None
-        """
+    def fit_rate(self, exp_data_object):
+
+        # nuts kernel
 
         # set the number of cores to be the number of chains
         numpyro.set_host_device_count(n=self.num_chains)
 
-        # generate a temporary rates to determine what residues can't exchange
-        temp_rates = gen_temp_rates(sequence=sequence, rate_value=1)
-
-        # get the indices of residues that don't exchange
-        zero_indices = np.where(temp_rates == 0)[0]
-
-        # calculate the number of residues that can exchange
-        num_rates = len(temp_rates) - len(zero_indices)
-
-        # number of bins in exp distribution
-        num_bins = len(exp_distribution[0])
-
-        # flatten experimental distribution and keep the non zero elements
-        flat_exp_dist = np.concatenate(exp_distribution)
-        non_zero_exp_dist_indices = np.nonzero(flat_exp_dist)[0]
-        flat_exp_dist_non_zero = flat_exp_dist[non_zero_exp_dist_indices]
-
-        # initialize the kernel for MCMC
-        if self.sample_backexchange:
-            nuts_kernel = NUTS(model=rate_fit_model_norm_priors_with_backexchange_sampling)
+        if exp_data_object.merge_exp:
+            nuts_kernel = NUTS(model=rate_fit_model_norm_priors_with_merge)
         else:
             nuts_kernel = NUTS(model=rate_fit_model_norm_priors)
-
-        # # for debugging purpose
-        # nuts_kernel = NUTS(model=rate_fit_model_v3)
 
         # initialize MCMC
         mcmc = MCMC(nuts_kernel, num_warmup=self.num_warmups, num_samples=self.num_samples, num_chains=self.num_chains,
@@ -82,110 +264,233 @@ class BayesRateFit(object):
         rng_key = random.PRNGKey(0)
 
         # run mcmc
-        mcmc.run(rng_key=rng_key,
-                 num_rates=num_rates,
-                 sequence=sequence,
-                 timepoints=jnp.asarray(timepoints),
-                 backexchange_array=jnp.asarray(back_exchange_array),
-                 d2o_fraction=d2o_fraction,
-                 d2o_purity=d2o_purity,
-                 num_bins=num_bins,
-                 obs_dist_nonzero_flat=jnp.asarray(flat_exp_dist_non_zero),
-                 nonzero_indices=non_zero_exp_dist_indices,
-                 extra_fields=('potential_energy',))
 
-        # generate posterior samples but sort the rates in the posterior distribution
+        if exp_data_object.merge_exp:
+            mcmc.run(rng_key=rng_key,
+                     num_rates=exp_data_object.num_rates,
+                     sequence=exp_data_object.sequence,
+                     timepoints_array_list=exp_data_object.timepoints,
+                     num_merge_facs=len(exp_data_object.timepoints)-1,
+                     backexchange_array=jnp.asarray(exp_data_object.backexchange),
+                     d2o_fraction=exp_data_object.d2o_fraction,
+                     d2o_purity=exp_data_object.d2o_purity,
+                     num_bins=exp_data_object.num_bins_ms,
+                     obs_dist_nonzero_flat=jnp.asarray(exp_data_object.flat_nonzero_exp_dist),
+                     nonzero_indices=exp_data_object.nonzero_exp_dist_indices,
+                     extra_fields=('potential_energy',))
+
+        else:
+            mcmc.run(rng_key=rng_key,
+                     num_rates=exp_data_object.num_rates,
+                     sequence=exp_data_object.sequence,
+                     timepoints=jnp.asarray(exp_data_object.timepoints),
+                     backexchange_array=jnp.asarray(exp_data_object.backexchange),
+                     d2o_fraction=exp_data_object.d2o_fraction,
+                     d2o_purity=exp_data_object.d2o_purity,
+                     num_bins=exp_data_object.num_bins_ms,
+                     obs_dist_nonzero_flat=jnp.asarray(exp_data_object.flat_nonzero_exp_dist),
+                     nonzero_indices=exp_data_object.nonzero_exp_dist_indices,
+                     extra_fields=('potential_energy',))
+
+        # get posterior samples by chain
         posterior_samples_by_chain = sort_posterior_rates_in_samples(
             posterior_samples_by_chain=mcmc.get_samples(group_by_chain=True))
 
         # generate summary from the posterior samples
         summary_ = numpyro.diagnostics.summary(samples=posterior_samples_by_chain)
 
-        # gen dictionary for output with key outputs
+        # save bayes output data to objects
+
         self.output = dict()
 
-        if self.return_posterior_distributions:
-            self.output['posterior_samples'] = posterior_samples_by_chain
+        # save some key data
+        self.output['protein_name'] = exp_data_object.protein_name
+        self.output['protein_rt_name'] = exp_data_object.protein_rt_name
+        self.output['sequence'] = exp_data_object.sequence
+        self.output['d2o_purity'] = exp_data_object.d2o_purity
+        self.output['d2o_fraction'] = exp_data_object.d2o_fraction
+        self.output['merge_exp'] = exp_data_object.merge_exp
+        self.output['num_merge_facs'] = exp_data_object.num_merge_facs
+
+        # get keys from summary
+        bayes_out_keys = list(summary_.keys())
+
+        self.output['bayes_sample'] = dict()
+
+        for ind, output_keys in enumerate(bayes_out_keys):
+
+            self.output['bayes_sample'][output_keys] = vars(BayesOutputSample(posterior_samples_by_chain=np.array(posterior_samples_by_chain[output_keys]),
+                                                                              mean=summary_[output_keys]['mean'],
+                                                                              median=summary_[output_keys]['median'],
+                                                                              std=summary_[output_keys]['std'],
+                                                                              ci_5=summary_[output_keys]['5.0%'],
+                                                                              ci_95=summary_[output_keys]['95.0%'],
+                                                                              n_eff=summary_[output_keys]['n_eff'],
+                                                                              rhat=summary_[output_keys]['r_hat']))
+
+        # save exp data
+
+        if exp_data_object.merge_exp:
+
+            if not type(summary_['merge_fac']['mean']) == np.ndarray:
+                merge_fac_mean = np.array(summary_['merge_fac']['mean'])
+            else:
+                merge_fac_mean = summary_['merge_fac']['mean']
+
+            self.output['timepoints'] = np.array(recalc_timepoints_with_merge(timepoints_array_list=exp_data_object.timepoints,
+                                                                              merge_facs_=merge_fac_mean))
+
+            self.output['exp_distribution'] = exp_data_object.exp_distribution_stack
+            self.output['num_merge_facs'] = exp_data_object.num_merge_facs
         else:
-            self.output['posterior_samples'] = None
+            self.output['timepoints'] = exp_data_object.timepoints
+            self.output['exp_distribution'] = exp_data_object.exp_distribution
 
-        self.output['rate'] = dict()
-        self.output['rate']['mean'] = np.array(summary_['rate']['mean'])
-        self.output['rate']['median'] = np.array(summary_['rate']['median'])
-        self.output['rate']['std'] = np.array(summary_['rate']['std'])
-        self.output['rate']['5percent'] = np.array(summary_['rate']['5.0%'])
-        self.output['rate']['95percent'] = np.array(summary_['rate']['95.0%'])
-        self.output['rate']['n_eff'] = np.array(summary_['rate']['n_eff'])
-        self.output['rate']['r_hat'] = np.array(summary_['rate']['r_hat'])
+        self.output['timepoints_sort_indices'] = np.argsort(self.output['timepoints'])
 
-        self.output['sigma'] = dict()
-        self.output['sigma']['mean'] = summary_['sigma']['mean']
-        self.output['sigma']['median'] = summary_['sigma']['median']
-        self.output['sigma']['std'] = summary_['sigma']['std']
-        self.output['sigma']['5percent'] = summary_['sigma']['5.0%']
-        self.output['sigma']['95percent'] = summary_['sigma']['95.0%']
-        self.output['sigma']['n_eff'] = summary_['sigma']['n_eff']
-        self.output['sigma']['r_hat'] = summary_['sigma']['r_hat']
+        self.output['backexchange'] = exp_data_object.backexchange
 
-        if 'backexchange' in summary_.keys():
-            self.output['backexchange'] = dict()
-            self.output['backexchange']['mean'] = np.array(summary_['backexchange']['mean'])
-            self.output['backexchange']['median'] = np.array(summary_['backexchange']['median'])
-            self.output['backexchange']['std'] = np.array(summary_['backexchange']['std'])
-            self.output['backexchange']['5percent'] = np.array(summary_['backexchange']['5.0%'])
-            self.output['backexchange']['95percent'] = np.array(summary_['backexchange']['95.0%'])
-            self.output['backexchange']['n_eff'] = np.array(summary_['backexchange']['n_eff'])
-            self.output['backexchange']['r_hat'] = np.array(summary_['backexchange']['r_hat'])
+        # calculate theoretical distribution and rmse
+        self.output['pred_distribution'] = np.array(
+            gen_theoretical_isotope_dist_for_all_timepoints(sequence=exp_data_object.sequence,
+                                                            timepoints=jnp.asarray(self.output['timepoints']),
+                                                            rates=jnp.exp(summary_['rate']['mean']),
+                                                            inv_backexchange_array=jnp.subtract(1, exp_data_object.backexchange),
+                                                            d2o_fraction=exp_data_object.d2o_fraction,
+                                                            d2o_purity=exp_data_object.d2o_purity,
+                                                            num_bins=exp_data_object.num_bins_ms))
 
-            # self.output['backexchange_sigma'] = dict()
-            # self.output['backexchange_sigma']['mean'] = summary_['backexchange_sigma']['mean']
-            # self.output['backexchange_sigma']['median'] = summary_['backexchange_sigma']['median']
-            # self.output['backexchange_sigma']['std'] = summary_['backexchange_sigma']['std']
-            # self.output['backexchange_sigma']['5percent'] = summary_['backexchange_sigma']['5.0%']
-            # self.output['backexchange_sigma']['95percent'] = summary_['backexchange_sigma']['95.0%']
-            # self.output['backexchange_sigma']['n_eff'] = summary_['backexchange_sigma']['n_eff']
-            # self.output['backexchange_sigma']['r_hat'] = summary_['backexchange_sigma']['r_hat']
+        flat_thr_dist = np.concatenate(self.output['pred_distribution'])
+        flat_thr_dist_non_zero = flat_thr_dist[exp_data_object.nonzero_exp_dist_indices]
 
-            self.output['pred_distribution'] = np.array(
-                gen_theoretical_isotope_dist_for_all_timepoints(sequence=sequence,
-                                                                timepoints=jnp.asarray(timepoints),
-                                                                rates=jnp.exp(summary_['rate']['mean']),
-                                                                inv_backexchange_array=jnp.subtract(1, summary_[
-                                                                    'backexchange']['mean']),
-                                                                d2o_fraction=d2o_fraction,
-                                                                d2o_purity=d2o_purity,
-                                                                num_bins=num_bins))
-        else:
-            self.output['pred_distribution'] = np.array(
-                gen_theoretical_isotope_dist_for_all_timepoints(sequence=sequence,
-                                                                timepoints=jnp.asarray(timepoints),
-                                                                rates=jnp.exp(summary_['rate']['mean']),
-                                                                inv_backexchange_array=jnp.subtract(1, jnp.asarray(
-                                                                    back_exchange_array)),
-                                                                d2o_fraction=d2o_fraction,
-                                                                d2o_purity=d2o_purity,
-                                                                num_bins=num_bins))
-
+        # calculate rmse
         self.output['rmse'] = dict()
-        self.output['rmse']['total'] = compute_rmse_exp_thr_iso_dist(exp_isotope_dist=exp_distribution,
-                                                                     thr_isotope_dist=self.output['pred_distribution'],
+        self.output['rmse']['total'] = compute_rmse_exp_thr_iso_dist(exp_isotope_dist=exp_data_object.flat_nonzero_exp_dist,
+                                                                     thr_isotope_dist=flat_thr_dist_non_zero,
                                                                      squared=False)
 
-        self.output['rmse']['per_timepoint'] = np.zeros(len(timepoints))
-        for ind, (exp_dist, thr_dist) in enumerate(zip(exp_distribution, self.output['pred_distribution'])):
+        self.output['rmse']['per_timepoint'] = np.zeros(len(self.output['timepoints']))
+
+        for ind, (exp_dist, thr_dist) in enumerate(zip(self.output['exp_distribution'], self.output['pred_distribution'])):
             self.output['rmse']['per_timepoint'][ind] = compute_rmse_exp_thr_iso_dist(exp_isotope_dist=exp_dist,
                                                                                       thr_isotope_dist=thr_dist,
                                                                                       squared=False)
 
+        # fit gaussian to exp and pred data
+        self.output['exp_dist_gauss_fit'] = [vars(x) for x in gauss_fit_to_isotope_dist_array(isotope_dist=self.output['exp_distribution'])]
+        self.output['pred_dist_guass_fit'] = [vars(x) for x in gauss_fit_to_isotope_dist_array(isotope_dist=self.output['pred_distribution'])]
 
-def gen_temp_rates(sequence: str, rate_value: float = 1e2) -> np.ndarray:
-    """
-    generate template rates
-    :param sequence: protein sequence
-    :param rate_value: temporary rate value
-    :return: an array of rates with first two residues and proline residues assigned to 0.0
-    """
-    rates = np.array([rate_value] * len(sequence), dtype=float)
+    def exp_merge_dist_to_csv(self, output_path: str):
+
+        if self.output is not None:
+
+            sort_tp = self.output['timepoints'][self.output['timepoints_sort_indices']]
+            sort_expdata = self.output['exp_distribution'][self.output['timepoints_sort_indices']]
+
+            write_isotope_dist_timepoints(timepoints=sort_tp,
+                                          isotope_dist_array=sort_expdata,
+                                          output_path=output_path)
+        else:
+            print('Output is None')
+
+    def pred_dist_to_csv(self, output_path: str):
+
+        if self.output is not None:
+
+            sort_tp = self.output['timepoints'][self.output['timepoints_sort_indices']]
+            sort_pred_dist = self.output['pred_distribution'][self.output['timepoints_sort_indices']]
+
+            write_isotope_dist_timepoints(timepoints=sort_tp,
+                                          isotope_dist_array=sort_pred_dist,
+                                          output_path=output_path)
+
+        else:
+            print('Output is None')
+
+    def write_rates_to_csv(self, output_path: str):
+
+        if self.output is not None:
+
+            write_hx_rate_output_csv(hxrate_mean_array=self.output['bayes_sample']['rate']['mean'],
+                                     hxrate_median_array=self.output['bayes_sample']['rate']['median'],
+                                     hxrate_std_array=self.output['bayes_sample']['rate']['std'],
+                                     hxrate_5percent_array=self.output['bayes_sample']['rate']['ci_5'],
+                                     hxrate_95percent_array=self.output['bayes_sample']['rate']['ci_95'],
+                                     neff_array=self.output['bayes_sample']['rate']['n_eff'],
+                                     r_hat_array=self.output['bayes_sample']['rate']['rhat'],
+                                     output_path=output_path)
+        else:
+            print('Output is None')
+
+    def plot_hxrate_output(self, output_path: str):
+
+        if self.output is not None:
+
+            # do some operations for correct input
+
+            # calculate hxrate error based on CI
+            hxrate_error = np.zeros((2, len(self.output['bayes_sample']['rate']['mean'])))
+            hxrate_error[0] = np.subtract(self.output['bayes_sample']['rate']['mean'], self.output['bayes_sample']['rate']['ci_5'])
+            hxrate_error[1] = np.subtract(self.output['bayes_sample']['rate']['ci_95'], self.output['bayes_sample']['rate']['mean'])
+
+            # sort dist with timepoints
+            sort_tp = self.output['timepoints'][self.output['timepoints_sort_indices']]
+            sort_exp_dist = self.output['exp_distribution'][self.output['timepoints_sort_indices']]
+            sort_pred_dist = self.output['pred_distribution'][self.output['timepoints_sort_indices']]
+
+            exp_centroid_arr_ = np.array([x['centroid'] for x in self.output['exp_dist_gauss_fit']])[self.output['timepoints_sort_indices']]
+            pred_centroid_arr_ = np.array([x['centroid'] for x in self.output['pred_dist_guass_fit']])[self.output['timepoints_sort_indices']]
+
+            exp_width_arr_ = np.array([x['width'] for x in self.output['exp_dist_gauss_fit']])[self.output['timepoints_sort_indices']]
+            pred_width_arr_ = np.array([x['width'] for x in self.output['pred_dist_guass_fit']])[self.output['timepoints_sort_indices']]
+
+            plot_hx_rate_fitting_bayes(prot_name=self.output['protein_name'],
+                                       hx_rates=self.output['bayes_sample']['rate']['mean'],
+                                       hx_rates_error=hxrate_error,
+                                       timepoints=sort_tp,
+                                       exp_isotope_dist=sort_exp_dist,
+                                       thr_isotope_dist=sort_pred_dist,
+                                       exp_isotope_centroid_array=exp_centroid_arr_,
+                                       thr_isotope_centroid_array=pred_centroid_arr_,
+                                       exp_isotope_width_array=exp_width_arr_,
+                                       thr_isotope_width_array=pred_width_arr_,
+                                       fit_rmse_timepoints=self.output['rmse']['per_timepoint'],
+                                       fit_rmse_total=self.output['rmse']['total'],
+                                       backexchange=self.output['backexchange'][-1],
+                                       backexchange_array=self.output['backexchange'],
+                                       d2o_fraction=self.output['d2o_fraction'],
+                                       d2o_purity=self.output['d2o_purity'],
+                                       output_path=output_path)
+        else:
+            print('Output is None')
+
+    def plot_bayes_samples(self, output_path: str):
+
+        if self.output is not None:
+
+            plot_posteriors(bayesfit_sample_dict=self.output['bayes_sample'], output_path=output_path)
+
+        else:
+            print('Output is None')
+
+    def output_to_pickle(self, output_path: str, save_posterior_samples: bool):
+
+        output_dict = copy.deepcopy(self.output)
+
+        if not save_posterior_samples:
+            # delete posterior sample and save the dictionary
+            for dicts_ in output_dict['bayes_sample'].values():
+                dicts_.pop('posterior_samples_by_chain', None)
+
+        write_pickle_object(obj=output_dict,
+                            filepath=output_path)
+
+
+def gen_temp_rates(sequence):
+
+    # set high rate value as 1e2
+    high_rate_value = 1e2
+    rates = np.array([high_rate_value] * len(sequence), dtype=float)
 
     # set the rates for the first two residues as 0
     rates[:2] = 0
@@ -198,6 +503,682 @@ def gen_temp_rates(sequence: str, rate_value: float = 1e2) -> np.ndarray:
                 rates[ind] = 0
 
     return rates
+
+
+def write_pickle_object(obj, filepath):
+    """
+    write an object to a pickle file
+    :param obj: object
+    :param filepath: pickle file path
+    :return: None
+    """
+    with open(filepath, 'wb') as outfile:
+        pickle.dump(obj, outfile)
+
+
+def reshape_posterior_samples(posterior_samples):
+    """
+    reshape the posterior samples nd array
+    :param posterior_samples:
+    :return:
+    """
+
+    posterior_samples_shape = posterior_samples.shape
+
+    reshape_array = np.zeros((posterior_samples_shape[-1], posterior_samples_shape[0], posterior_samples_shape[1]))
+
+    for chain_ind, chain_arrs in enumerate(posterior_samples):
+        chain_arr_transpose = chain_arrs.T
+        for posterior_ind, posterior_arr in enumerate(chain_arr_transpose):
+            for sample_ind, sample_value in enumerate(posterior_arr):
+                reshape_array[posterior_ind][chain_ind][sample_ind] = sample_value
+
+    return reshape_array
+
+
+def plot_posteriors(bayesfit_sample_dict, output_path=None):
+
+    num_fig_grids = 0
+
+    for dict_items in bayesfit_sample_dict.values():
+        mean = dict_items['mean']
+        if type(mean) == np.float32:
+            num_fig_grids += 1
+        else:
+            num_fig_grids += len(mean)
+
+    # number of columns 2
+    num_columns = 2
+
+    num_rows = num_fig_grids/num_columns
+
+    if num_fig_grids % 2 != 0:
+        num_rows = divmod(num_fig_grids, num_columns)[0] + 1
+
+    num_rows = int(num_rows)
+
+    font_size = 8
+
+    fig_size = (20, 2.5 * num_rows)
+
+    fig = plt.figure(figsize=fig_size)
+
+    plt.rcParams.update({'font.size': font_size})
+
+    gs0 = gridspec.GridSpec(nrows=num_rows, ncols=num_columns)
+
+    # do one when there's only one mean, if more than one then do another action
+
+    counter = 0
+
+    for keys_, items_ in bayesfit_sample_dict.items():
+
+        if type(items_['mean']) == np.float32:
+
+            plot_posteriors_grid(fig_obj=fig,
+                                 sample=items_['posterior_samples_by_chain'],
+                                 sample_mean=items_['mean'],
+                                 sample_std=items_['std'],
+                                 sample_5percent=items_['ci_5'],
+                                 sample_95percent=items_['ci_95'],
+                                 sample_rhat=items_['rhat'],
+                                 sample_label=keys_,
+                                 gridspec_obj=gs0,
+                                 gridspec_index=counter)
+
+            counter += 1
+
+        else:
+
+            num_sample_per_key = len(items_['mean'])
+
+            reshape_array = reshape_posterior_samples(posterior_samples=items_['posterior_samples_by_chain'])
+
+            for num in range(num_sample_per_key):
+
+                plot_posteriors_grid(fig_obj=fig,
+                                     sample=reshape_array[num],
+                                     sample_mean=items_['mean'][num],
+                                     sample_std=items_['std'][num],
+                                     sample_5percent=items_['ci_5'][num],
+                                     sample_95percent=items_['ci_95'][num],
+                                     sample_rhat=items_['rhat'][num],
+                                     sample_label='%s_%s' % (keys_, num),
+                                     gridspec_obj=gs0,
+                                     gridspec_index=counter)
+
+                counter += 1
+
+    plt.subplots_adjust(hspace=1.2, wspace=0.12, top=0.95)
+
+    plt.savefig(output_path, bbox_inches="tight")
+    plt.close()
+
+
+def plot_posteriors_grid(fig_obj,
+                         sample,
+                         sample_mean,
+                         sample_std,
+                         sample_5percent,
+                         sample_95percent,
+                         sample_rhat,
+                         sample_label,
+                         gridspec_obj,
+                         gridspec_index):
+    """
+
+    :param fig_obj:
+    :param sample:
+    :param sample_mean:
+    :param sample_std:
+    :param sample_5percent:
+    :param sample_95percent:
+    :param sample_rhat:
+    :param sample_label:
+    :param gridspec_obj:
+    :param gridspec_index:
+    :return:
+    """
+
+    gs00 = gridspec.GridSpecFromSubplotSpec(nrows=1, ncols=3, subplot_spec=gridspec_obj[gridspec_index])
+
+    ax00 = fig_obj.add_subplot(gs00[0, :-1])
+
+    chain_colors = cycle(['indianred', 'mediumaquamarine', 'deepskyblue', 'mediumpurple', 'palevioletred'])
+
+    ind_arr = np.arange(0, len(sample[0]))
+    for ind, (sample_per_chain, color_) in enumerate(zip(sample, chain_colors)):
+        if ind == 0:
+            ax00.plot(ind_arr, sample_per_chain, color=color_, linewidth=0.5)
+        else:
+            last_ind = ind_arr[-1]
+            ind_arr = np.arange(last_ind+1, last_ind + 1 + len(sample_per_chain))
+            ax00.plot(ind_arr, sample_per_chain, color=color_, linewidth=0.5)
+
+    ax00.hlines(y=sample_mean, xmin=0, xmax=ind_arr[-1], ls='--', colors='red', linewidth=0.5)
+    ax00.hlines(y=sample_5percent, xmin=0, xmax=ind_arr[-1], ls='--', colors='black', linewidth=0.5)
+    ax00.hlines(y=sample_95percent, xmin=0, xmax=ind_arr[-1], ls='--', colors='black', linewidth=0.5)
+    ax00.spines['right'].set_visible(False)
+    ax00.spines['top'].set_visible(False)
+    plt.grid(alpha=0.25)
+    ax00.tick_params(length=3, pad=3)
+
+    # put stats on the right side
+    plt.text(0.95,
+             1.2,
+             "mean = %.4f\nstd = %.4f" % (sample_mean, sample_std),
+             horizontalalignment='right',
+             verticalalignment='top',
+             transform=ax00.transAxes)
+
+    # put the label on the left side
+    plt.text(0.01, 1.2, sample_label,
+             horizontalalignment="left",
+             verticalalignment="top",
+             transform=ax00.transAxes)
+
+    ax01 = fig_obj.add_subplot(gs00[0, -1])
+    ax01.scatter(0, sample_rhat, color='black')
+    ax01.hlines(y=1+0.05, xmin=-1, xmax=1, ls='--', colors='black', linewidth=1)
+    ax01.hlines(y=1-0.05, xmin=-1, xmax=1, ls='--', colors='black', linewidth=1)
+    ax01.spines['right'].set_visible(False)
+    ax01.spines['top'].set_visible(False)
+    ax01.spines['bottom'].set_visible(False)
+    plt.xticks([])
+    ax01.tick_params(length=3, pad=3)
+
+    # put rhat on the right side
+    plt.text(0.95,
+             1.2,
+             "rhat = %.4f" % sample_rhat,
+             horizontalalignment='right',
+             verticalalignment='top',
+             transform=ax01.transAxes)
+
+
+def correct_centroids_using_backexchange(centroids: np.ndarray,
+                                         backexchange_array: np.ndarray,
+                                         include_zero_dist: bool = False) -> np.ndarray:
+    """
+
+    :param centroids: uncorrected centroids
+    :param backexchange_array: backexchange array for each timepoint
+    :return: corrected centroids
+    """
+
+    # generate corr centroids zero arrays and fill with corrections. timepoint 0 doesn't need any correction
+    corr_centroids = np.zeros(len(centroids))
+
+    # apply correction to centroids based on backexchange
+    for ind, (centr, bkexch) in enumerate(zip(centroids, backexchange_array)):
+        corr_centroids[ind] = centr/(1-bkexch)
+
+    if include_zero_dist:
+        corr_centroids[0] = centroids[0]
+
+    return corr_centroids
+
+
+def plot_hx_rate_fitting_bayes(prot_name: str,
+                               hx_rates: np.ndarray,
+                               hx_rates_error: np.ndarray,
+                               exp_isotope_dist: np.ndarray,
+                               thr_isotope_dist: np.ndarray,
+                               exp_isotope_centroid_array: np.ndarray,
+                               thr_isotope_centroid_array: np.ndarray,
+                               exp_isotope_width_array: np.ndarray,
+                               thr_isotope_width_array: np.ndarray,
+                               timepoints: np.ndarray,
+                               fit_rmse_timepoints: np.ndarray,
+                               fit_rmse_total: float,
+                               backexchange: float,
+                               backexchange_array: np.ndarray,
+                               d2o_fraction: float,
+                               d2o_purity: float,
+                               output_path: str):
+    """
+    generate several plots for visualizing the hx rate fitting output
+    :param prot_name: protein name
+    :param hx_rates: in ln scale
+    :param exp_isotope_dist: exp isotope dist array
+    :param thr_isotope_dist: thr isotope dist array from hx rates
+    :param exp_isotope_centroid_array: exp isotope centroid in an array
+    :param thr_isotope_centroid_array: thr isotope centroid in an array
+    :param exp_isotope_width_array: exp isotope width in an array
+    :param thr_isotope_width_array: thr isotope width in an array
+    :param timepoints: time points
+    :param fit_rmse_timepoints: fit rmse for each timepoint
+    :param fit_rmse_total: total fit rmse
+    :param backexchange: backexchange value
+    :param backexchange_array: backexchange array
+    :param d2o_fraction: d2o fraction
+    :param d2o_purity: d2o purity
+    :param output_path: plot saveing output path
+    :return:
+    """
+
+    # define figure size
+    num_columns = 2
+
+    # this is a constant
+    num_plots_second_row = 8
+
+    num_rows = len(timepoints)
+    row_width = 1.0
+    if len(timepoints) < num_plots_second_row:
+        num_rows = num_plots_second_row
+        row_width = 2.5
+    fig_size = (25, row_width * num_rows)
+
+    font_size = 10
+
+    fig = plt.figure(figsize=fig_size)
+    gs = fig.add_gridspec(nrows=num_rows, ncols=num_columns)
+
+    plt.rcParams.update({'font.size': font_size})
+
+    if fit_rmse_timepoints is None:
+        fit_rmse_tp = np.zeros(len(timepoints))
+    else:
+        fit_rmse_tp = fit_rmse_timepoints
+
+    #######################################################
+    #######################################################
+    # start plotting the exp and thr isotope dist
+    for num, (timepoint, exp_dist, thr_dist, exp_centroid, bkexch) in enumerate(zip(timepoints, exp_isotope_dist, thr_isotope_dist, exp_isotope_centroid_array, backexchange_array)):
+
+        if fit_rmse_timepoints is None:
+            rmse_tp = compute_rmse_exp_thr_iso_dist(exp_isotope_dist=exp_dist,
+                                                    thr_isotope_dist=thr_dist,
+                                                    squared=False)
+            fit_rmse_tp[num] = rmse_tp
+        else:
+            rmse_tp = fit_rmse_tp[num]
+
+        # plot exp and thr isotope dist
+        ax = fig.add_subplot(gs[num, 0])
+        plt.plot(exp_dist, color='blue', marker='o', ls='-', markersize=3)
+        plt.plot(thr_dist, color='red')
+        ax.set_yticks([])
+        ax.spines['right'].set_visible(False)
+        ax.spines['top'].set_visible(False)
+        # ax.spines['left'].set_visible(False)
+        plt.xticks(range(0, len(exp_dist) + 5, 5))
+        ax.set_xticklabels(range(0, len(exp_dist) + 5, 5))
+        plt.grid(axis='x', alpha=0.25)
+        ax.tick_params(length=3, pad=3)
+
+        # put the rmse on the right side of the plot and delta centroid
+        if num == 0:
+            delta_centroid = 0.0
+        else:
+            prev_centroid = exp_isotope_centroid_array[num - 1]
+            delta_centroid = exp_centroid - prev_centroid
+
+        # delta_centroid_text = 'dmz=%.2f' % delta_centroid
+
+        plt.text(1.0, 1.2, "fit rmse = %.4f\nd_mz = %.2f\nbkexch = %.2f" % (rmse_tp, delta_centroid, bkexch*100),
+                 horizontalalignment="right",
+                 verticalalignment="top",
+                 transform=ax.transAxes)
+
+        # put timepoint on  the left side of the plot
+        plt.text(0.01, 1.2, '%s t %i' % (num, timepoint),
+                 horizontalalignment="left",
+                 verticalalignment="top",
+                 transform=ax.transAxes)
+
+        # put the centroid information by the peak max
+        plt.text(
+            exp_centroid,
+            1.1,
+            "%.1f" % exp_centroid,
+            horizontalalignment="center",
+            verticalalignment="bottom",
+            fontsize=8)
+    #######################################################
+    #######################################################
+
+    # 8 plots on the second row
+    second_plot_row_thickness = int(len(timepoints)/num_plots_second_row)
+    if len(timepoints) < num_plots_second_row:
+        second_plot_row_thickness = 1
+    second_plot_indices = [(num*second_plot_row_thickness) for num in range(num_plots_second_row)]
+
+    #######################################################
+    #######################################################
+    # plot timepoint specific backexchange
+    ax0 = fig.add_subplot(gs[second_plot_indices[0]: second_plot_indices[1], 1])
+
+    plt.scatter(x=np.arange(len(timepoints))[1:], y=backexchange_array[1:]*100, color='black')
+    ax0.spines['right'].set_visible(False)
+    ax0.spines['top'].set_visible(False)
+    plt.xticks(range(-1, len(timepoints) + 1, 1))
+    ax0.set_xticklabels(range(-1, len(timepoints) + 1, 1))
+    plt.grid(axis='x', alpha=0.25)
+    plt.grid(axis='y', alpha=0.25)
+    plt.xlabel('Timepoint index')
+    plt.ylabel('Back Exchange (%)')
+    ax0.tick_params(length=3, pad=3)
+
+    #######################################################
+    #######################################################
+    # plot fit rmse
+
+    ax1 = fig.add_subplot(gs[second_plot_indices[1]: second_plot_indices[2], 1])
+    plt.scatter(np.arange(len(timepoints)), fit_rmse_tp, color='black')
+    ax1.spines['right'].set_visible(False)
+    ax1.spines['top'].set_visible(False)
+    plt.xticks(range(0, len(timepoints) + 1, 1))
+    ax1.set_xticklabels(range(0, len(timepoints) + 1, 1))
+    if max(fit_rmse_tp) <= 0.15:
+        y_ticks = np.round(np.linspace(0, 0.15, num=16), 2)
+        plt.yticks(y_ticks)
+        ax1.set_yticklabels(y_ticks)
+    else:
+        plt.axhline(y=0.15, ls='--', color='black')
+    plt.grid(axis='x', alpha=0.25)
+    plt.grid(axis='y', alpha=0.25)
+    plt.xlabel('Timepoint index')
+    plt.ylabel('Fit RMSE')
+    ax1.tick_params(length=3, pad=3)
+
+    #######################################################
+    #######################################################
+
+    #######################################################
+    #######################################################
+    # plot center of mass exp and thr
+
+    timepoints_v2 = np.array([x for x in timepoints])
+    timepoints_v2[0] = timepoints_v2[2] - timepoints_v2[1]
+
+    ax2 = fig.add_subplot(gs[second_plot_indices[2]: second_plot_indices[3], 1])
+    ax2.plot(timepoints_v2, exp_isotope_centroid_array, marker='o', ls='-', color='blue')
+    ax2.plot(timepoints_v2, thr_isotope_centroid_array, marker='o', ls='-', color='red')
+    ax2.set_xscale('log')
+    ax2.set_xticks(timepoints_v2)
+    ax2.set_xticklabels([])
+    ax2.spines['right'].set_visible(False)
+    ax2.spines['top'].set_visible(False)
+    plt.grid(axis='x', alpha=0.25)
+    plt.grid(axis='y', alpha=0.25)
+    plt.xlabel('log(timepoint)')
+    plt.ylabel('Centroid')
+    #######################################################
+    #######################################################
+
+    #######################################################
+    #######################################################
+    # plot center of mass exp and thr corrected using backexchange
+
+    exp_isotope_centroid_array_corr = correct_centroids_using_backexchange(centroids=exp_isotope_centroid_array,
+                                                                           backexchange_array=backexchange_array,
+                                                                           include_zero_dist=True)
+    thr_isotope_centroid_array_corr = correct_centroids_using_backexchange(centroids=thr_isotope_centroid_array,
+                                                                           backexchange_array=backexchange_array,
+                                                                           include_zero_dist=True)
+
+    ax2 = fig.add_subplot(gs[second_plot_indices[3]: second_plot_indices[4], 1])
+    ax2.plot(timepoints_v2, exp_isotope_centroid_array_corr, marker='o', ls='-', color='blue')
+    ax2.plot(timepoints_v2, thr_isotope_centroid_array_corr, marker='o', ls='-', color='red')
+    ax2.set_xscale('log')
+    ax2.set_xticks(timepoints_v2)
+    ax2.set_xticklabels([])
+    ax2.spines['right'].set_visible(False)
+    ax2.spines['top'].set_visible(False)
+    plt.grid(axis='x', alpha=0.25)
+    plt.grid(axis='y', alpha=0.25)
+    plt.xlabel('log(timepoint)')
+    plt.ylabel('Corrected Centroid')
+    #######################################################
+    #######################################################
+
+    #######################################################
+    #######################################################
+    # plot the error in center of mass between exp and thr distributions
+
+    com_difference = np.subtract(exp_isotope_centroid_array_corr, thr_isotope_centroid_array_corr)
+
+    ax3 = fig.add_subplot(gs[second_plot_indices[4]: second_plot_indices[5], 1])
+    ax3.scatter(np.arange(len(timepoints)), com_difference, color='black')
+    plt.axhline(y=0, ls='--', color='black', alpha=0.50)
+    ax3.spines['right'].set_visible(False)
+    ax3.spines['top'].set_visible(False)
+    plt.xticks(range(0, len(timepoints) + 1, 1))
+    ax3.set_xticklabels(range(0, len(timepoints) + 1, 1))
+    plt.grid(axis='x', alpha=0.25)
+    plt.grid(axis='y', alpha=0.25)
+    plt.xlabel('Timepoint index')
+    plt.ylabel('Centroid difference (E-T)')
+    #######################################################
+    #######################################################
+
+    #######################################################
+    #######################################################
+    # plot the width of exp and thr distributions
+
+    ax4 = fig.add_subplot(gs[second_plot_indices[5]: second_plot_indices[6], 1])
+    ax4.scatter(np.arange(len(timepoints)), exp_isotope_width_array, color='blue')
+    ax4.scatter(np.arange(len(timepoints)), thr_isotope_width_array, color='red')
+    ax4.spines['right'].set_visible(False)
+    ax4.spines['top'].set_visible(False)
+    plt.xticks(range(0, len(timepoints) + 1, 1))
+    ax4.set_xticklabels(range(0, len(timepoints) + 1, 1))
+    plt.grid(axis='x', alpha=0.25)
+    plt.grid(axis='y', alpha=0.25)
+    plt.xlabel('Timepoint index')
+    plt.ylabel('Width')
+    #######################################################
+    #######################################################
+
+    #######################################################
+    #######################################################
+    # plot the error in center of mass between exp and thr distributions
+
+    width_difference = np.subtract(exp_isotope_width_array, thr_isotope_width_array)
+
+    ax5 = fig.add_subplot(gs[second_plot_indices[6]: second_plot_indices[7], 1])
+    ax5.scatter(np.arange(len(timepoints)), width_difference, color='black')
+    plt.axhline(y=0, ls='--', color='black', alpha=0.50)
+    ax5.spines['right'].set_visible(False)
+    ax5.spines['top'].set_visible(False)
+    plt.xticks(range(0, len(timepoints) + 1, 1))
+    ax5.set_xticklabels(range(0, len(timepoints) + 1, 1))
+    plt.grid(axis='x', alpha=0.25)
+    plt.grid(axis='y', alpha=0.25)
+    plt.xlabel('Timepoint index')
+    plt.ylabel('Width difference (E-T)')
+    #######################################################
+    #######################################################
+
+    #######################################################
+    #######################################################
+    # plot the rates in log10 scale
+    hx_rates_log10 = np.log10(np.exp(hx_rates))
+    hx_rates_error_log10 = np.log10(np.exp(hx_rates_error))
+
+    ax6 = fig.add_subplot(gs[second_plot_indices[7]:, 1])
+    plt.errorbar(x=np.arange(len(hx_rates_log10)), y=hx_rates_log10, yerr=hx_rates_error_log10, marker='o', ls='-',
+                 color='red', markerfacecolor='red', markeredgecolor='black')
+    # plt.plot(np.arange(len(hx_rates_log10)), hx_rates_log10[sort_ind], marker='o', ls='-', color='red',
+    #          markerfacecolor='red', markeredgecolor='black')
+    plt.xticks(range(0, len(hx_rates_log10) + 2, 2))
+    ax6.set_xticklabels(range(0, len(hx_rates_log10) + 2, 2))
+    ax6.spines['right'].set_visible(False)
+    ax6.spines['top'].set_visible(False)
+    plt.grid(axis='x', alpha=0.25)
+    plt.grid(axis='y', alpha=0.25)
+    plt.xlabel('Residues (Ranked from slowest to fastest exchanging)')
+    plt.ylabel('Rate: log k (1/s)')
+    #######################################################
+    #######################################################
+
+    # adjust some plot properties and add title
+    plt.subplots_adjust(hspace=1.2, wspace=0.1, top=0.96)
+
+    title_1 = 'Fit RMSE: %.4f | Backexchange: %.2f %% | D2O Purity: %.1f %% | D2O_Fraction: %.1f %%' %(fit_rmse_total,
+                                                                                                       backexchange*100,
+                                                                                                       d2o_purity*100,
+                                                                                                       d2o_fraction*100)
+
+    plot_title = prot_name + ' (' + title_1 + ')'
+
+    plt.suptitle(plot_title)
+
+    plt.figtext(0.498, 0.968, "EXP", color='blue', ha='right', fontsize=8)
+    plt.figtext(0.502, 0.968, "FIT", color='red', ha='left', fontsize=8)
+
+    plt.savefig(output_path, bbox_inches="tight")
+    plt.close()
+
+
+def write_isotope_dist_timepoints(timepoints, isotope_dist_array, output_path):
+
+    timepoint_str = ','.join(['%.4f' % x for x in timepoints])
+    header = 'ind,' + timepoint_str + '\n'
+    data_string = ''
+    for ind, arr in enumerate(isotope_dist_array.T):
+        arr_str = ','.join([str(x) for x in arr])
+        data_string += '{},{}\n'.format(ind, arr_str)
+
+    with open(output_path, 'w') as outfile:
+        outfile.write(header + data_string)
+        outfile.close()
+
+
+def write_hx_rate_output_csv(hxrate_mean_array: np.ndarray,
+                             hxrate_median_array: np.ndarray,
+                             hxrate_std_array: np.ndarray,
+                             hxrate_5percent_array: np.ndarray,
+                             hxrate_95percent_array: np.ndarray,
+                             neff_array: np.ndarray,
+                             r_hat_array: np.ndarray,
+                             output_path: str):
+
+    header = 'ind,rate_mean,rate_median,rate_std,rate_5%,rate_95%,n_eff,r_hat\n'
+    data_string = ''
+
+    for num in range(len(hxrate_mean_array)):
+
+        data_string += '{},{},{},{},{},{},{},{}\n'.format(num,
+                                                          hxrate_mean_array[num],
+                                                          hxrate_median_array[num],
+                                                          hxrate_std_array[num],
+                                                          hxrate_95percent_array[num],
+                                                          hxrate_5percent_array[num],
+                                                          neff_array[num],
+                                                          r_hat_array[num])
+
+    with open(output_path, 'w') as outfile:
+        outfile.write(header + data_string)
+        outfile.close()
+
+
+def estimate_gauss_param(ydata: np.ndarray,
+                         xdata: np.ndarray,
+                         baseline: float = 0.0,
+                         width_ht: float = 0.7) -> list:
+    ymax = np.max(ydata)
+    maxindex = np.nonzero(ydata == ymax)[0]
+    peakmax_x = xdata[maxindex][0]
+    norm_arr = ydata/max(ydata)
+    bins_for_width = norm_arr[norm_arr > width_ht]
+    width_bin = len(bins_for_width)
+    init_guess = [baseline, ymax, peakmax_x, width_bin]
+    return init_guess
+
+
+def gauss_func(x, y0, A, xc, w):
+    """
+    gaussian function with baseline
+    :param x: xdata
+    :param y0: baseline
+    :param A: amplitude
+    :param xc: centroid
+    :param w: width
+    :return: gauss(x)
+    """
+    rxc = ((x - xc) ** 2) / (2 * (w ** 2))
+    y = y0 + A * (np.exp(-rxc))
+    return y
+
+
+def fit_gaussian(data: np.ndarray) -> object:
+    """
+    fit gaussian to data
+    :param data: xdata to fit gaussian
+    :return: gauss fit object
+    """
+    xdata = np.arange(len(data))
+    guess_params = estimate_gauss_param(ydata=data,
+                                        xdata=xdata)
+
+    # initialize gauss fit object with fit success as false
+    mean = sum(xdata * data) / sum(data)
+    sigma = np.sqrt(sum(data * (xdata - mean) ** 2) / sum(data))
+    gaussfit = GaussFit(fit_success=False,
+                        gauss_fit_dist=data,
+                        y_baseline=guess_params[0],
+                        amplitude=guess_params[1],
+                        centroid=center_of_mass_(data_array=data),
+                        width=sigma,
+                        r_sq=0.00,
+                        rmse=100.0)
+
+    try:
+
+        # fit gaussian
+        popt, pcov = curve_fit(gauss_func, xdata, data, p0=guess_params, maxfev=100000)
+
+        # if the centroid is smaller than 0, return the false gaussfit object
+        if popt[2] < 0.0:
+            return gaussfit
+
+        # if the width is smaller than 0, return the false gauss fit object
+        if popt[3] < 0.0 or popt[3] > len(data):
+            return gaussfit
+
+        # for successful gaussian fit
+        else:
+            gaussfit.fit_success = True
+            gaussfit.y_baseline = popt[0]
+            gaussfit.amplitude = popt[1]
+            gaussfit.centroid = popt[2]
+            gaussfit.width = popt[3]
+            gaussfit.gauss_fit_dist = gauss_func(xdata, *popt)
+            gaussfit.rmse = compute_rmse_exp_thr_iso_dist(exp_isotope_dist=data,
+                                                          thr_isotope_dist=gaussfit.gauss_fit_dist,
+                                                          squared=True)
+            slope, intercept, rvalue, pvalue, stderr = linregress(data, gaussfit.gauss_fit_dist)
+            gaussfit.r_sq = rvalue**2
+
+            return gaussfit
+
+    except RuntimeError:
+        return gaussfit
+
+
+def gauss_fit_to_isotope_dist_array(isotope_dist: np.ndarray) -> list:
+    """
+    fit gaussian to each isotope dist array and store the output in a list
+    :param isotope_dist: 2d array of isotope dist
+    :return: gauss fit list
+    """
+
+    gauss_fit_list = []
+
+    for dist in isotope_dist:
+
+        gauss_fit = fit_gaussian(data=dist)
+        gauss_fit_list.append(gauss_fit)
+
+    return gauss_fit_list
+
+
+def center_of_mass_(data_array):
+    com = center_of_mass(data_array)[0]
+    return com
 
 
 def compute_rmse_exp_thr_iso_dist(exp_isotope_dist: np.ndarray,
@@ -571,6 +1552,81 @@ def rate_fit_model_norm_priors(num_rates,
                               obs=obs_dist_nonzero_flat)
 
 
+def recalc_timepoints_with_merge(timepoints_array_list, merge_facs_):
+
+    multiply_tps_list = [timepoints_array_list[0]]
+
+    for ind, merge_facs_sample in enumerate(merge_facs_):
+        mult_tparr = jnp.multiply(10**merge_facs_sample, timepoints_array_list[ind+1])
+        multiply_tps_list.append(mult_tparr)
+
+    concat_tp_array = jnp.concatenate(multiply_tps_list)
+
+    return concat_tp_array
+
+
+def rate_fit_model_norm_priors_with_merge(num_rates,
+                                          sequence,
+                                          timepoints_array_list,
+                                          num_merge_facs,
+                                          backexchange_array,
+                                          d2o_fraction,
+                                          d2o_purity,
+                                          num_bins,
+                                          obs_dist_nonzero_flat,
+                                          nonzero_indices):
+    """
+    rate fit model for opt
+    :param num_rates: number of rates
+    :param sequence: protein sequence
+    :param timepoints: timepoints array
+    :param inv_backexchange_array:  1- backexchange array
+    :param d2o_fraction: d2o fraction
+    :param d2o_purity: d2o purity
+    :param num_bins: number of bins in integrated mz data
+    :param obs_dist_nonzero_flat: observed experimental distribution flattened and with non zero values
+    :param nonzero_indices: indices in exp distribution with non zero values
+    :return: numpyro sample object
+    """
+
+    rate_center = np.linspace(start=-15, stop=5, num=num_rates)
+    rate_sigma = 2.5
+    with numpyro.plate(name='rates', size=num_rates):
+        rates_ = numpyro.sample(name='rate',
+                                fn=numpyro.distributions.Normal(loc=rate_center, scale=rate_sigma))
+
+    # gen merge priors
+    log_merge_prior_sigma = 1.0
+    log_merge_prior_center = 3.0
+
+    with numpyro.plate(name='merge_facs', size=num_merge_facs):
+        merge_facs_ = numpyro.sample(name='merge_fac', fn=numpyro.distributions.Normal(loc=log_merge_prior_center,
+                                                                                       scale=log_merge_prior_sigma))
+
+    concat_tp_arr_ = recalc_timepoints_with_merge(timepoints_array_list=timepoints_array_list,
+                                                  merge_facs_=merge_facs_)
+
+    thr_dists = gen_theoretical_isotope_dist_for_all_timepoints(sequence=sequence,
+                                                                timepoints=concat_tp_arr_,
+                                                                rates=jnp.exp(rates_),
+                                                                inv_backexchange_array=jnp.subtract(1,
+                                                                                                    backexchange_array),
+                                                                d2o_fraction=d2o_fraction,
+                                                                d2o_purity=d2o_purity,
+                                                                num_bins=num_bins)
+
+    flat_thr_dist = jnp.concatenate(thr_dists)
+    flat_thr_dist_non_zero = flat_thr_dist[nonzero_indices]
+
+    sigma = numpyro.sample(name='sigma',
+                           fn=numpyro.distributions.Normal(loc=0.5, scale=0.5))
+
+    with numpyro.plate(name='bins', size=len(flat_thr_dist_non_zero)):
+        return numpyro.sample(name='bin_preds',
+                              fn=numpyro.distributions.Normal(loc=flat_thr_dist_non_zero, scale=sigma),
+                              obs=obs_dist_nonzero_flat)
+
+
 def rate_fit_model_v2(num_rates,
                       sequence,
                       timepoints,
@@ -653,3 +1709,131 @@ def sort_posterior_rates_in_samples(posterior_samples_by_chain):
 
 if __name__ == '__main__':
     pass
+
+    # import numpy as np
+    # from methods import normalize_mass_distribution_array, gauss_fit_to_isotope_dist_array, plot_hx_rate_fitting_bayes
+    # from hx_rate_fit import calc_back_exchange
+    # from hxdata import load_tp_dependent_dict, load_data_from_hdx_ms_dist_
+    #
+    # from hxdata import load_pickle_object
+    #
+    # dpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/EEHEE_rd4_0871/'
+    #
+    # pkfpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/EEHEE_rd4_0871/EEHEE_rd4_0871.pdb_8.57176_winner_multibody.cpickle.zlib.csv_rateoutput_dict_7.pickle'
+    #
+    # pkobj_ = load_pickle_object(pkfpath)
+    #
+    # print('heho')
+    #
+    # # pkfiles = glob.glob(dpath + '/*.pickle')
+    #
+    # # for ind, pkfpath in enumerate(pkfiles):
+    # #
+    # #     pkobj = load_pickle_object(pkfpath)
+    # #
+    # #     mean_ = np.log10(pkobj['merge_fac']['mean'][0])
+    # #     std_ = np.log10(pkobj['merge_fac']['std'][0])
+    # #
+    # #     print(pkfpath)
+    # #     print('Mean = %s, Std = %s' % (mean_, std_))
+    # #
+    # #     merge_fac_posterior = pkobj['posterior_samples']['merge_fac']
+    # #
+    # #     label_ = 'mean = %s' % str(np.log10(pkobj['merge_fac']['mean'][0]))
+    # #
+    # # stop
+    #
+    # #
+    # #     for merge_post_chain in merge_fac_posterior:
+    # #         merge_post_chain_arr = np.log10(np.concatenate(merge_post_chain))
+    # #         plt.hist(merge_post_chain_arr, label=label_)
+    # #         label_ = None
+    # #     plt.legend()
+    # #     plt.xlabel('log10(merge_fac)')
+    # #     plt.ylabel('Count')
+    # #     plt.savefig(pkfpath + '_merge_posterior.pdf')
+    # #     plt.close()
+    # #
+    # # stop
+    #
+    # eehee_rd4_0642_sequence = 'HMKTVEVNGVKYDFDNPEQAREMAERIAKSLGLQVRLEGDTFKIE'
+    # eehee_rd4_08742_sequence = 'HMTQVHVDGVTYTFSNPEEAKKFADEMAKRKGGTWEIKDGHIHVE'
+    #
+    # temp = 295.0
+    #
+    # d2o_frac = 0.95
+    # d2o_pur = 0.95
+    #
+    # low_ph = 6.0
+    # high_ph = 9.0
+    #
+    # eehee_rd4_0642_low_ph_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/EEHEE_rd4_0642/EEHEE_rd4_0642.pdb_15.13925_winner_multibody.cpickle.zlib.csv'
+    # eehee_rd4_0642_high_ph_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/EEHEE_rd4_0642/EEHEE_rd4_0642.pdb_15.13928_winner_multibody.cpickle.zlib.csv'
+    #
+    # eehee_rd4_0871_low_ph_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/EEHEE_rd4_0871/EEHEE_rd4_0871.pdb_8.57176_winner_multibody.cpickle.zlib.csv'
+    # eehee_rd4_0871_high_ph_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/EEHEE_rd4_0871/EEHEE_rd4_0871.pdb_8.57163_winner_multibody.cpickle.zlib.csv'
+    #
+    # prot_name = 'eehee_rd4_0871'
+    # prot_rt_name_low_ph = 'EEHEE_rd4_0871.pdb_8.57176'
+    # prot_rt_name_high_ph = 'EEHEE_rd4_0871.pdb_8.57163'
+    #
+    # prot_seq = eehee_rd4_08742_sequence
+    #
+    # lowph_exp_fpath = eehee_rd4_0871_low_ph_fpath
+    # highph_exp_fpath = eehee_rd4_0871_high_ph_fpath
+    #
+    # low_ph_bkexch_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/backexchange/low_ph_bkexch_corr.csv'
+    # high_ph_bkexch_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/backexchange/high_ph_bkexch_corr.csv'
+    #
+    # low_ph_bkexch_corr_dict = load_tp_dependent_dict(filepath=low_ph_bkexch_corr_fpath)
+    # high_ph_bkexch_corr_dict = load_tp_dependent_dict(filepath=high_ph_bkexch_corr_fpath)
+    #
+    # low_ph_timepoints, low_ph_ms_dist = load_data_from_hdx_ms_dist_(fpath=lowph_exp_fpath)
+    # high_ph_timepoints, high_ph_ms_dist = load_data_from_hdx_ms_dist_(fpath=highph_exp_fpath)
+    #
+    # low_ph_ms_norm_dist = normalize_mass_distribution_array(mass_dist_array=low_ph_ms_dist)
+    # high_ph_ms_norm_dist = normalize_mass_distribution_array(mass_dist_array=high_ph_ms_dist)
+    #
+    # # try for single ph rate fitting
+    #
+    # backexchange_obj_lowph = calc_back_exchange(sequence=eehee_rd4_08742_sequence,
+    #                                             experimental_isotope_dist=low_ph_ms_norm_dist[-1],
+    #                                             timepoints_array=low_ph_timepoints,
+    #                                             d2o_fraction=d2o_frac,
+    #                                             d2o_purity=d2o_pur,
+    #                                             backexchange_corr_dict=low_ph_bkexch_corr_dict)
+    #
+    # backexchange_obj_highph = calc_back_exchange(sequence=eehee_rd4_08742_sequence,
+    #                                              experimental_isotope_dist=high_ph_ms_norm_dist[-1],
+    #                                              timepoints_array=high_ph_timepoints,
+    #                                              d2o_fraction=d2o_frac,
+    #                                              d2o_purity=d2o_pur,
+    #                                              backexchange_corr_dict=high_ph_bkexch_corr_dict)
+    #
+    # expdata_obj = ExpDataRateFit(sequence=eehee_rd4_08742_sequence,
+    #                              prot_name=prot_name,
+    #                              prot_rt_name=prot_rt_name_low_ph,
+    #                              timepoints=low_ph_timepoints,
+    #                              exp_distribution=low_ph_ms_norm_dist,
+    #                              backexchange=backexchange_obj_lowph.backexchange_array,
+    #                              merge_exp=False,
+    #                              d2o_purity=d2o_pur,
+    #                              d2o_fraction=d2o_frac)
+    #
+    # bayesopt = BayesRateFit(num_chains=4,
+    #                         num_warmups=5,
+    #                         num_samples=5,
+    #                         sample_backexchange=False)
+    #
+    # bayesopt.fit_rate(exp_data_object=expdata_obj)
+    #
+    # bayesopt.write_rates_to_csv(output_path=eehee_rd4_0871_low_ph_fpath + '_lowph_hxrate_out.csv')
+    #
+    # bayesopt.output_to_pickle(output_path=eehee_rd4_0871_low_ph_fpath + '_lowph_hxrate_out.pickle',
+    #                           save_posterior_samples=True)
+    #
+    # bayesopt.plot_hxrate_output(output_path=eehee_rd4_0871_low_ph_fpath + '_lowph_hxrate_out.pdf')
+    #
+    # bayesopt.plot_bayes_samples(output_path=eehee_rd4_0871_low_ph_fpath + '_lowph_bayes_sample.pdf')
+    #
+    # # print(bayesopt.output['bayes_sample']['merge_fac']['posterior_samples_by_chain'])
