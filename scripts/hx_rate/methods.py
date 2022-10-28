@@ -729,13 +729,14 @@ def gen_theoretical_isotope_dist_for_all_timepoints(sequence: str,
 
 def compute_rmse_exp_thr_iso_dist(exp_isotope_dist: np.ndarray,
                                   thr_isotope_dist: np.ndarray,
-                                  squared: bool = False):
+                                  squared: bool = False) -> float:
     """
     compute the mean squared error between exp and thr isotope distribution only with values of exp_dist that are higher
     than 0
-    :param exp_isotope_dist:
-    :param thr_isotope_dist:
-    :return:
+    :param exp_isotope_dist: exp isotope dist numpy 2d array
+    :param thr_isotope_dist: thr isotope dist numpy 2d array
+    :param squared: boolean. Default False
+    :return: rmse
     """
     exp_isotope_dist_comp = exp_isotope_dist[exp_isotope_dist > 0]
     thr_isotope_dist_comp = thr_isotope_dist[exp_isotope_dist > 0]
