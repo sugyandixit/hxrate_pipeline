@@ -2,6 +2,7 @@ from itertools import cycle
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+from scipy import stats
 
 
 def plot_grid(fig_obj,
@@ -193,6 +194,10 @@ def plot_posteriors(bayesfit_output, output_path=None):
 
     num_of_subplots = 1 + len(rate_mean) + num_backexchange
 
+    # change so that accepts merge fac or multiple merge facs
+    if 'merge_fac' in bayesfit_output['posterior_samples'].keys():
+        num_of_subplots += len(bayesfit_output['merge_fac']['mean'])
+
     num_rows = num_of_subplots/num_columns
 
     if num_of_subplots % 2 != 0:
@@ -235,6 +240,26 @@ def plot_posteriors(bayesfit_output, output_path=None):
                  gridspec_obj=gs0,
                  gridspec_index=0)
 
+    num_ = 0
+
+    # plot merge_fac
+    if 'merge_fac' in bayesfit_output['posterior_samples'].keys():
+
+        reshape_mergefac = reshape_posterior_rates_samples(bayesfit_output['posterior_samples']['merge_fac'])
+
+        for num_ in range(len(bayesfit_output['merge_fac']['mean'])):
+            print('merge_fac'+str(num_))
+            plot_grid_v2(fig_obj=fig,
+                         sample=reshape_mergefac[num_],
+                         sample_mean=bayesfit_output['merge_fac']['mean'][num_],
+                         sample_std=bayesfit_output['merge_fac']['mean'][num_],
+                         sample_5percent=bayesfit_output['merge_fac']['mean'][num_],
+                         sample_95percent=bayesfit_output['merge_fac']['mean'][num_],
+                         sample_rhat=bayesfit_output['merge_fac']['mean'][num_],
+                         sample_label='merge_fac_'+str(num_),
+                         gridspec_obj=gs0,
+                         gridspec_index=num_+1)
+
     for num in range(len(rate_mean)):
         print('rate_'+str(num))
         plot_grid_v2(fig_obj=fig,
@@ -246,7 +271,7 @@ def plot_posteriors(bayesfit_output, output_path=None):
                      sample_rhat=rate_rhat[num],
                      sample_label='rate_'+str(num),
                      gridspec_obj=gs0,
-                     gridspec_index=num+1)
+                     gridspec_index=num+1+num_)
 
     if backexchange_present:
         bkexchange_reshape_array = reshape_posterior_rates_samples(posterior_rates=bayesfit_output['posterior_samples']['backexchange'])
@@ -266,6 +291,14 @@ def plot_posteriors(bayesfit_output, output_path=None):
     plt.subplots_adjust(hspace=1.2, wspace=0.12, top=0.95)
 
     plt.savefig(output_path, bbox_inches="tight")
+    plt.close()
+
+
+def plot_normal_priors(mu, sigma, output_path):
+
+    x = np.linspace(mu - 5*sigma, mu + 5*sigma, 1000)
+    plt.plot(x, stats.norm.pdf(x, mu, sigma))
+    plt.savefig(output_path)
     plt.close()
 
 
