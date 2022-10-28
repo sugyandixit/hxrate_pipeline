@@ -202,20 +202,21 @@ def write_low_high_backexchange_array(low_ph_protein_name,
     corr_include_arr = np.zeros(len(low_ph_backexchange_array))
     corr_include_arr[corr_include_indices] = 1
 
-    header = 'low_ph_protein_name,high_ph_protein_name,sequence,low_ph_backexchange,high_ph_backexchange,low_ph_saturation,high_ph_saturation,corr_include,low_ph_backexchange_new\n'
+    header = 'low_ph_protein_name,high_ph_protein_name,low_high_name,sequence,low_ph_backexchange,high_ph_backexchange,low_ph_saturation,high_ph_saturation,corr_include,low_ph_backexchange_new\n'
     data_string = ''
 
     for num in range(len(corr_include_arr)):
 
-        data_string += '{},{},{},{},{},{},{},{},{}\n'.format(low_ph_protein_name[num],
-                                                             high_ph_protein_name[num],
-                                                             sequence_array[num],
-                                                             low_ph_backexchange_array[num],
-                                                             high_ph_backexchange_array[num],
-                                                             low_ph_saturation[num],
-                                                             high_ph_saturation[num],
-                                                             corr_include_arr[num],
-                                                             low_ph_backexchange_new[num])
+        data_string += '{},{},{},{},{},{},{},{},{},{}\n'.format(low_ph_protein_name[num],
+                                                                high_ph_protein_name[num],
+                                                                low_ph_protein_name[num] + '_' + high_ph_protein_name[num],
+                                                                sequence_array[num],
+                                                                low_ph_backexchange_array[num],
+                                                                high_ph_backexchange_array[num],
+                                                                low_ph_saturation[num],
+                                                                high_ph_saturation[num],
+                                                                corr_include_arr[num],
+                                                                low_ph_backexchange_new[num])
 
     with open(output_path, 'w') as outfile:
         outfile.write(header + data_string)
