@@ -27,7 +27,7 @@ high_ph_library_info: "/projects/b1107/allan/HDX_analysis/Lib15/20211223_pH9/hdx
 highph_protein_rt_column_name: "name_recentered"
 
 high_ph_hxms_fpath_delim_str: "_winner_multibody.cpickle.zlib.csv"
-high_ph_hxms_fpath_dir: "projects/b1107/allan/HDX_analysis/Lib15/20211223_pH9/hdx_limit-pipeline/resources/10_ic_time_series"
+high_ph_hxms_fpath_dir: "/projects/b1107/allan/HDX_analysis/Lib15/20211223_pH9/hdx_limit-pipeline/resources/10_ic_time_series"
 level_to_fpaths_high_ph: 1
 highph_hdxlim_dirstruct: True
 high_hdxlim_pathtype_str: "multibody"
@@ -84,7 +84,7 @@ dg_calc: True
 # dg fitting parameters
 low_pH: 6.15
 high_pH: 9.0
-min_fe: 0.0
+min_fe: -2.0
 temp: 295
 net_charge_corr: True
 
