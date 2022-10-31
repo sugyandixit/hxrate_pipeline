@@ -84,33 +84,12 @@ class DGOutput(object):
     """
 
     """
-    protein_name: str = 'PROTEIN'
-    protein_rt_name: str = 'PROTEIN_RT'
-    sequence: str = None
-    ph: float = None
-    temp: float = None
-    d2o_frac: float = None
-    d2o_pur: float = None
-    netcharge: float = None
-    timepoints: np.ndarray = None
-    exp_ms_dist: np.ndarray = None
-    exp_ms_dist_gauss_list: list = None
-    thr_ms_dist: np.ndarray = None
-    thr_ms_dist_gauss_list: list = None
     intrinsic_rates: np.ndarray = None
     intrinsic_rates_median: float = None
-    measured_rates: np.ndarray = None
-    rate_fit_rmse: float = None
-    rate_fit_rmse_per_timepoint: np.ndarray = None
-    backexchange: float = None
-    backexchange_per_timepoint: np.ndarray = None
-    backexchange_res_subtract: int = None
-    merge: bool = False
-    merge_factor: float = None
-    merge_mse: float = None
-    netcharge_corr: bool = True
+    netcharge: float = None
     free_energy: np.ndarray = None
     sorted_free_energy: np.ndarray = None
+    hxrate_output: dict = None
 
     def check_empty_data(self):
         """
@@ -175,9 +154,9 @@ class DGOutput(object):
 
             plt.subplots_adjust(hspace=0.2, wspace=0.1, top=0.94)
 
-            title = '%s dG distribution' % self.protein_name
-
-            plt.suptitle(title)
+            # title = 'dG distribution'
+            #
+            # plt.suptitle(title)
 
             plt.savefig(filepath, bbox_inches="tight")
             plt.close()
@@ -279,27 +258,20 @@ def dg_calc(sequence: str,
             temp: float,
             ph: float,
             netcharge_corr: bool = True,
-            protein_name: str = 'PROTEIN',
-            min_fe_val: float = 0.0) -> object:
+            min_fe_val: float = -2.0) -> object:
     """
     :param sequence: protein sequence
     :param measured_hx_rates: measured hx rates
     :param temp: temperature
     :param ph: ph
     :param netcharge_corr: for correcting fe using netcharge of the protein
-    :param protein_name: protein name
     :param min_fe_val: minimum free energy value
     :return: dg_calc object
     """
 
     # init dg output
 
-    dgoutput = DGOutput(protein_name=protein_name,
-                        sequence=sequence,
-                        temp=temp,
-                        ph=ph,
-                        netcharge_corr=netcharge_corr,
-                        measured_rates=measured_hx_rates)
+    dgoutput = DGOutput()
 
     intrinsic_rate = IntrinsicRate(intrinsic_rates=calculate_intrinsic_exchange_rates_suggie(sequence_str=sequence,
                                                                                              Temperature=temp,
@@ -331,8 +303,7 @@ def dg_calc_from_file(hxrate_pickle_fpath: str,
                       temp: float,
                       ph: float,
                       netcharge_corr: bool = True,
-                      min_fe_val: float = 0.0,
-                      merge_factor_fpath: str = None,
+                      min_fe_val: float = -2.0,
                       output_picklepath: str = None,
                       dg_csv_fpath: str = None,
                       dg_plot_fpath: str = None,
@@ -355,45 +326,16 @@ def dg_calc_from_file(hxrate_pickle_fpath: str,
 
     hxrate_obj_ = load_pickle_object(hxrate_pickle_fpath)
 
-    dg_output = dg_calc(sequence=hxrate_obj_['exp_data']['protein_sequence'],
-                        measured_hx_rates=hxrate_obj_['bayesfit_output']['rate']['mean'],
+    dg_output = dg_calc(sequence=hxrate_obj_['sequence'],
+                        measured_hx_rates=hxrate_obj_['bayes_sample']['rate']['mean'],
                         temp=temp,
                         ph=ph,
                         netcharge_corr=netcharge_corr,
-                        protein_name=hxrate_obj_['exp_data']['protein_name'],
                         min_fe_val=min_fe_val)
 
-    dg_output.rate_fit_rmse = hxrate_obj_['bayesfit_output']['rmse']['total']
-    dg_output.rate_fit_rmse_per_timepoint = hxrate_obj_['bayesfit_output']['rmse']['per_timepoint']
-    dg_output.backexchange = hxrate_obj_['back_exchange']['backexchange_value']
-    dg_output.backexchange_per_timepoint = hxrate_obj_['back_exchange']['backexchange_array']
-    dg_output.backexchange_res_subtract = hxrate_obj_['back_exchange_res_subtract']
+    # save attributes here
 
-    # save exp data
-    dg_output.protein_rt_name = hxrate_obj_['exp_data']['protein_rt_name']
-    dg_output.ph = hxrate_obj_['exp_data']['ph']
-    dg_output.timepoints = hxrate_obj_['exp_data']['timepoints']
-    dg_output.d2o_frac = hxrate_obj_['exp_data']['d2o_frac']
-    dg_output.d2o_pur = hxrate_obj_['exp_data']['d2o_pur']
-    dg_output.exp_ms_dist = hxrate_obj_['exp_data']['exp_isotope_dist_array']
-    dg_output.exp_ms_dist_gauss_list = hxrate_obj_['exp_data']['gauss_fit']
-    dg_output.thr_ms_dist = hxrate_obj_['bayesfit_output']['pred_distribution']
-    dg_output.thr_ms_dist_gauss_list = hxrate_obj_['thr_isotope_dist_gauss_fit']
-
-    hxrate_obj_keys = list(hxrate_obj_.keys())
-    if 'merge_data' in hxrate_obj_keys:
-        dg_output.merge = hxrate_obj_['merge_data']['merge']
-        dg_output.merge_factor = hxrate_obj_['merge_data']['factor']
-        dg_output.merge_mse = hxrate_obj_['merge_data']['mse']
-    elif merge_factor_fpath is not None:
-        df = pd.read_csv(merge_factor_fpath)
-        dg_output.merge = True
-        dg_output.merge_factor = df['factor'].values[0]
-        dg_output.merge_mse = df['mse'].values[0]
-    else:
-        dg_output.merge = False
-        dg_output.merge_factor = None
-        dg_output.merge_mse = None
+    dg_output.hxrate_output = hxrate_obj_
 
     if output_picklepath is not None:
         dg_output.to_pickle(filepath=output_picklepath)
@@ -418,7 +360,6 @@ def gen_parser_args():
     parser_.add_argument('-p', '--ph', type=float, default=6.0, help='ph')
     parser_.add_argument('-m', '--minfe', type=float, default=-2.0, help='min fe value')
     parser_.add_argument('-n', '--netcharge', default=True, action=argparse.BooleanOptionalAction)
-    parser_.add_argument('-mfp', '--merge_fact_path', type=str, default=None)
     parser_.add_argument('-opk', '--output_pickle', type=str, help='dg output .pickle file path')
     parser_.add_argument('-oc', '--output_csv', type=str, help='dg output .csv file path')
     parser_.add_argument('-opd', '--output_pdf', type=str, help='dg output plot .pdf file path')
@@ -437,7 +378,6 @@ def run_from_parser():
                       ph=options.ph,
                       netcharge_corr=options.netcharge,
                       min_fe_val=options.minfe,
-                      merge_factor_fpath=options.merge_fact_path,
                       output_picklepath=options.output_pickle,
                       dg_csv_fpath=options.output_csv,
                       dg_plot_fpath=options.output_pdf,
@@ -448,13 +388,13 @@ if __name__ == '__main__':
 
     run_from_parser()
 
-    # hxrate_pkfpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/rates/EEHEE_rd4_0871.pdb_8.56919_EEHEE_rd4_0871.pdb_8.57234/EEHEE_rd4_0871.pdb_8.56919_EEHEE_rd4_0871.pdb_8.57234_hx_rate_fit.pickle'
-    # dgoutput_pkfpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/rates/EEHEE_rd4_0871.pdb_8.56919_EEHEE_rd4_0871.pdb_8.57234/EEHEE_rd4_0871.pdb_8.56919_EEHEE_rd4_0871.pdb_8.57234_hx_rate_fit.pickle_dg_output.pickle'
-    # hxrate_pkobj = load_pickle_object(dgoutput_pkfpath)
+    # hxrate_pkfpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/EEHEE_rd4_0642.pdb_15.15_EEHEE_rd4_0642.pdb_15.15/EEHEE_rd4_0642.pdb_15.15_EEHEE_rd4_0642.pdb_15.15_hx_rate_fit.pickle'
+    # dgoutput_pkfpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/EEHEE_rd4_0642.pdb_15.15_EEHEE_rd4_0642.pdb_15.15/EEHEE_rd4_0642.pdb_15.15_EEHEE_rd4_0642.pdb_15.15_hx_rate_fit.pickle_dg_output.pickle'
+    # hxrate_pkobj = load_pickle_object(hxrate_pkfpath)
     #
     # temp = 295.0
     # ph = 6.0
-    #
+    # #
     # dg_calc_from_file(hxrate_pickle_fpath=hxrate_pkfpath,
     #                   temp=temp,
     #                   ph=ph,
