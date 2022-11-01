@@ -27,7 +27,7 @@ def fit_rate_bayes_(prot_name: str,
                     backexchange_value: float or list = None,
                     backexchange_correction_dict: dict or list = None,
                     backexchange_array: np.ndarray or list = None,
-                    max_res_subtract_for_backexchange: int = 3,
+                    max_res_subtract_for_backexchange: int = 5,
                     slow_rates_max_diff: float = 1.6) -> object:
 
     # todo: add param descritpions
