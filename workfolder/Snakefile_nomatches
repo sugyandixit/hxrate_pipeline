@@ -287,12 +287,9 @@ else:
 if config['dg_calc']:
     rule all:
         input:  expand(dg_output_path + '/{prot_rt_name}/{prot_rt_name}_dg_data.pickle', prot_rt_name=prot_rt_name_list_),
-                summary_output_path + '/summary_rate_nomatches.csv',
-                summary_output_path + '/summary_dg_nomatches.csv'
 else:
     rule all:
         input:  expand(hxrate_dpath + '/{prot_rt_name}/{prot_rt_name}_hx_rate_fit.pickle', prot_rt_name=prot_rt_name_list_),
-                summary_output_path + '/summary_rate_nomatches.csv',
 
 
 rule fit_hx_rates_:
@@ -323,22 +320,9 @@ rule fit_hx_rates_:
         env_fpath
     # threads: config['num_chains']
     shell:
-        'python ' + hx_rate_fit_python_path + ' -p {params.prot_name} -pr {params.prot_rt_name} -s {params.prot_seq} -i {input.hx_dist_fpath} -df {params.d2o_frac} -dp {params.d2o_pur} -ph {params.ph} -bcf {input.bkexch_corr_fpath} {params.adjust_backexchange} -nc {params.num_chains} -nw {params.num_warmups} -ns {params.num_samples} {params.sample_backexchange} -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -opp {output.posterior_plot_file} -od {output.iso_dist_file}'
+        'python ' + hx_rate_fit_python_path + ' -p {params.prot_name} -pr {params.prot_rt_name} -s {params.prot_seq} -i {input.hx_dist_fpath} -df {params.d2o_frac} -dp {params.d2o_pur} -bcf {input.bkexch_corr_fpath} --no-merge {params.adjust_backexchange} -nc {params.num_chains} -nw {params.num_warmups} -ns {params.num_samples} {params.sample_backexchange} -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -opp {output.posterior_plot_file} -od {output.iso_dist_file}'
 
 
-rule summary_rate:
-    input:
-        list_of_files = expand(hxrate_dpath + '/{prot_rt_name}/{prot_rt_name}_hx_rate_fit.pickle', prot_rt_name=prot_rt_name_list_)
-    params:
-        mode = 'rate',
-    output:
-        output_path = summary_output_path + '/summary_rate_nomatches.csv'
-    benchmark:
-        benchmark_dpath + '/summary_rate_nomatches.benchmark.txt'
-    conda:
-        env_fpath
-    shell:
-        'python ' + summary_python_path + ' -l {input.list_of_files} -m {params.mode} -o {output.output_path}'
 
 if config['dg_calc']:
 
@@ -360,64 +344,3 @@ if config['dg_calc']:
             env_fpath
         shell:
             'python ' + dg_calc_python_path + ' -i {input.hx_rate_pickle_fpath} -p {params.pH} -t {params.temp} {params.net_charge_corr} -m {params.minfe} -opk {output.dg_data_output} -oc {output.dg_csv_output} -opd {output.dg_plot_path}'
-
-
-    rule summary_dg:
-        input:
-            list_of_files = expand(dg_output_path + '/{prot_rt_name}/{prot_rt_name}_dg_data.pickle', prot_rt_name=prot_rt_name_list_)
-        params:
-            mode = 'dg_calc'
-        output:
-            output_path = summary_output_path + '/summary_dg_nomatches.csv'
-        benchmark:
-            benchmark_dpath + '/summary_dg_nomatches.benchmark.txt'
-        conda:
-            env_fpath
-        shell:
-            'python ' + summary_python_path + ' -l {input.list_of_files} -m {params.mode} -o {output.output_path}'
-
-#
-#
-# if config['dg_calc']:
-#
-#     rule dg_calc_merge_dist:
-#         input:
-#             hx_rate_csv_fpath = hxrate_dpath + '/{prot_rt_name}/{prot_rt_name}_hx_rate.csv',
-#             dg_intpol_fpath = config_dirpath + '/newrect.pickle',
-#             pdb_fpath = lambda wildcards: config['pdb_fpaths_dir'] + '/'+prot_name_dict_[wildcards.prot_rt_name] + '.pdb',
-#         params:
-#             pH = lambda wildcards: ph_dict_[wildcards.prot_rt_name],
-#             temp = config['temp'],
-#             nterm = config['nterm'],
-#             cterm = config['cterm'],
-#             net_charge_corr = netcharge_param,
-#             anneal_time = config['anneal_time'],
-#             anneal_update_interval = config['anneal_update_interval']
-#         output:
-#             traj_fpath = dg_output_path + '/{prot_rt_name}/{prot_rt_name}_dg_traj.csv',
-#             anneal_data_csv = dg_output_path + '/{prot_rt_name}/{prot_rt_name}_anneal_data.csv',
-#             dg_csv_output = dg_output_path + '/{prot_rt_name}/{prot_rt_name}_dg_data.csv',
-#             dg_data_output = dg_output_path + '/{prot_rt_name}/{prot_rt_name}_dg_data.pickle',
-#             dg_plot_path = dg_output_path + '/{prot_rt_name}/{prot_rt_name}_dg_data.pdf',
-#         benchmark:
-#             benchmark_dpath + '/{prot_rt_name}_dg_calc.benchmark.txt'
-#         conda:
-#             env_fpath
-#         shell:
-#             'python ' + dg_opt_python_path + ' -hx {input.hx_rate_csv_fpath} -pdb {input.pdb_fpath} -dip {input.dg_intpol_fpath} -p {params.pH} -t {params.temp} -nt {params.nterm} -ct {params.cterm} {params.net_charge_corr} -au {params.anneal_update_interval} -at {params.anneal_time} -tf {output.traj_fpath} -af {output.anneal_data_csv} -df {output.dg_csv_output} -dpf {output.dg_data_output} -po {output.dg_plot_path}'
-#
-#
-#     rule summary_dg:
-#         input:
-#             list_of_files = expand(dg_output_path + '/{prot_rt_name}/{prot_rt_name}_dg_data.pickle', prot_rt_name=prot_rt_name_list_)
-#         params:
-#             mode = 'dg'
-#         output:
-#             output_path = summary_output_path + '/summary_dg_nomatches.csv'
-#         benchmark:
-#             benchmark_dpath + '/summary_dg_nomatches.benchmark.txt'
-#         conda:
-#             env_fpath
-#         shell:
-#             'python ' + summary_python_path + ' -l {input.list_of_files} -m {params.mode} -o {output.output_path}'
-#
