@@ -285,8 +285,10 @@ def fit_rate_from_to_file(prot_name: str,
 
         if type(usr_backexchange) == list:
             usr_backexchange = float(usr_backexchange[0])
+        elif type(usr_backexchange) == float:
+            usr_backexchange = usr_backexchange
         else:
-            usr_backexchange = float(usr_backexchange)
+            usr_backexchange = None
         backexchange_value = usr_backexchange
 
     # fit rate
