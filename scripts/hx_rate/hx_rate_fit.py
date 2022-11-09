@@ -6,7 +6,7 @@ import pandas as pd
 import time
 import numpy as np
 from bayesopt import BayesRateFit, ExpDataRateFit
-from methods import normalize_mass_distribution_array
+from methods import normalize_mass_distribution_array, gen_backexchange_correction_from_backexchange_array, gen_corr_backexchange
 from backexchange import calc_back_exchange
 from hxdata import load_data_from_hdx_ms_dist_, load_tp_dependent_dict
 
@@ -72,6 +72,14 @@ def fit_rate_bayes_(prot_name: str,
                                      merge_exp=merge_exp,
                                      d2o_purity=d2o_purity,
                                      d2o_fraction=d2o_fraction)
+
+        bkexch_corr_arr = gen_backexchange_correction_from_backexchange_array(backexchange_array=expdata_obj.backexchange)
+
+        bkexch_adjarr = gen_corr_backexchange(mass_rate_array=bkexch_corr_arr,
+                                              fix_backexchange_value=expdata_obj.backexchange[-1])
+
+        print('heho')
+
     else:
         backexchange_obj = calc_back_exchange(sequence=sequence,
                                               experimental_isotope_dist=norm_mass_distribution_array[-1],
@@ -90,6 +98,8 @@ def fit_rate_bayes_(prot_name: str,
                                      merge_exp=merge_exp,
                                      d2o_purity=d2o_purity,
                                      d2o_fraction=d2o_fraction)
+
+        bkexch_corr_arr = gen_backexchange_correction_from_backexchange_array(backexchange_array=expdata_obj.backexchange)
 
     # initialize hxrate data object
     elapsed_time = []
@@ -140,8 +150,11 @@ def fit_rate_bayes_(prot_name: str,
                     print('adjusting backexchange value ... \n')
                     backexchange_value_adj = init_backexchange * ((len(ratefit.output['bayes_sample']['rate']['mean']) + back_exchange_res_subtract)/len(ratefit.output['bayes_sample']['rate']['mean']))
 
+                    backexchange_adj_arr = gen_corr_backexchange(mass_rate_array=bkexch_corr_arr,
+                                                                 fix_backexchange_value=backexchange_value_adj)
+
                     # adjust backexchange value on the expdata ratefit
-                    expdata_obj.backexchange[-1] = backexchange_value_adj
+                    expdata_obj.backexchange = backexchange_adj_arr
                     backexchange_val_list.append(backexchange_value_adj)
 
         ratefit.output['elapsed_time'] = elapsed_time
