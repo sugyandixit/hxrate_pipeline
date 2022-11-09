@@ -75,11 +75,6 @@ def fit_rate_bayes_(prot_name: str,
 
         bkexch_corr_arr = gen_backexchange_correction_from_backexchange_array(backexchange_array=expdata_obj.backexchange)
 
-        bkexch_adjarr = gen_corr_backexchange(mass_rate_array=bkexch_corr_arr,
-                                              fix_backexchange_value=expdata_obj.backexchange[-1])
-
-        print('heho')
-
     else:
         backexchange_obj = calc_back_exchange(sequence=sequence,
                                               experimental_isotope_dist=norm_mass_distribution_array[-1],
