@@ -388,9 +388,11 @@ class BayesRateFit(object):
         self.output['rmse']['per_timepoint'] = np.zeros(len(self.output['timepoints']))
 
         for ind, (exp_dist, thr_dist) in enumerate(zip(self.output['exp_distribution'], self.output['pred_distribution'])):
+
             self.output['rmse']['per_timepoint'][ind] = compute_rmse_exp_thr_iso_dist(exp_isotope_dist=exp_dist,
                                                                                       thr_isotope_dist=thr_dist,
                                                                                       squared=False)
+            self.output['rmse']['per_timepoint'][ind] = np.nan
 
         # fit gaussian to exp and pred data
         self.output['exp_dist_gauss_fit'] = [vars(x) for x in gauss_fit_to_isotope_dist_array(isotope_dist=self.output['exp_distribution'])]
@@ -1210,7 +1212,10 @@ def compute_rmse_exp_thr_iso_dist(exp_isotope_dist: np.ndarray,
     """
     exp_isotope_dist_comp = exp_isotope_dist[exp_isotope_dist > 0]
     thr_isotope_dist_comp = thr_isotope_dist[exp_isotope_dist > 0]
-    rmse = mean_squared_error(exp_isotope_dist_comp, thr_isotope_dist_comp, squared=squared)
+    if len(exp_isotope_dist_comp) > 0 and len(thr_isotope_dist_comp) > 0:
+        rmse = mean_squared_error(exp_isotope_dist_comp, thr_isotope_dist_comp, squared=squared)
+    else:
+        rmse = np.nan
     return rmse
 
 
