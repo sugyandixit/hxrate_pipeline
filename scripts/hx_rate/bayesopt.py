@@ -362,15 +362,15 @@ class BayesRateFit(object):
                                                             d2o_purity=exp_data_object.d2o_purity,
                                                             num_bins=exp_data_object.num_bins_ms))
 
-        # check for nans and replace by 0s
-        for ind, arr in enumerate(self.output['pred_distribution']):
-            print('ind %s before replacing nan\n'%ind)
-            print(arr)
-            nan_inds = np.argwhere(np.isnan(arr))
-            if len(nan_inds) > 0:
-                self.output['pred_distribution'][ind][nan_inds] = 0
-                print('arr after replacing nan\n')
-                print(self.output['pred_distribution'][ind])
+        # # check for nans and replace by 0s
+        # for ind, arr in enumerate(self.output['pred_distribution']):
+        #     print('ind %s before replacing nan\n'%ind)
+        #     print(arr)
+        #     nan_inds = np.argwhere(np.isnan(arr))
+        #     if len(nan_inds) > 0:
+        #         self.output['pred_distribution'][ind][nan_inds] = 0
+        #         print('arr after replacing nan\n')
+        #         print(self.output['pred_distribution'][ind])
 
         print('merge_fac_maan = %.4f' % merge_fac_mean)
 
@@ -1611,11 +1611,10 @@ def rate_fit_model_norm_priors_with_merge(num_rates,
 
     # gen merge priors
     log_merge_prior_sigma = 1.0
-    log_merge_prior_center = numpyro.param(name='merge_center', init_value=3.0, constraint=numpyro.distributions.constraints.greater_than(0))
+    # log_merge_prior_center = numpyro.param(name='merge_center', init_value=3.0, constraint=numpyro.distributions.constraints.greater_than(0))
 
     with numpyro.plate(name='merge_facs', size=num_merge_facs):
-        merge_facs_ = numpyro.sample(name='merge_fac', fn=numpyro.distributions.Normal(loc=log_merge_prior_center,
-                                                                                       scale=log_merge_prior_sigma))
+        merge_facs_ = numpyro.sample(name='merge_fac', fn=numpyro.distributions.HalfNormal(scale=log_merge_prior_sigma))
 
     concat_tp_arr_ = recalc_timepoints_with_merge(timepoints_array_list=timepoints_array_list,
                                                   merge_facs_=merge_facs_)
