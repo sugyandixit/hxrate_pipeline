@@ -362,9 +362,15 @@ class BayesRateFit(object):
 
         # check for nans and replace by 0s
         for ind, arr in enumerate(self.output['pred_distribution']):
+            print('ind %s before replacing nan\n'%ind)
+            print(arr)
             nan_inds = np.argwhere(np.isnan(arr))
             if len(nan_inds) > 0:
                 self.output['pred_distribution'][ind][nan_inds] = 0
+                print('arr after replacing nan\n')
+                print(self.output['pred_distribution'][ind])
+
+        print('merge_fac_maan = %.4f' % merge_fac_mean)
 
         flat_thr_dist = np.concatenate(self.output['pred_distribution'])
         flat_thr_dist_non_zero = flat_thr_dist[exp_data_object.nonzero_exp_dist_indices]
