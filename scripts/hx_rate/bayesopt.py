@@ -1611,10 +1611,11 @@ def rate_fit_model_norm_priors_with_merge(num_rates,
 
     # gen merge priors
     log_merge_prior_sigma = 1.0
-    log_merge_prior_center = 3.0
+    log_merge_prior_center = numpyro.param(name='merge_center', init_value=3.0, constraint=numpyro.distributions.constraints.greater_than(0))
 
     with numpyro.plate(name='merge_facs', size=num_merge_facs):
-        merge_facs_ = numpyro.sample(name='merge_fac', fn=numpyro.distributions.HalfNormal(scale=log_merge_prior_sigma))
+        merge_facs_ = numpyro.sample(name='merge_fac', fn=numpyro.distributions.Normal(loc=log_merge_prior_center,
+                                                                                       scale=log_merge_prior_sigma))
 
     concat_tp_arr_ = recalc_timepoints_with_merge(timepoints_array_list=timepoints_array_list,
                                                   merge_facs_=merge_facs_)
