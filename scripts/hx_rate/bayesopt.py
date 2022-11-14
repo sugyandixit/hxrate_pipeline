@@ -3,6 +3,8 @@ import numpy as np
 from sklearn.metrics import mean_squared_error
 import numpyro
 from jax import random
+import numpyro.distributions as dist
+from numpyro.distributions.transforms import AbsTransform
 from numpyro.infer import NUTS, MCMC
 import jax.numpy as jnp
 import molmass
@@ -1612,8 +1614,7 @@ def rate_fit_model_norm_priors_with_merge(num_rates,
     log_merge_prior_center = 3.0
 
     with numpyro.plate(name='merge_facs', size=num_merge_facs):
-        merge_facs_ = numpyro.sample(name='merge_fac', fn=numpyro.distributions.Normal(loc=log_merge_prior_center,
-                                                                                       scale=log_merge_prior_sigma))
+        merge_facs_ = numpyro.sample(name='merge_fac', fn=numpyro.distributions.HalfNormal(scale=log_merge_prior_sigma))
 
     concat_tp_arr_ = recalc_timepoints_with_merge(timepoints_array_list=timepoints_array_list,
                                                   merge_facs_=merge_facs_)
