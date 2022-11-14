@@ -360,6 +360,12 @@ class BayesRateFit(object):
                                                             d2o_purity=exp_data_object.d2o_purity,
                                                             num_bins=exp_data_object.num_bins_ms))
 
+        # check for nans and replace by 0s
+        for ind, arr in enumerate(self.output['pred_distribution']):
+            nan_inds = np.argwhere(np.isnan(arr))
+            if len(nan_inds) > 0:
+                self.output['pred_distribution'][ind][nan_inds] = 0
+
         flat_thr_dist = np.concatenate(self.output['pred_distribution'])
         flat_thr_dist_non_zero = flat_thr_dist[exp_data_object.nonzero_exp_dist_indices]
 
