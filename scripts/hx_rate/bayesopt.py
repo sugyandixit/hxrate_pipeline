@@ -362,20 +362,6 @@ class BayesRateFit(object):
                                                             d2o_purity=exp_data_object.d2o_purity,
                                                             num_bins=exp_data_object.num_bins_ms))
 
-        print('merge_fac_maan = %.4f' % merge_fac_mean)
-        print('merge_fac_std = %.4f' % summary_['merge_fac']['std'])
-        print('\n###\n')
-
-        # check for nans and replace by 0s
-        for ind, arr in enumerate(self.output['pred_distribution']):
-            print('ind %s before replacing nan\n'%ind)
-            print(arr)
-            nan_inds = np.argwhere(np.isnan(arr))
-            if len(nan_inds) > 0:
-                self.output['pred_distribution'][ind][nan_inds] = 0
-                print('arr after replacing nan\n')
-                print(self.output['pred_distribution'][ind])
-
         flat_thr_dist = np.concatenate(self.output['pred_distribution'])
         flat_thr_dist_non_zero = flat_thr_dist[exp_data_object.nonzero_exp_dist_indices]
 
@@ -392,7 +378,6 @@ class BayesRateFit(object):
             self.output['rmse']['per_timepoint'][ind] = compute_rmse_exp_thr_iso_dist(exp_isotope_dist=exp_dist,
                                                                                       thr_isotope_dist=thr_dist,
                                                                                       squared=False)
-            self.output['rmse']['per_timepoint'][ind] = np.nan
 
         # fit gaussian to exp and pred data
         self.output['exp_dist_gauss_fit'] = [vars(x) for x in gauss_fit_to_isotope_dist_array(isotope_dist=self.output['exp_distribution'])]
@@ -1202,6 +1187,19 @@ def center_of_mass_(data_array):
     return com
 
 
+def replace_nans_with_zeros_1d_array(array):
+    """
+    replace nans with 0s in 1 d array
+    :param array:
+    :return:
+    """
+    # check for nans and replace by 0s
+    nan_inds = np.argwhere(np.isnan(array))
+    if len(nan_inds) > 0:
+        array[nan_inds] = 0
+    return array
+
+
 def compute_rmse_exp_thr_iso_dist(exp_isotope_dist: np.ndarray,
                                   thr_isotope_dist: np.ndarray,
                                   squared: bool = False):
@@ -1213,8 +1211,15 @@ def compute_rmse_exp_thr_iso_dist(exp_isotope_dist: np.ndarray,
     :param squared:
     :return:
     """
-    exp_isotope_dist_comp = exp_isotope_dist[exp_isotope_dist > 0]
-    thr_isotope_dist_comp = thr_isotope_dist[exp_isotope_dist > 0]
+
+    # replace nans with 0s
+    exp_isotope_dist_nonans = replace_nans_with_zeros_1d_array(exp_isotope_dist)
+    thr_isotope_dist_nonans = replace_nans_with_zeros_1d_array(thr_isotope_dist)
+
+    # get the array with only values greater than 0 for the exp data
+    exp_isotope_dist_comp = exp_isotope_dist_nonans[exp_isotope_dist_nonans > 0]
+    thr_isotope_dist_comp = thr_isotope_dist_nonans[exp_isotope_dist_nonans > 0]
+
     if len(exp_isotope_dist_comp) > 0 and len(thr_isotope_dist_comp) > 0:
         rmse = mean_squared_error(exp_isotope_dist_comp, thr_isotope_dist_comp, squared=squared)
     else:
