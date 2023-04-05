@@ -221,6 +221,111 @@ class ExpDataRateFit(object):
             print('del_zero_tp_backexchange: No operations to be done')
 
 
+@dataclass
+class RateChainDiagnostics(object):
+
+    init_num_chains: int = None
+    rmse_tol: float = 1e-2
+    overall_rmse: float = None
+    chain_rmse_list: list = None
+    min_chain_rmse: float = None
+    chain_pass_list: list = None
+    discard_chain_indices: list = None
+    rerun_opt: bool = False
+    num_rerun_opt: int = None
+
+
+def diagnose_posterior_sample_rate_among_chains(posterior_samples_by_chain_dict,
+                                                protein_sequence,
+                                                timepoints,
+                                                backexchange_array,
+                                                d2o_fraction,
+                                                d2o_purity,
+                                                num_bins,
+                                                exp_distribution,
+                                                init_num_chains=4,
+                                                rmse_tol=1e-2):
+
+    chain_diag = RateChainDiagnostics(init_num_chains=init_num_chains,
+                                      rmse_tol=rmse_tol)
+
+    chain_diag.chain_pass_list = []
+    chain_diag.chain_rmse_list = []
+    chain_diag.discard_chain_indices = []
+
+    summary = numpyro.diagnostics.summary(samples=posterior_samples_by_chain_dict)
+
+    mean_rates_ = np.exp(summary['rate']['mean'])
+
+    thr_iso_dist_all_chains_comb = np.array(gen_theoretical_isotope_dist_for_all_timepoints(sequence=protein_sequence,
+                                                                                            timepoints=timepoints,
+                                                                                            rates=np.exp(summary['rate']['mean']),
+                                                                                            inv_backexchange_array=np.subtract(1, backexchange_array),
+                                                                                            d2o_purity=d2o_purity,
+                                                                                            d2o_fraction=d2o_fraction,
+                                                                                            num_bins=num_bins))
+
+    chain_diag.overall_rmse = compute_rmse_exp_thr_iso_dist(exp_isotope_dist=np.concatenate(exp_distribution),
+                                                            thr_isotope_dist=np.concatenate(thr_iso_dist_all_chains_comb),
+                                                            squared=False)
+
+    for ind, posterior_rate_samples in enumerate(posterior_samples_by_chain_dict['rate']):
+
+        mean_rates = np.mean(posterior_rate_samples, axis=0)
+
+        thr_iso_dist = np.array(gen_theoretical_isotope_dist_for_all_timepoints(sequence=protein_sequence,
+                                                                                timepoints=timepoints,
+                                                                                rates=np.exp(mean_rates),
+                                                                                inv_backexchange_array=np.subtract(1, backexchange_array),
+                                                                                d2o_purity=d2o_purity,
+                                                                                d2o_fraction=d2o_fraction,
+                                                                                num_bins=num_bins))
+
+        chain_rmse = compute_rmse_exp_thr_iso_dist(exp_isotope_dist=np.concatenate(exp_distribution),
+                                                   thr_isotope_dist=np.concatenate(thr_iso_dist),
+                                                   squared=False)
+
+        chain_diag.chain_rmse_list.append(chain_rmse)
+
+    chain_diag.min_chain_rmse = min(chain_diag.chain_rmse_list)
+
+    for ind, chain_rmse_ in enumerate(chain_diag.chain_rmse_list):
+
+        if abs(chain_rmse_ - chain_diag.min_chain_rmse) > rmse_tol:
+            chain_diag.chain_pass_list.append(False)
+            chain_diag.discard_chain_indices.append(ind)
+        else:
+            chain_diag.chain_pass_list.append(True)
+
+    if len(chain_diag.discard_chain_indices) == init_num_chains:
+        chain_diag.rerun_opt = True
+
+    if len(chain_diag.discard_chain_indices) == 0:
+        chain_diag.discard_chain_indices = None
+
+    return chain_diag
+
+
+def discard_chain_from_posterior_samples(posterior_samples_by_chain_dict,
+                                         discard_chain_indices):
+
+    new_dict = dict()
+
+    for key_, posterior_samples_by_chain in posterior_samples_by_chain_dict.items():
+
+        store_list = []
+
+        for ind, posterior_samples_chain in enumerate(posterior_samples_by_chain):
+
+            if ind not in discard_chain_indices:
+                posterior_samples = np.array(posterior_samples_chain)
+                store_list.append(posterior_samples)
+
+        new_dict[key_] = np.array(store_list)
+
+    return new_dict
+
+
 class BayesRateFit(object):
     """
     Bayes Rate Fit class
@@ -265,41 +370,84 @@ class BayesRateFit(object):
         # gen random key
         rng_key = random.PRNGKey(0)
 
-        # run mcmc
+        rerun_opt = True
+        num_rerun_opt = -1
 
-        if exp_data_object.merge_exp:
-            mcmc.run(rng_key=rng_key,
-                     num_rates=exp_data_object.num_rates,
-                     sequence=exp_data_object.sequence,
-                     timepoints_array_list=exp_data_object.timepoints,
-                     num_merge_facs=len(exp_data_object.timepoints)-1,
-                     backexchange_array=jnp.asarray(exp_data_object.backexchange),
-                     d2o_fraction=exp_data_object.d2o_fraction,
-                     d2o_purity=exp_data_object.d2o_purity,
-                     num_bins=exp_data_object.num_bins_ms,
-                     obs_dist_nonzero_flat=jnp.asarray(exp_data_object.flat_nonzero_exp_dist),
-                     nonzero_indices=exp_data_object.nonzero_exp_dist_indices,
-                     extra_fields=('potential_energy',))
+        while rerun_opt:
 
-        else:
-            mcmc.run(rng_key=rng_key,
-                     num_rates=exp_data_object.num_rates,
-                     sequence=exp_data_object.sequence,
-                     timepoints=jnp.asarray(exp_data_object.timepoints),
-                     backexchange_array=jnp.asarray(exp_data_object.backexchange),
-                     d2o_fraction=exp_data_object.d2o_fraction,
-                     d2o_purity=exp_data_object.d2o_purity,
-                     num_bins=exp_data_object.num_bins_ms,
-                     obs_dist_nonzero_flat=jnp.asarray(exp_data_object.flat_nonzero_exp_dist),
-                     nonzero_indices=exp_data_object.nonzero_exp_dist_indices,
-                     extra_fields=('potential_energy',))
+            # run mcmc
 
-        # get posterior samples by chain
-        posterior_samples_by_chain = sort_posterior_rates_in_samples(
-            posterior_samples_by_chain=mcmc.get_samples(group_by_chain=True))
+            if exp_data_object.merge_exp:
+                mcmc.run(rng_key=rng_key,
+                         num_rates=exp_data_object.num_rates,
+                         sequence=exp_data_object.sequence,
+                         timepoints_array_list=exp_data_object.timepoints,
+                         num_merge_facs=len(exp_data_object.timepoints)-1,
+                         backexchange_array=jnp.asarray(exp_data_object.backexchange),
+                         d2o_fraction=exp_data_object.d2o_fraction,
+                         d2o_purity=exp_data_object.d2o_purity,
+                         num_bins=exp_data_object.num_bins_ms,
+                         obs_dist_nonzero_flat=jnp.asarray(exp_data_object.flat_nonzero_exp_dist),
+                         nonzero_indices=exp_data_object.nonzero_exp_dist_indices,
+                         extra_fields=('potential_energy',))
 
-        # generate summary from the posterior samples
-        summary_ = numpyro.diagnostics.summary(samples=posterior_samples_by_chain)
+            else:
+                mcmc.run(rng_key=rng_key,
+                         num_rates=exp_data_object.num_rates,
+                         sequence=exp_data_object.sequence,
+                         timepoints=jnp.asarray(exp_data_object.timepoints),
+                         backexchange_array=jnp.asarray(exp_data_object.backexchange),
+                         d2o_fraction=exp_data_object.d2o_fraction,
+                         d2o_purity=exp_data_object.d2o_purity,
+                         num_bins=exp_data_object.num_bins_ms,
+                         obs_dist_nonzero_flat=jnp.asarray(exp_data_object.flat_nonzero_exp_dist),
+                         nonzero_indices=exp_data_object.nonzero_exp_dist_indices,
+                         extra_fields=('potential_energy',))
+
+            # get posterior samples by chain
+            posterior_samples_by_chain = sort_posterior_rates_in_samples(
+                posterior_samples_by_chain=mcmc.get_samples(group_by_chain=True))
+
+            # generate summary from the posterior samples
+            summary_ = numpyro.diagnostics.summary(samples=posterior_samples_by_chain)
+
+            if exp_data_object.merge_exp:
+                if not type(summary_['merge_fac']['mean']) == np.ndarray:
+                    merge_fac_mean = np.array(summary_['merge_fac']['mean'])
+                else:
+                    merge_fac_mean = summary_['merge_fac']['mean']
+
+                timepoints_for_diag = np.array(recalc_timepoints_with_merge(timepoints_array_list=exp_data_object.timepoints,
+                                                                            merge_facs_=merge_fac_mean))
+            else:
+                timepoints_for_diag = exp_data_object.timepoints
+
+            # diagnose chains for convergence
+            chain_diagnostics = diagnose_posterior_sample_rate_among_chains(posterior_samples_by_chain_dict=posterior_samples_by_chain,
+                                                                            protein_sequence=exp_data_object.sequence,
+                                                                            timepoints=timepoints_for_diag,
+                                                                            backexchange_array=exp_data_object.backexchange,
+                                                                            d2o_purity=exp_data_object.d2o_purity,
+                                                                            d2o_fraction=exp_data_object.d2o_fraction,
+                                                                            num_bins=exp_data_object.num_bins_ms,
+                                                                            exp_distribution=exp_data_object.exp_distribution_stack,
+                                                                            init_num_chains=self.num_chains)
+
+            rerun_opt = chain_diagnostics.rerun_opt
+
+            num_rerun_opt += 1
+            chain_diagnostics.num_rerun_opt = num_rerun_opt
+
+
+        if chain_diagnostics.discard_chain_indices is not None:
+
+            posterior_samples_by_chain = discard_chain_from_posterior_samples(posterior_samples_by_chain_dict=posterior_samples_by_chain,
+                                                                              discard_chain_indices=chain_diagnostics.discard_chain_indices)
+
+            # generate summary from the posterior samples
+            summary_ = numpyro.diagnostics.summary(samples=posterior_samples_by_chain)
+
+
 
         # save bayes output data to objects
 
@@ -313,6 +461,7 @@ class BayesRateFit(object):
         self.output['d2o_fraction'] = exp_data_object.d2o_fraction
         self.output['merge_exp'] = exp_data_object.merge_exp
         self.output['num_merge_facs'] = exp_data_object.num_merge_facs
+        self.output['chain_diagnostics'] = vars(chain_diagnostics)
 
         # get keys from summary
         bayes_out_keys = list(summary_.keys())
@@ -447,6 +596,10 @@ class BayesRateFit(object):
             exp_width_arr_ = np.array([x['width'] for x in self.output['exp_dist_gauss_fit']])[self.output['timepoints_sort_indices']]
             pred_width_arr_ = np.array([x['width'] for x in self.output['pred_dist_guass_fit']])[self.output['timepoints_sort_indices']]
 
+            rmse_per_timepoint = self.output['rmse']['per_timepoint'][self.output['timepoints_sort_indices']]
+
+            backexchange_array = self.output['backexchange'][self.output['timepoints_sort_indices']]
+
             plot_hx_rate_fitting_bayes(prot_name=self.output['protein_name'],
                                        hx_rates=self.output['bayes_sample']['rate']['mean'],
                                        hx_rates_error=hxrate_error,
@@ -457,10 +610,10 @@ class BayesRateFit(object):
                                        thr_isotope_centroid_array=pred_centroid_arr_,
                                        exp_isotope_width_array=exp_width_arr_,
                                        thr_isotope_width_array=pred_width_arr_,
-                                       fit_rmse_timepoints=self.output['rmse']['per_timepoint'],
+                                       fit_rmse_timepoints=rmse_per_timepoint,
                                        fit_rmse_total=self.output['rmse']['total'],
                                        backexchange=self.output['backexchange'][-1],
-                                       backexchange_array=self.output['backexchange'],
+                                       backexchange_array=backexchange_array,
                                        d2o_fraction=self.output['d2o_fraction'],
                                        d2o_purity=self.output['d2o_purity'],
                                        output_path=output_path)
