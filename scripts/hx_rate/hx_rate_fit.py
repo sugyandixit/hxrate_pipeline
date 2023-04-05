@@ -197,6 +197,7 @@ def fit_rate_from_to_file(prot_name: str,
                           num_warmups: int = 100,
                           num_samples: int = 500,
                           sample_backexchange: bool = False,
+                          save_posterior_samples: bool = True,
                           hx_rate_output_path: str = None,
                           hx_rate_csv_output_path: str = None,
                           hx_isotope_dist_output_path: str = None,
@@ -340,7 +341,7 @@ def fit_rate_from_to_file(prot_name: str,
 
     # save the ratefit output dictionary to pickle
     if hx_rate_output_path is not None:
-        hxrate_out.output_to_pickle(hx_rate_output_path, save_posterior_samples=False)
+        hxrate_out.output_to_pickle(hx_rate_output_path, save_posterior_samples=save_posterior_samples)
 
     if return_flag:
         return hxrate_out.output
@@ -370,6 +371,8 @@ def gen_parser_arguments():
     parser.add_argument('-ns', '--num_samples', help='number of samples for MCMC', type=int, default=500)
     parser.add_argument('--merge', help='merge distributions', default=False, action=argparse.BooleanOptionalAction)
     parser.add_argument('--sample_backexchange', help='sample backexchange for MCMC', default=False,
+                        action=argparse.BooleanOptionalAction)
+    parser.add_argument('--save_posterior_samples', help='save posterior samples', default=True,
                         action=argparse.BooleanOptionalAction)
     parser.add_argument('-o', '--output_pickle_file', help='output pickle filepath', default=None)
     parser.add_argument('-or', '--output_rate_csv', help='output rates csv filepath', default=None)
@@ -420,6 +423,41 @@ if __name__ == '__main__':
     parser_ = gen_parser_arguments()
     hx_rate_fitting_from_parser(parser_)
 
+    from hxdata import load_pickle_object
+
+    # pkobj_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/bug_nans_isotopdedist/PDB5X1G_8.57_PDB5X1G_7.69_hx_rate_fit.pickle'
+    # hxobj = load_pickle_object(pkobj_fpath)
+    #
+    # low_ph_ms_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/bug_nans_isotopdedist/PDB5X1G_17.16_ph6_winner_multibody.cpickle.zlib.csv'
+    # high_ph_ms_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/bug_nans_isotopdedist/PDB5X1G_17.16_ph9_winner_multibody.cpickle.zlib.csv'
+    #
+    # low_ph_bkexch_corr = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/bug_nans_isotopdedist/backexchange/low_ph_bkexch_corr.csv'
+    # high_ph_bkexch_corr = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/bug_nans_isotopdedist/backexchange/high_ph_bkexch_corr.csv'
+    #
+    # high_low_bkexch_list = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/bug_nans_isotopdedist/backexchange/high_low_backexchange_list.csv'
+    #
+    # fit_rate_from_to_file(prot_name=hxobj['protein_name'],
+    #                       prot_rt_name=hxobj['protein_rt_name'],
+    #                       sequence=hxobj['sequence'],
+    #                       hx_ms_dist_fpath=[low_ph_ms_fpath, high_ph_ms_fpath],
+    #                       d2o_purity=0.95,
+    #                       d2o_fraction=0.90,
+    #                       merge_exp=True,
+    #                       backexchange_corr_fpath=[low_ph_bkexch_corr, high_ph_bkexch_corr],
+    #                       low_high_backexchange_list_fpath=high_low_bkexch_list,
+    #                       num_chains=4,
+    #                       num_warmups=150,
+    #                       num_samples=250,
+    #                       save_posterior_samples=True,
+    #                       merge_hx_ms_dist_output_path=low_ph_ms_fpath+'_merge_dist.csv',
+    #                       hx_rate_output_path=low_ph_ms_fpath+"_hx_rate.pickle",
+    #                       hx_rate_csv_output_path=low_ph_ms_fpath+'_hx_rate.csv',
+    #                       hx_isotope_dist_output_path=low_ph_ms_fpath+'_pred_dist.csv',
+    #                       hx_rate_plot_path=low_ph_ms_fpath+"_hx_rate.pdf",
+    #                       posterior_plot_path=low_ph_ms_fpath+'_posterior.pdf')
+
+    # print('heho')
+    #
     # eehee_rd4_08742_sequence = 'HMTQVHVDGVTYTFSNPEEAKKFADEMAKRKGGTWEIKDGHIHVE'
     # eehee_rd4_0871_low_ph_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/EEHEE_rd4_0871/EEHEE_rd4_0871.pdb_8.57176_winner_multibody.cpickle.zlib.csv'
     # eehee_rd4_0871_high_ph_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/EEHEE_rd4_0871/EEHEE_rd4_0871.pdb_8.57163_winner_multibody.cpickle.zlib.csv'
@@ -443,13 +481,12 @@ if __name__ == '__main__':
     #                       backexchange_corr_fpath=[low_ph_bkexch_corr_fpath, high_ph_bkexch_corr_fpath],
     #                       low_high_backexchange_list_fpath=bkexch_list_high_low_fpath,
     #                       num_chains=4,
-    #                       num_warmups=5,
-    #                       num_samples=5,
-    #                       merge_hx_ms_dist_output_path=eehee_rd4_0871_low_ph_fpath + '_merge_dist.csv',
-    #                       hx_rate_output_path=eehee_rd4_0871_low_ph_fpath + '_merge_rate_output.pickle',
-    #                       hx_rate_csv_output_path=eehee_rd4_0871_low_ph_fpath + '_merge_rates.csv',
-    #                       hx_isotope_dist_output_path=eehee_rd4_0871_low_ph_fpath + '_merge__pred_dist.csv',
-    #                       hx_rate_plot_path=eehee_rd4_0871_low_ph_fpath + '_merge_rates.pdf',
-    #                       posterior_plot_path=eehee_rd4_0871_low_ph_fpath + '_merge_posteriors.pdf')
-    #
-    #
+    #                       num_warmups=100,
+    #                       num_samples=250,
+    #                       save_posterior_samples=True,
+    #                       merge_hx_ms_dist_output_path=eehee_rd4_0871_low_ph_fpath + '_merge_dist_v3.csv',
+    #                       hx_rate_output_path=eehee_rd4_0871_low_ph_fpath + '_merge_rate_output_v3.pickle',
+    #                       hx_rate_csv_output_path=eehee_rd4_0871_low_ph_fpath + '_merge_rates_v3.csv',
+    #                       hx_isotope_dist_output_path=eehee_rd4_0871_low_ph_fpath + '_merge__pred_dist_v3.csv',
+    #                       hx_rate_plot_path=eehee_rd4_0871_low_ph_fpath + '_merge_rates_v3.pdf',
+    #                       posterior_plot_path=eehee_rd4_0871_low_ph_fpath + '_merge_posteriors_v3.pdf')
