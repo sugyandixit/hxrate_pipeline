@@ -135,7 +135,10 @@ def gen_list_of_mass_rate_proteins(list_of_hx_ms_files,
         hxms_dist_fname = os.path.split(hx_ms_fpath)[1]
         prot_name = hxms_dist_fname.split(hxms_dist_fpath_delim_str)[0]
 
-        tp, iso_dist_array = load_data_from_hdx_ms_dist_(hx_ms_fpath)
+        # tp, iso_dist_array = load_data_from_hdx_ms_dist_(hx_ms_fpath)
+        data_dict = load_data_from_hdx_ms_dist_(fpath=hx_ms_fpath)
+        tp = data_dict['tp']
+        iso_dist_array = data_dict['mass_dist']
         norm_dist = normalize_mass_distribution_array(mass_dist_array=iso_dist_array)
         gauss_fit = gauss_fit_to_isotope_dist_array(isotope_dist=norm_dist)
         centroid_array = np.array([x.centroid for x in gauss_fit])

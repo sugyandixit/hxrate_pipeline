@@ -25,7 +25,9 @@ def gen_list_of_backexchange(list_of_dist_files,
 
     for ind, (fpath, seq) in enumerate(zip(list_of_dist_files, list_of_seq)):
 
-        tp, dist = hxdata.load_data_from_hdx_ms_dist_(fpath=fpath)
+        data_dict = hxdata.load_data_from_hdx_ms_dist_(fpath=fpath)
+        tp = data_dict['tp']
+        dist = data_dict['mass_dist']
         norm_dist = methods.normalize_mass_distribution_array(mass_dist_array=dist)
 
         bkexch_obj = calc_back_exchange(sequence=seq,
