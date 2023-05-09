@@ -21,6 +21,8 @@ def fit_rate_bayes_(prot_name: str,
                     num_warmups: int,
                     num_samples: int,
                     prot_rt_name: str = 'PROTEIN_RT',
+                    timepoint_label: list = None,
+                    exp_label: str or list = None,
                     merge_exp: bool = False,
                     sample_backexchange: bool = False,
                     adj_backexchange: bool = True,
@@ -43,6 +45,8 @@ def fit_rate_bayes_(prot_name: str,
             backexchange_array = [None for _ in range(len(time_points))]
         if backexchange_correction_dict is None:
             backexchange_correction_dict = [None for _ in range(len(time_points))]
+        if timepoint_label is None:
+            timepoint_label = [None for _ in range(len(time_points))]
 
         for ind, (norm_mass_dist_arr, tp_arr, bkexch_val, bkexcharr, bkexch_corr) in enumerate(zip(norm_mass_distribution_array,
                                                                                                    time_points,
@@ -67,6 +71,8 @@ def fit_rate_bayes_(prot_name: str,
                                      prot_name=prot_name,
                                      prot_rt_name=prot_rt_name,
                                      timepoints=time_points,
+                                     timepoint_index_list=timepoint_label,
+                                     exp_label=exp_label,
                                      exp_distribution=norm_mass_distribution_array,
                                      backexchange=backexchange_list,
                                      merge_exp=merge_exp,
@@ -88,6 +94,8 @@ def fit_rate_bayes_(prot_name: str,
                                      prot_name=prot_name,
                                      prot_rt_name=prot_rt_name,
                                      timepoints=time_points,
+                                     timepoint_index_list=timepoint_label,
+                                     exp_label=exp_label,
                                      exp_distribution=norm_mass_distribution_array,
                                      backexchange=backexchange_obj.backexchange_array,
                                      merge_exp=merge_exp,
@@ -188,6 +196,7 @@ def fit_rate_from_to_file(prot_name: str,
                           d2o_purity: float,
                           prot_rt_name: str = 'PROTEIN_RT',
                           merge_exp: bool = False,
+                          exp_label: str or list = None,
                           usr_backexchange: float or list = None,
                           low_high_backexchange_list_fpath: str = None,
                           backexchange_corr_fpath: str or list = None,
@@ -210,11 +219,15 @@ def fit_rate_from_to_file(prot_name: str,
     # make it accept list
 
     if merge_exp:
-        timepoints, mass_dist_list = [], []
+        timepoints, mass_dist_list, timepoint_label = [], [], []
         for hxmsdist_fp in hx_ms_dist_fpath:
-            timepoints_arr, mass_dist = load_data_from_hdx_ms_dist_(fpath=hxmsdist_fp)
-            timepoints.append(timepoints_arr)
-            mass_dist_list.append(mass_dist)
+            data_dict = load_data_from_hdx_ms_dist_(fpath=hxmsdist_fp)
+            timepoints.append(data_dict['tp'])
+            mass_dist_list.append(data_dict['mass_dist'])
+            if 'tp_ind' in list(data_dict.keys()):
+                timepoint_label.append(data_dict['tp_ind'])
+            else:
+                timepoint_label = None
 
         norm_dist = [normalize_mass_distribution_array(mass_dist_array=x) for x in mass_dist_list]
 
@@ -272,7 +285,15 @@ def fit_rate_from_to_file(prot_name: str,
         if type(hx_ms_dist_fpath) == list:
             hx_ms_dist_fpath = hx_ms_dist_fpath[0]
 
-        timepoints, mass_dist = load_data_from_hdx_ms_dist_(fpath=hx_ms_dist_fpath)
+        # timepoints, mass_dist = load_data_from_hdx_ms_dist_(fpath=hx_ms_dist_fpath)
+        data_dict = load_data_from_hdx_ms_dist_(fpath=hx_ms_dist_fpath)
+        timepoints = data_dict['tp']
+        mass_dist = data_dict['mass_dist']
+        if 'tp_ind' in list(data_dict.keys()):
+            timepoint_label = data_dict['tp_ind']
+        else:
+            timepoint_label = None
+
         norm_dist = normalize_mass_distribution_array(mass_dist_array=mass_dist)
 
         # get backexchange correction
@@ -300,10 +321,19 @@ def fit_rate_from_to_file(prot_name: str,
             usr_backexchange = None
         backexchange_value = usr_backexchange
 
+    # make sure exp label gets passed as a single string if its only one exp
+    if type(exp_label) == list:
+        if len(exp_label) > 1:
+            exp_label = exp_label
+        else:
+            exp_label = exp_label[0]
+
     # fit rate
     hxrate_out = fit_rate_bayes_(prot_name=prot_name,
                                  sequence=sequence,
                                  time_points=timepoints,
+                                 timepoint_label=timepoint_label,
+                                 exp_label=exp_label,
                                  norm_mass_distribution_array=norm_dist,
                                  d2o_fraction=d2o_fraction,
                                  d2o_purity=d2o_purity,
@@ -331,6 +361,10 @@ def fit_rate_from_to_file(prot_name: str,
         if merge_hx_ms_dist_output_path is not None:
             hxrate_out.exp_merge_dist_to_csv(merge_hx_ms_dist_output_path)
 
+    # save the ratefit output dictionary to pickle
+    if hx_rate_output_path is not None:
+        hxrate_out.output_to_pickle(hx_rate_output_path, save_posterior_samples=save_posterior_samples)
+
     # plot distribution
     if hx_rate_plot_path is not None:
         hxrate_out.plot_hxrate_output(hx_rate_plot_path)
@@ -338,10 +372,6 @@ def fit_rate_from_to_file(prot_name: str,
     # plot posterior distribution
     if posterior_plot_path is not None:
         hxrate_out.plot_bayes_samples(posterior_plot_path)
-
-    # save the ratefit output dictionary to pickle
-    if hx_rate_output_path is not None:
-        hxrate_out.output_to_pickle(hx_rate_output_path, save_posterior_samples=save_posterior_samples)
 
     if return_flag:
         return hxrate_out.output
@@ -361,6 +391,7 @@ def gen_parser_arguments():
     parser.add_argument('-df', '--d2o_frac', help='d2o fracion', type=float, default=0.95)
     parser.add_argument('-dp', '--d2o_pur', help='d2o purity', type=float, default=0.95)
     parser.add_argument('-ub', '--user_bkexchange', help='user defined backexchange', nargs='+', type=float or list, default=None)
+    parser.add_argument('-expl', '--exp_label', help='Exp label in str or [str, str,..]', nargs='+', type=str or list, default=None)
     parser.add_argument('-bcl', '--backexchange_low_high_list_fpath', type=str, help='backexchange low high ph list filepath .csv', default=None)
     parser.add_argument('-bcf', '--bkexchange_corr_fpath', nargs='+', help='backexchange correction filepath .csv')
     parser.add_argument('-baf', '--bkexchange_array_fpath', nargs='+', help='backexchange array filepath .csv')
@@ -401,6 +432,7 @@ def hx_rate_fitting_from_parser(parser):
                           d2o_purity=options.d2o_pur,
                           usr_backexchange=options.user_bkexchange,
                           merge_exp=options.merge,
+                          exp_label=options.exp_label,
                           backexchange_corr_fpath=options.bkexchange_corr_fpath,
                           backexchange_array_fpath=options.bkexchange_array_fpath,
                           low_high_backexchange_list_fpath=options.backexchange_low_high_list_fpath,
@@ -423,7 +455,7 @@ if __name__ == '__main__':
     parser_ = gen_parser_arguments()
     hx_rate_fitting_from_parser(parser_)
 
-    from hxdata import load_pickle_object
+    # from hxdata import load_pickle_object
 
     # pkobj_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/bug_nans_isotopdedist/PDB5X1G_8.57_PDB5X1G_7.69_hx_rate_fit.pickle'
     # hxobj = load_pickle_object(pkobj_fpath)
@@ -458,6 +490,14 @@ if __name__ == '__main__':
 
     # print('heho')
     #
+    # eehee_rd4_0642_sequence = 'HMKTVEVNGVKYDFDNPEQAREMAERIAKSLGLQVRLEGDTFKIE'
+    # eehee_rd4_0642_lowph_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/EEHEE_rd4_0642/EEHEE_rd4_0642.pdb_15.13925_winner_multibody.cpickle.zlib_lowph_newformat.csv'
+    # eehee_rd4_0642_highph_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/EEHEE_rd4_0642/EEHEE_rd4_0642.pdb_15.13928_winner_multibody.cpickle.zlib_highph_newformat.csv'
+    # prot_name = 'EEHEE_rd4_0642'
+    # low_ph_prot_rt_name = 'EEHEE_rd4_0642.pdb_15.13925'
+    # high_ph_prot_rt_name = 'EEHEE_rd4_0642.pdb_15.13928'
+    # prot_rt_name = low_ph_prot_rt_name + '_' + high_ph_prot_rt_name
+    #
     # eehee_rd4_08742_sequence = 'HMTQVHVDGVTYTFSNPEEAKKFADEMAKRKGGTWEIKDGHIHVE'
     # eehee_rd4_0871_low_ph_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/EEHEE_rd4_0871/EEHEE_rd4_0871.pdb_8.57176_winner_multibody.cpickle.zlib.csv'
     # eehee_rd4_0871_high_ph_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/EEHEE_rd4_0871/EEHEE_rd4_0871.pdb_8.57163_winner_multibody.cpickle.zlib.csv'
@@ -468,25 +508,27 @@ if __name__ == '__main__':
     #
     # low_ph_bkexch_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/backexchange/low_ph_bkexch_corr.csv'
     # high_ph_bkexch_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/backexchange/high_ph_bkexch_corr.csv'
-    #
-    # bkexch_list_high_low_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/backexchange/high_low_backexchange_list.csv'
     # #
+    # bkexch_list_high_low_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/backexchange/high_low_backexchange_list.csv'
+    #
     # fit_rate_from_to_file(prot_name=prot_name,
-    #                       sequence=eehee_rd4_08742_sequence,
-    #                       hx_ms_dist_fpath=[eehee_rd4_0871_low_ph_fpath, eehee_rd4_0871_high_ph_fpath],
+    #                       sequence=eehee_rd4_0642_sequence,
+    #                       hx_ms_dist_fpath=[eehee_rd4_0642_lowph_fpath, eehee_rd4_0642_highph_fpath],
     #                       d2o_purity=0.95,
     #                       d2o_fraction=0.95,
-    #                       prot_rt_name=prot_rt_name_low_ph,
+    #                       prot_rt_name=prot_rt_name,
     #                       merge_exp=True,
+    #                       exp_label=['ph6', 'ph9'],
     #                       backexchange_corr_fpath=[low_ph_bkexch_corr_fpath, high_ph_bkexch_corr_fpath],
     #                       low_high_backexchange_list_fpath=bkexch_list_high_low_fpath,
     #                       num_chains=4,
     #                       num_warmups=100,
     #                       num_samples=250,
+    #                       adjust_backexchange=False,
     #                       save_posterior_samples=True,
-    #                       merge_hx_ms_dist_output_path=eehee_rd4_0871_low_ph_fpath + '_merge_dist_v3.csv',
-    #                       hx_rate_output_path=eehee_rd4_0871_low_ph_fpath + '_merge_rate_output_v3.pickle',
-    #                       hx_rate_csv_output_path=eehee_rd4_0871_low_ph_fpath + '_merge_rates_v3.csv',
-    #                       hx_isotope_dist_output_path=eehee_rd4_0871_low_ph_fpath + '_merge__pred_dist_v3.csv',
-    #                       hx_rate_plot_path=eehee_rd4_0871_low_ph_fpath + '_merge_rates_v3.pdf',
-    #                       posterior_plot_path=eehee_rd4_0871_low_ph_fpath + '_merge_posteriors_v3.pdf')
+    #                       merge_hx_ms_dist_output_path=None,
+    #                       hx_rate_output_path=eehee_rd4_0642_lowph_fpath + '_merge_rate_output.pickle',
+    #                       hx_rate_csv_output_path=eehee_rd4_0642_lowph_fpath + '_merge_rate.csv',
+    #                       hx_isotope_dist_output_path=eehee_rd4_0642_lowph_fpath + '_merge_pred_dist.csv',
+    #                       hx_rate_plot_path=eehee_rd4_0642_lowph_fpath + '_merge_rates.pdf',
+    #                       posterior_plot_path=eehee_rd4_0642_lowph_fpath + '_merge_posteriors.pdf')
