@@ -396,7 +396,9 @@ rule fit_hx_rates_merge_dist:
         sample_backexchange = sample_backexchange_param,
         num_chains = config['num_chains'],
         num_warmups = config['num_warmups'],
-        num_samples = config['num_samples']
+        num_samples = config['num_samples'],
+        low_ph_exp_label = config['low_ph_exp_label'],
+        high_ph_exp_label = config['high_ph_exp_label']
     output:
         pk_file = hxrate_dpath + '/{low_high_name}/{low_high_name}_hx_rate_fit.pickle',
         rate_csv_file = hxrate_dpath + '/{low_high_name}/{low_high_name}_hx_rate.csv',
@@ -409,7 +411,7 @@ rule fit_hx_rates_merge_dist:
     conda:
         env_fpath
     shell:
-        'python ' + hx_rate_fit_python_path + ' -p {params.prot_name} -pr {params.prot_rt_name} -s {params.prot_seq} -i {input.low_ph_fpath_} {input.high_ph_fpath_} -df {params.d2o_frac} -dp {params.d2o_pur} -bcf {input.low_ph_backexch_corr_fpath} {input.high_ph_backexch_corr_fpath} -bcl {input.low_high_backexchange_list_fpath} --merge {params.adjust_backexchange} -nc {params.num_chains} -nw {params.num_warmups} -ns {params.num_samples} {params.sample_backexchange} -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -opp {output.posterior_plot_file} -od {output.iso_dist_file} -md {output.merge_iso_dist_file}'
+        'python ' + hx_rate_fit_python_path + ' -p {params.prot_name} -pr {params.prot_rt_name} -s {params.prot_seq} -i {input.low_ph_fpath_} {input.high_ph_fpath_} -df {params.d2o_frac} -dp {params.d2o_pur} -expl {params.low_ph_exp_label} {params.high_ph_exp_label} -bcf {input.low_ph_backexch_corr_fpath} {input.high_ph_backexch_corr_fpath} -bcl {input.low_high_backexchange_list_fpath} --merge {params.adjust_backexchange} -nc {params.num_chains} -nw {params.num_warmups} -ns {params.num_samples} {params.sample_backexchange} -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -opp {output.posterior_plot_file} -od {output.iso_dist_file} -md {output.merge_iso_dist_file}'
 
 
 if config['dg_calc']:

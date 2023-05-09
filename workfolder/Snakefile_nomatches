@@ -307,7 +307,8 @@ rule fit_hx_rates_:
         sample_backexchange = sample_backexchange_param,
         num_chains = config['num_chains'],
         num_warmups = config['num_warmups'],
-        num_samples = config['num_samples']
+        num_samples = config['num_samples'],
+        exp_label = config['exp_label']
     output:
         pk_file = hxrate_dpath + '/{prot_rt_name}/{prot_rt_name}_hx_rate_fit.pickle',
         rate_csv_file = hxrate_dpath + '/{prot_rt_name}/{prot_rt_name}_hx_rate.csv',
@@ -320,7 +321,7 @@ rule fit_hx_rates_:
         env_fpath
     # threads: config['num_chains']
     shell:
-        'python ' + hx_rate_fit_python_path + ' -p {params.prot_name} -pr {params.prot_rt_name} -s {params.prot_seq} -i {input.hx_dist_fpath} -df {params.d2o_frac} -dp {params.d2o_pur} -bcf {input.bkexch_corr_fpath} --no-merge {params.adjust_backexchange} -nc {params.num_chains} -nw {params.num_warmups} -ns {params.num_samples} {params.sample_backexchange} -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -opp {output.posterior_plot_file} -od {output.iso_dist_file}'
+        'python ' + hx_rate_fit_python_path + ' -p {params.prot_name} -pr {params.prot_rt_name} -s {params.prot_seq} -i {input.hx_dist_fpath} -df {params.d2o_frac} -expl {params.exp_label} -dp {params.d2o_pur} -bcf {input.bkexch_corr_fpath} --no-merge {params.adjust_backexchange} -nc {params.num_chains} -nw {params.num_warmups} -ns {params.num_samples} {params.sample_backexchange} -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -opp {output.posterior_plot_file} -od {output.iso_dist_file}'
 
 
 
