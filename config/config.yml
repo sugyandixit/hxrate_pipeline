@@ -13,6 +13,8 @@ hx_ms_fpath_delim_string: "_winner_multibody.cpickle.zlib.csv"
 hdxlim_dirstruct: True
 hdxlim_pathtype_str: "multibody"
 
+exp_label: "ph6"
+
 # pdb fpaths
 pdb_fpaths_dir: "/projejcts/p31346/suggie/pdbs"
 

@@ -15,6 +15,7 @@ level_to_fpaths_low_ph: 1
 lowph_hdxlim_dirstruct: True
 low_hdxlim_pathtype_str: "multibody"
 
+low_ph_exp_label: "ph6"
 
 low_ph_d2o_frac: 0.95
 low_ph_d2o_pur: 0.95
@@ -31,6 +32,8 @@ high_ph_hxms_fpath_dir: "/projects/b1107/allan/HDX_analysis/Lib15/20211223_pH9/h
 level_to_fpaths_high_ph: 1
 highph_hdxlim_dirstruct: True
 high_hdxlim_pathtype_str: "multibody"
+
+high_ph_exp_label: "ph9"
 
 high_ph_d2o_frac: 0.95
 high_ph_d2o_pur: 0.95
