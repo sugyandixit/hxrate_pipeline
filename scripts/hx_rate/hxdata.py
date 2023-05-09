@@ -10,10 +10,34 @@ def load_data_from_hdx_ms_dist_(fpath):
     :param fpath: input .csv path for distribution
     :return: timepoints, mass_distribution list
     """
-    df = pd.read_csv(fpath)
-    time_points = np.asarray(df.columns.values[1:], dtype=float)
-    mass_distribution = df.iloc[:, 1:].values.T
-    return time_points, mass_distribution
+
+    out_dict = dict()
+
+    mass_dist_list = []
+
+    with open(fpath, 'r') as infile:
+
+        fileread = infile.read().splitlines()
+
+        for ind, line in enumerate(fileread):
+
+            if line.startswith('#'):
+                line_chars = line.split(',')
+                head_char = line_chars[0].strip('#')
+                if head_char == 'tp':
+                    out_dict[head_char] = np.array([float(x) for x in line_chars[1:]])
+                else:
+                    out_dict[head_char] = [x for x in line_chars[1:]]
+            else:
+                line_chars = line.split(',')
+                mass_dist_vals = [float(x) for x in line_chars[1:]]
+                mass_dist_list.append(mass_dist_vals)
+
+        infile.close()
+
+    out_dict['mass_dist'] = np.array(mass_dist_list).T
+
+    return out_dict
 
 
 def load_sample_data():
@@ -99,17 +123,23 @@ def write_hx_rate_output_bayes(hxrate_mean_array,
         outfile.close()
 
 
-def write_isotope_dist_timepoints(timepoints, isotope_dist_array, output_path):
+def write_isotope_dist_timepoints(timepoints, isotope_dist_array, output_path, timepoint_label=None):
+
+    if timepoint_label is None:
+        timepoint_label = np.arange(0, len(timepoints))
+
+    tp_label_str = ','.join([str(x) for x in timepoint_label])
+    header1 = '#tp_ind,' + tp_label_str + '\n'
 
     timepoint_str = ','.join(['%.4f' % x for x in timepoints])
-    header = 'ind,' + timepoint_str + '\n'
+    header2 = '#tp,' + timepoint_str + '\n'
     data_string = ''
     for ind, arr in enumerate(isotope_dist_array.T):
         arr_str = ','.join([str(x) for x in arr])
         data_string += '{},{}\n'.format(ind, arr_str)
 
     with open(output_path, 'w') as outfile:
-        outfile.write(header + data_string)
+        outfile.write(header1 + header2 + data_string)
         outfile.close()
 
 
