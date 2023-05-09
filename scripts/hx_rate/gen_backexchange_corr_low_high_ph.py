@@ -109,7 +109,9 @@ def check_saturation_from_file(fpath,
     :return:
     """
 
-    tp, dist_list = hxdata.load_data_from_hdx_ms_dist_(fpath)
+    data_dict = hxdata.load_data_from_hdx_ms_dist_(fpath=fpath)
+    tp = data_dict['tp']
+    dist_list = data_dict['mass_dist']
     norm_dist_list = methods.normalize_mass_distribution_array(mass_dist_array=dist_list)
 
     # use backexchange correction to correct the centroids and then check for saturation if bkexch corr filepath given
