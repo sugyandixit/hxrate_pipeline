@@ -60,6 +60,8 @@ class ExpDataRateFit(object):
                  prot_name: str,
                  prot_rt_name: str,
                  timepoints: list or np.ndarray,
+                 timepoint_index_list: list or None,
+                 exp_label: str or list or None,
                  exp_distribution: list or np.ndarray,
                  backexchange: list or np.ndarray,
                  merge_exp: bool,
@@ -85,6 +87,10 @@ class ExpDataRateFit(object):
         self.merge_exp = merge_exp
 
         self.timepoints = timepoints
+        self.timepoint_label = gen_timepoint_label(timepoints=timepoints,
+                                                   merge_exp=merge_exp,
+                                                   tp_ind_label=timepoint_index_list,
+                                                   exp_label=exp_label)
         self.exp_distribution = exp_distribution
         self.backexchange = backexchange
 
@@ -233,6 +239,40 @@ class RateChainDiagnostics(object):
     discard_chain_indices: list = None
     rerun_opt: bool = False
     num_rerun_opt: int = None
+
+def gen_timepoint_label(timepoints, merge_exp=False, tp_ind_label=None, exp_label=None):
+
+    tp_unk_label_list = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']
+
+    if merge_exp:
+        tp_label = [[] for _ in range(len(timepoints))]
+        if tp_ind_label is None:
+            if exp_label is None:
+                for ind, tp_arr in enumerate(timepoints):
+                    tp_label[ind] = [str(tp_unk_label_list[ind]) + '_' + str(x) for x in range(len(tp_arr))]
+            else:
+                for ind, tp_arr in enumerate(timepoints):
+                    tp_label[ind] = [str(exp_label[ind]) + '_' + str(x) for x in range(len(tp_arr))]
+        else:
+            if exp_label is None:
+                for ind, tp_ind_l in enumerate(tp_ind_label):
+                    tp_label[ind] = [str(tp_unk_label_list[ind]) + '_' + str(x) for x in tp_ind_l]
+            else:
+                for ind, tp_ind_l in enumerate(tp_ind_label):
+                    tp_label[ind] = [str(exp_label[ind]) + '_' + str(x) for x in tp_ind_l]
+    else:
+        tp_label = []
+        if tp_ind_label is None:
+            if exp_label is None:
+                tp_label = [str(tp_unk_label_list[0]) + '_' + str(x) for x in range(len(timepoints))]
+            else:
+                tp_label = [str(exp_label) + '_' + str(x) for x in range(len(timepoints))]
+        else:
+            if exp_label is None:
+                tp_label = [str(tp_unk_label_list[0]) + '_' + str(x) for x in tp_ind_label]
+            else:
+                tp_label = [str(exp_label) + '_' + str(x) for x in tp_ind_label]
+    return tp_label
 
 
 def diagnose_posterior_sample_rate_among_chains(posterior_samples_by_chain_dict,
@@ -423,6 +463,11 @@ class BayesRateFit(object):
                 timepoints_for_diag = exp_data_object.timepoints
 
             # diagnose chains for convergence
+            if exp_data_object.merge_exp:
+                exp_dist_stack = exp_data_object.exp_distribution_stack
+            else:
+                exp_dist_stack = exp_data_object.exp_distribution
+
             chain_diagnostics = diagnose_posterior_sample_rate_among_chains(posterior_samples_by_chain_dict=posterior_samples_by_chain,
                                                                             protein_sequence=exp_data_object.sequence,
                                                                             timepoints=timepoints_for_diag,
@@ -430,7 +475,7 @@ class BayesRateFit(object):
                                                                             d2o_purity=exp_data_object.d2o_purity,
                                                                             d2o_fraction=exp_data_object.d2o_fraction,
                                                                             num_bins=exp_data_object.num_bins_ms,
-                                                                            exp_distribution=exp_data_object.exp_distribution_stack,
+                                                                            exp_distribution=exp_dist_stack,
                                                                             init_num_chains=self.num_chains)
 
             rerun_opt = chain_diagnostics.rerun_opt
@@ -493,9 +538,18 @@ class BayesRateFit(object):
 
             self.output['exp_distribution'] = exp_data_object.exp_distribution_stack
             self.output['num_merge_facs'] = exp_data_object.num_merge_facs
+
+            self.output['tp_ind_label'] = np.concatenate(exp_data_object.timepoint_label)
+            tp_lab_list = [exp_data_object.timepoint_label[0]]
+            for ind, tp_lab in enumerate(exp_data_object.timepoint_label):
+                if ind > 0:
+                    tp_lab_list.append(tp_lab[1:])
+            self.output['tp_ind_label'] = np.concatenate(tp_lab_list)
+
         else:
             self.output['timepoints'] = exp_data_object.timepoints
             self.output['exp_distribution'] = exp_data_object.exp_distribution
+            self.output['tp_ind_label'] = np.array(exp_data_object.timepoint_label)
 
         self.output['timepoints_sort_indices'] = np.argsort(self.output['timepoints'])
 
@@ -550,11 +604,14 @@ class BayesRateFit(object):
         if self.output is not None:
 
             sort_tp = self.output['timepoints'][self.output['timepoints_sort_indices']]
+            sort_tp_labels = self.output['tp_ind_label'][self.output['timepoints_sort_indices']]
+            sort_tp_ind = [x.split('_')[-1] for x in sort_tp_labels]
             sort_pred_dist = self.output['pred_distribution'][self.output['timepoints_sort_indices']]
 
             write_isotope_dist_timepoints(timepoints=sort_tp,
                                           isotope_dist_array=sort_pred_dist,
-                                          output_path=output_path)
+                                          output_path=output_path,
+                                          timepoint_label=sort_tp_ind)
 
         else:
             print('Output is None')
@@ -587,6 +644,7 @@ class BayesRateFit(object):
 
             # sort dist with timepoints
             sort_tp = self.output['timepoints'][self.output['timepoints_sort_indices']]
+            sort_tp_label = self.output['tp_ind_label'][self.output['timepoints_sort_indices']]
             sort_exp_dist = self.output['exp_distribution'][self.output['timepoints_sort_indices']]
             sort_pred_dist = self.output['pred_distribution'][self.output['timepoints_sort_indices']]
 
@@ -600,10 +658,18 @@ class BayesRateFit(object):
 
             backexchange_array = self.output['backexchange'][self.output['timepoints_sort_indices']]
 
+            if self.output['merge_exp']:
+                num_merge_facs = self.output['num_merge_facs']
+                merge_fac = self.output['bayes_sample']['merge_fac']['mean']
+            else:
+                num_merge_facs = None
+                merge_fac = None
+
             plot_hx_rate_fitting_bayes(prot_name=self.output['protein_name'],
                                        hx_rates=self.output['bayes_sample']['rate']['mean'],
                                        hx_rates_error=hxrate_error,
                                        timepoints=sort_tp,
+                                       timepoint_label=sort_tp_label,
                                        exp_isotope_dist=sort_exp_dist,
                                        thr_isotope_dist=sort_pred_dist,
                                        exp_isotope_centroid_array=exp_centroid_arr_,
@@ -616,6 +682,9 @@ class BayesRateFit(object):
                                        backexchange_array=backexchange_array,
                                        d2o_fraction=self.output['d2o_fraction'],
                                        d2o_purity=self.output['d2o_purity'],
+                                       merge_exp=self.output['merge_exp'],
+                                       num_merge_factors=num_merge_facs,
+                                       merge_factor=merge_fac,
                                        output_path=output_path)
         else:
             print('Output is None')
@@ -885,13 +954,17 @@ def plot_hx_rate_fitting_bayes(prot_name: str,
                                exp_isotope_width_array: np.ndarray,
                                thr_isotope_width_array: np.ndarray,
                                timepoints: np.ndarray,
+                               timepoint_label: np.ndarray,
                                fit_rmse_timepoints: np.ndarray,
                                fit_rmse_total: float,
                                backexchange: float,
                                backexchange_array: np.ndarray,
                                d2o_fraction: float,
                                d2o_purity: float,
-                               output_path: str):
+                               output_path: str,
+                               merge_exp: bool = False,
+                               num_merge_factors: int = None,
+                               merge_factor: np.ndarray=None):
     """
     generate several plots for visualizing the hx rate fitting output
     :param prot_name: protein name
@@ -938,10 +1011,26 @@ def plot_hx_rate_fitting_bayes(prot_name: str,
     else:
         fit_rmse_tp = fit_rmse_timepoints
 
+    # def the color for different experiments
+    num_exp = 1
+    if merge_exp:
+        num_exp = num_merge_factors + 1
+
+    color_exp = ['dodgerblue', 'forestgreen', 'fuchsia', 'teal', 'gold', 'sienna']
+
+    exp_labels = [x.split('_')[0] for x in timepoint_label]
+    # use this in title for indicating the exp
+    unique_exp_labels = np.unique(exp_labels)
+    unique_exp_color_dict = dict()
+    for ind, uniq_exp in enumerate(unique_exp_labels):
+        unique_exp_color_dict[uniq_exp] = color_exp[ind]
+
+    color_exp_list = [unique_exp_color_dict[x] for x in exp_labels]
+
     #######################################################
     #######################################################
     # start plotting the exp and thr isotope dist
-    for num, (timepoint, exp_dist, thr_dist, exp_centroid, bkexch) in enumerate(zip(timepoints, exp_isotope_dist, thr_isotope_dist, exp_isotope_centroid_array, backexchange_array)):
+    for num, (timepoint, exp_dist, thr_dist, exp_centroid, bkexch, tp_label, exp_label) in enumerate(zip(timepoints, exp_isotope_dist, thr_isotope_dist, exp_isotope_centroid_array, backexchange_array, timepoint_label, exp_labels)):
 
         if fit_rmse_timepoints is None:
             rmse_tp = compute_rmse_exp_thr_iso_dist(exp_isotope_dist=exp_dist,
@@ -953,7 +1042,7 @@ def plot_hx_rate_fitting_bayes(prot_name: str,
 
         # plot exp and thr isotope dist
         ax = fig.add_subplot(gs[num, 0])
-        plt.plot(exp_dist, color='blue', marker='o', ls='-', markersize=3)
+        plt.plot(exp_dist, color=unique_exp_color_dict[exp_label], marker='o', ls='-', markersize=3)
         plt.plot(thr_dist, color='red')
         ax.set_yticks([])
         ax.spines['right'].set_visible(False)
@@ -979,7 +1068,7 @@ def plot_hx_rate_fitting_bayes(prot_name: str,
                  transform=ax.transAxes)
 
         # put timepoint on  the left side of the plot
-        plt.text(0.01, 1.2, '%s t %i' % (num, timepoint),
+        plt.text(0.01, 1.2, "%s\n%s" % (tp_label, timepoint),
                  horizontalalignment="left",
                  verticalalignment="top",
                  transform=ax.transAxes)
@@ -1006,7 +1095,7 @@ def plot_hx_rate_fitting_bayes(prot_name: str,
     # plot timepoint specific backexchange
     ax0 = fig.add_subplot(gs[second_plot_indices[0]: second_plot_indices[1], 1])
 
-    plt.scatter(x=np.arange(len(timepoints))[1:], y=backexchange_array[1:]*100, color='black')
+    plt.scatter(x=np.arange(len(timepoints))[1:], y=backexchange_array[1:]*100, color=color_exp_list[1:])
     ax0.spines['right'].set_visible(False)
     ax0.spines['top'].set_visible(False)
     plt.xticks(range(-1, len(timepoints) + 1, 1))
@@ -1022,7 +1111,7 @@ def plot_hx_rate_fitting_bayes(prot_name: str,
     # plot fit rmse
 
     ax1 = fig.add_subplot(gs[second_plot_indices[1]: second_plot_indices[2], 1])
-    plt.scatter(np.arange(len(timepoints)), fit_rmse_tp, color='black')
+    plt.scatter(np.arange(len(timepoints)), fit_rmse_tp, color=color_exp_list)
     ax1.spines['right'].set_visible(False)
     ax1.spines['top'].set_visible(False)
     plt.xticks(range(0, len(timepoints) + 1, 1))
@@ -1050,8 +1139,10 @@ def plot_hx_rate_fitting_bayes(prot_name: str,
     timepoints_v2[0] = timepoints_v2[2] - timepoints_v2[1]
 
     ax2 = fig.add_subplot(gs[second_plot_indices[2]: second_plot_indices[3], 1])
-    ax2.plot(timepoints_v2, exp_isotope_centroid_array, marker='o', ls='-', color='blue')
-    ax2.plot(timepoints_v2, thr_isotope_centroid_array, marker='o', ls='-', color='red')
+    ax2.plot(timepoints_v2, exp_isotope_centroid_array, ls='--', color='gray')
+    ax2.plot(timepoints_v2, thr_isotope_centroid_array, ls='--', color='gray')
+    plt.scatter(timepoints_v2, exp_isotope_centroid_array, marker='o', ls='-', color=color_exp_list)
+    plt.scatter(timepoints_v2, thr_isotope_centroid_array, marker='o', ls='-', color='red')
     ax2.set_xscale('log')
     ax2.set_xticks(timepoints_v2)
     ax2.set_xticklabels([])
@@ -1076,8 +1167,11 @@ def plot_hx_rate_fitting_bayes(prot_name: str,
                                                                            include_zero_dist=True)
 
     ax2 = fig.add_subplot(gs[second_plot_indices[3]: second_plot_indices[4], 1])
-    ax2.plot(timepoints_v2, exp_isotope_centroid_array_corr, marker='o', ls='-', color='blue')
-    ax2.plot(timepoints_v2, thr_isotope_centroid_array_corr, marker='o', ls='-', color='red')
+    ax2.plot(timepoints_v2, exp_isotope_centroid_array_corr, ls='--', color='gray')
+    ax2.plot(timepoints_v2, thr_isotope_centroid_array_corr, ls='--', color='gray')
+    plt.scatter(timepoints_v2, exp_isotope_centroid_array_corr, marker='o', ls='-', color=color_exp_list)
+    plt.scatter(timepoints_v2, thr_isotope_centroid_array_corr, marker='o', ls='-', color='red')
+
     ax2.set_xscale('log')
     ax2.set_xticks(timepoints_v2)
     ax2.set_xticklabels([])
@@ -1097,7 +1191,7 @@ def plot_hx_rate_fitting_bayes(prot_name: str,
     com_difference = np.subtract(exp_isotope_centroid_array_corr, thr_isotope_centroid_array_corr)
 
     ax3 = fig.add_subplot(gs[second_plot_indices[4]: second_plot_indices[5], 1])
-    ax3.scatter(np.arange(len(timepoints)), com_difference, color='black')
+    ax3.scatter(np.arange(len(timepoints)), com_difference, color=color_exp_list)
     plt.axhline(y=0, ls='--', color='black', alpha=0.50)
     ax3.spines['right'].set_visible(False)
     ax3.spines['top'].set_visible(False)
@@ -1115,7 +1209,7 @@ def plot_hx_rate_fitting_bayes(prot_name: str,
     # plot the width of exp and thr distributions
 
     ax4 = fig.add_subplot(gs[second_plot_indices[5]: second_plot_indices[6], 1])
-    ax4.scatter(np.arange(len(timepoints)), exp_isotope_width_array, color='blue')
+    ax4.scatter(np.arange(len(timepoints)), exp_isotope_width_array, color=color_exp_list)
     ax4.scatter(np.arange(len(timepoints)), thr_isotope_width_array, color='red')
     ax4.spines['right'].set_visible(False)
     ax4.spines['top'].set_visible(False)
@@ -1135,7 +1229,7 @@ def plot_hx_rate_fitting_bayes(prot_name: str,
     width_difference = np.subtract(exp_isotope_width_array, thr_isotope_width_array)
 
     ax5 = fig.add_subplot(gs[second_plot_indices[6]: second_plot_indices[7], 1])
-    ax5.scatter(np.arange(len(timepoints)), width_difference, color='black')
+    ax5.scatter(np.arange(len(timepoints)), width_difference, color=color_exp_list)
     plt.axhline(y=0, ls='--', color='black', alpha=0.50)
     ax5.spines['right'].set_visible(False)
     ax5.spines['top'].set_visible(False)
@@ -1173,33 +1267,64 @@ def plot_hx_rate_fitting_bayes(prot_name: str,
     # adjust some plot properties and add title
     plt.subplots_adjust(hspace=1.2, wspace=0.1, top=0.96)
 
-    title_1 = 'Fit RMSE: %.4f | Backexchange: %.2f %% | D2O Purity: %.1f %% | D2O_Fraction: %.1f %%' %(fit_rmse_total,
-                                                                                                       backexchange*100,
-                                                                                                       d2o_purity*100,
-                                                                                                       d2o_fraction*100)
+    merge_factor_str = 'One Exp'
+
+    if merge_exp:
+
+        merge_fac_str_list = ['merge_fac_' + str(ind) + ': ' + str(np.round(x, 4)) for ind, x in enumerate(merge_factor)]
+
+        if len(merge_fac_str_list) > 1:
+            merge_factor_str = ' | '.join([x for x in merge_fac_str_list])
+        else:
+            merge_factor_str = merge_fac_str_list[0]
+
+    title_1 = 'Fit RMSE: %.4f | %s | Backexchange: %.2f %% | D2O Purity: %.1f %% | D2O_Fraction: %.1f %%' %(fit_rmse_total,
+                                                                                                            merge_factor_str,
+                                                                                                            backexchange*100,
+                                                                                                            d2o_purity*100,
+                                                                                                            d2o_fraction*100)
 
     plot_title = prot_name + ' (' + title_1 + ')'
 
     plt.suptitle(plot_title)
 
-    plt.figtext(0.498, 0.968, "EXP", color='blue', ha='right', fontsize=8)
-    plt.figtext(0.502, 0.968, "FIT", color='red', ha='left', fontsize=8)
+    # title set according to unique exp color dict
+
+    incr_x_ind = 0.020
+    curr_x_loc = 0.495
+
+    curr_y_loc = 0.968
+
+    for ind, (key, values) in enumerate(unique_exp_color_dict.items()):
+        curr_x_loc = curr_x_loc + (ind * incr_x_ind)
+        plt.figtext(curr_x_loc, curr_y_loc, key, color=values, ha='right', fontsize=8)
+
+    plt.figtext(curr_x_loc + incr_x_ind, curr_y_loc, "FIT", color='red', ha='right', fontsize=8)
+
+    # plt.figtext(0.498, 0.968, "EXP", color='blue', ha='right', fontsize=8)
+    # plt.figtext(0.502, 0.968, "FIT", color='red', ha='left', fontsize=8)
 
     plt.savefig(output_path, bbox_inches="tight")
     plt.close()
 
 
-def write_isotope_dist_timepoints(timepoints, isotope_dist_array, output_path):
+def write_isotope_dist_timepoints(timepoints, isotope_dist_array, output_path, timepoint_label=None):
+
+    if timepoint_label is None:
+        timepoint_label = np.arange(0, len(timepoints))
+
+    tp_label_str = ','.join([str(x) for x in timepoint_label])
+    header1 = '#tp_ind,' + tp_label_str + '\n'
 
     timepoint_str = ','.join(['%.4f' % x for x in timepoints])
-    header = 'ind,' + timepoint_str + '\n'
+    header2 = '#tp,' + timepoint_str + '\n'
     data_string = ''
     for ind, arr in enumerate(isotope_dist_array.T):
         arr_str = ','.join([str(x) for x in arr])
         data_string += '{},{}\n'.format(ind, arr_str)
 
     with open(output_path, 'w') as outfile:
-        outfile.write(header + data_string)
+        outfile.write(header1 + header2 + data_string)
         outfile.close()
 
 
@@ -1893,6 +2018,18 @@ def sort_posterior_rates_in_samples(posterior_samples_by_chain):
 if __name__ == '__main__':
     pass
 
+    # tp = [[1, 2, 3, 4], [1, 2, 3, 6]]
+    # merge_exp = True
+    # tp_ind = [[0, 1, 2, 3], [1, 2, 7, 9]]
+    # exp_label = ['ph6', 'ph9']
+    #
+    # tp_label = gen_timepoint_label(timepoints=tp,
+    #                                merge_exp=merge_exp,
+    #                                tp_ind_label=tp_ind,
+    #                                exp_label=exp_label)
+
+    # print('heho')
+
     # import numpy as np
     # from methods import normalize_mass_distribution_array, gauss_fit_to_isotope_dist_array, plot_hx_rate_fitting_bayes
     # from hx_rate_fit import calc_back_exchange
@@ -2020,3 +2157,50 @@ if __name__ == '__main__':
     # bayesopt.plot_bayes_samples(output_path=eehee_rd4_0871_low_ph_fpath + '_lowph_bayes_sample.pdf')
     #
     # # print(bayesopt.output['bayes_sample']['merge_fac']['posterior_samples_by_chain'])
+
+    # pkfpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/EEHEE_rd4_0642/EEHEE_rd4_0642.pdb_15.13925_winner_multibody.cpickle.zlib_lowph_newformat.csv_merge_rate_output.pickle'
+    #
+    # from hxdata import load_pickle_object
+    #
+    # pkobj = load_pickle_object(pickle_fpath=pkfpath)
+    #
+    # print('heho')
+    #
+    # hxrate_error = np.zeros((2, len(pkobj['bayes_sample']['rate']['mean'])))
+    # hxrate_error[0] = np.subtract(pkobj['bayes_sample']['rate']['mean'], pkobj['bayes_sample']['rate']['ci_5'])
+    # hxrate_error[1] = np.subtract(pkobj['bayes_sample']['rate']['ci_95'], pkobj['bayes_sample']['rate']['mean'])
+    #
+    # # sort dist with timepoints
+    # sort_tp = pkobj['timepoints'][pkobj['timepoints_sort_indices']]
+    # sort_tp_label = pkobj['tp_ind_label'][pkobj['timepoints_sort_indices']]
+    # sort_exp_dist = pkobj['exp_distribution'][pkobj['timepoints_sort_indices']]
+    # sort_pred_dist = pkobj['pred_distribution'][pkobj['timepoints_sort_indices']]
+    #
+    # exp_centroid_arr_ = np.array([x['centroid'] for x in pkobj['exp_dist_gauss_fit']])[pkobj['timepoints_sort_indices']]
+    # pred_centroid_arr_ = np.array([x['centroid'] for x in pkobj['pred_dist_guass_fit']])[pkobj['timepoints_sort_indices']]
+    #
+    # exp_width_arr_ = np.array([x['width'] for x in pkobj['exp_dist_gauss_fit']])[pkobj['timepoints_sort_indices']]
+    # pred_width_arr_ = np.array([x['width'] for x in pkobj['pred_dist_guass_fit']])[pkobj['timepoints_sort_indices']]
+    #
+    # rmse_per_timepoint = pkobj['rmse']['per_timepoint'][pkobj['timepoints_sort_indices']]
+    #
+    # backexchange_array = pkobj['backexchange'][pkobj['timepoints_sort_indices']]
+    #
+    # plot_hx_rate_fitting_bayes(prot_name=pkobj['protein_name'],
+    #                            hx_rates=pkobj['bayes_sample']['rate']['mean'],
+    #                            hx_rates_error=hxrate_error,
+    #                            timepoints=sort_tp,
+    #                            timepoint_label=sort_tp_label,
+    #                            exp_isotope_dist=sort_exp_dist,
+    #                            thr_isotope_dist=sort_pred_dist,
+    #                            exp_isotope_centroid_array=exp_centroid_arr_,
+    #                            thr_isotope_centroid_array=pred_centroid_arr_,
+    #                            exp_isotope_width_array=exp_width_arr_,
+    #                            thr_isotope_width_array=pred_width_arr_,
+    #                            fit_rmse_timepoints=rmse_per_timepoint,
+    #                            fit_rmse_total=pkobj['rmse']['total'],
+    #                            backexchange=pkobj['backexchange'][-1],
+    #                            backexchange_array=backexchange_array,
+    #                            d2o_fraction=pkobj['d2o_fraction'],
+    #                            d2o_purity=pkobj['d2o_purity'],
+    #                            output_path=pkfpath+'.pdf')
