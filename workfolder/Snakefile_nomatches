@@ -201,6 +201,7 @@ def gen_nomatch_protein_list(low_ph_libinfo_fpath,
     prot_name_dict = dict()
     prot_seq_dict = dict()
     ph_dict = dict()
+    exp_label_dict = dict()
 
     for lowphrtname_nomatch in low_ph_rtname_nomatch_list:
         lowphrt_fpath, lowphrt_file_valid = check_hxdist_fpath(prot_rt_name=lowphrtname_nomatch,
@@ -216,7 +217,7 @@ def gen_nomatch_protein_list(low_ph_libinfo_fpath,
             prot_seq_dict[lowphrtname_nomatch] = lowph_prot_seq
             prot_name_dict[lowphrtname_nomatch] = gen_prot_name_from_rt_name(lowphrtname_nomatch)
             ph_dict[lowphrtname_nomatch] = low_ph_value
-
+            exp_label_dict[lowphrtname_nomatch] = config['low_ph_exp_label']
 
     for highphrtname_nomatch in high_ph_rtname_nomatch_list:
         highphrt_fpath, highphrt_file_valid = check_hxdist_fpath(prot_rt_name=highphrtname_nomatch,
@@ -232,11 +233,12 @@ def gen_nomatch_protein_list(low_ph_libinfo_fpath,
             prot_seq_dict[highphrtname_nomatch] = highph_prot_seq
             prot_name_dict[highphrtname_nomatch] = gen_prot_name_from_rt_name(highphrtname_nomatch)
             ph_dict[highphrtname_nomatch] = high_ph_value
+            exp_label_dict[highphrtname_nomatch] = config['high_ph_exp_label']
 
-    return prot_rt_name_list, hxfpath_dict, prot_seq_dict, prot_name_dict, ph_dict
+    return prot_rt_name_list, hxfpath_dict, prot_seq_dict, prot_name_dict, ph_dict, exp_label_dict
 
 
-prot_rt_name_list_, hxfpath_dict_, prot_seq_dict_, prot_name_dict_, ph_dict_ = gen_nomatch_protein_list(low_ph_libinfo_fpath=config['low_ph_library_info'], lowph_protein_rt_column_name=config['lowph_protein_rt_column_name'], high_ph_libinfo_fpath=config['high_ph_library_info'], highph_protein_rt_column_name=config['highph_protein_rt_column_name'], low_ph_hxms_dir=config['low_ph_hxms_fpath_dir'], low_ph_level_to_fpaths=config['level_to_fpaths_low_ph'], low_ph_hxms_end_string=config['low_ph_hxms_fpath_delim_str'], lowph_hdxlim_dir_struct=config['lowph_hdxlim_dirstruct'], lowph_hdxlim_pathtype_str=config['low_hdxlim_pathtype_str'], high_ph_hxms_dir=config['high_ph_hxms_fpath_dir'], high_ph_level_to_fpaths=config['level_to_fpaths_high_ph'], high_ph_hxms_end_string=config['high_ph_hxms_fpath_delim_str'], highph_hdxlim_dir_struct=config['highph_hdxlim_dirstruct'], highph_hdxlim_pathtype_str=config['high_hdxlim_pathtype_str'], rt_window=config['merge_rt_window'], low_ph_value=config['low_pH'], high_ph_value=config['high_pH'])
+prot_rt_name_list_, hxfpath_dict_, prot_seq_dict_, prot_name_dict_, ph_dict_, exp_label_dict_ = gen_nomatch_protein_list(low_ph_libinfo_fpath=config['low_ph_library_info'], lowph_protein_rt_column_name=config['lowph_protein_rt_column_name'], high_ph_libinfo_fpath=config['high_ph_library_info'], highph_protein_rt_column_name=config['highph_protein_rt_column_name'], low_ph_hxms_dir=config['low_ph_hxms_fpath_dir'], low_ph_level_to_fpaths=config['level_to_fpaths_low_ph'], low_ph_hxms_end_string=config['low_ph_hxms_fpath_delim_str'], lowph_hdxlim_dir_struct=config['lowph_hdxlim_dirstruct'], lowph_hdxlim_pathtype_str=config['low_hdxlim_pathtype_str'], high_ph_hxms_dir=config['high_ph_hxms_fpath_dir'], high_ph_level_to_fpaths=config['level_to_fpaths_high_ph'], high_ph_hxms_end_string=config['high_ph_hxms_fpath_delim_str'], highph_hdxlim_dir_struct=config['highph_hdxlim_dirstruct'], highph_hdxlim_pathtype_str=config['high_hdxlim_pathtype_str'], rt_window=config['merge_rt_window'], low_ph_value=config['low_pH'], high_ph_value=config['high_pH'])
 
 
 # set_up_backexchange_correction_fpath
@@ -308,7 +310,7 @@ rule fit_hx_rates_:
         num_chains = config['num_chains'],
         num_warmups = config['num_warmups'],
         num_samples = config['num_samples'],
-        exp_label = config['exp_label']
+        exp_label = lambda wildcards: exp_label_dict_[wildcards.prot_rt_name]
     output:
         pk_file = hxrate_dpath + '/{prot_rt_name}/{prot_rt_name}_hx_rate_fit.pickle',
         rate_csv_file = hxrate_dpath + '/{prot_rt_name}/{prot_rt_name}_hx_rate.csv',
