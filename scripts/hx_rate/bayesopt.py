@@ -3,8 +3,6 @@ import numpy as np
 from sklearn.metrics import mean_squared_error
 import numpyro
 from jax import random
-import numpyro.distributions as dist
-from numpyro.distributions.transforms import AbsTransform
 from numpyro.infer import NUTS, MCMC
 import jax.numpy as jnp
 import molmass
@@ -16,7 +14,6 @@ import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 from itertools import cycle
 import pickle
-import time
 
 # global variables
 r_constant = 0.0019872036
@@ -483,14 +480,13 @@ class BayesRateFit(object):
             num_rerun_opt += 1
             chain_diagnostics.num_rerun_opt = num_rerun_opt
 
-
         if chain_diagnostics.discard_chain_indices is not None:
 
-            posterior_samples_by_chain = discard_chain_from_posterior_samples(posterior_samples_by_chain_dict=posterior_samples_by_chain,
-                                                                              discard_chain_indices=chain_diagnostics.discard_chain_indices)
+            posterior_samples_by_chain_with_discard = discard_chain_from_posterior_samples(posterior_samples_by_chain_dict=posterior_samples_by_chain,
+                                                                                           discard_chain_indices=chain_diagnostics.discard_chain_indices)
 
             # generate summary from the posterior samples
-            summary_ = numpyro.diagnostics.summary(samples=posterior_samples_by_chain)
+            summary_ = numpyro.diagnostics.summary(samples=posterior_samples_by_chain_with_discard)
 
 
 
@@ -693,7 +689,9 @@ class BayesRateFit(object):
 
         if self.output is not None:
 
-            plot_posteriors(bayesfit_sample_dict=self.output['bayes_sample'], output_path=output_path)
+            plot_posteriors(bayesfit_sample_dict=self.output['bayes_sample'],
+                            discard_chain_bool_list=self.output['chain_diagnostics']['chain_pass_list'],
+                            output_path=output_path)
 
         else:
             print('Output is None')
@@ -761,7 +759,7 @@ def reshape_posterior_samples(posterior_samples):
     return reshape_array
 
 
-def plot_posteriors(bayesfit_sample_dict, output_path=None):
+def plot_posteriors(bayesfit_sample_dict, discard_chain_bool_list=[False, False, False, False], output_path=None):
 
     num_fig_grids = 0
 
@@ -809,7 +807,8 @@ def plot_posteriors(bayesfit_sample_dict, output_path=None):
                                  sample_rhat=items_['rhat'],
                                  sample_label=keys_,
                                  gridspec_obj=gs0,
-                                 gridspec_index=counter)
+                                 gridspec_index=counter,
+                                 discard_chain_bool_list=discard_chain_bool_list)
 
             counter += 1
 
@@ -830,7 +829,8 @@ def plot_posteriors(bayesfit_sample_dict, output_path=None):
                                      sample_rhat=items_['rhat'][num],
                                      sample_label='%s_%s' % (keys_, num),
                                      gridspec_obj=gs0,
-                                     gridspec_index=counter)
+                                     gridspec_index=counter,
+                                     discard_chain_bool_list=discard_chain_bool_list)
 
                 counter += 1
 
@@ -849,7 +849,8 @@ def plot_posteriors_grid(fig_obj,
                          sample_rhat,
                          sample_label,
                          gridspec_obj,
-                         gridspec_index):
+                         gridspec_index,
+                         discard_chain_bool_list=[False,False,False,False]):
     """
 
     :param fig_obj:
@@ -871,8 +872,12 @@ def plot_posteriors_grid(fig_obj,
 
     chain_colors = cycle(['indianred', 'mediumaquamarine', 'deepskyblue', 'mediumpurple', 'palevioletred'])
 
+    discard_chain_color = 'gray'
+
     ind_arr = np.arange(0, len(sample[0]))
-    for ind, (sample_per_chain, color_) in enumerate(zip(sample, chain_colors)):
+    for ind, (sample_per_chain, discard_chain, color_) in enumerate(zip(sample, discard_chain_bool_list, chain_colors)):
+        if discard_chain:
+            color_ = discard_chain_color
         if ind == 0:
             ax00.plot(ind_arr, sample_per_chain, color=color_, linewidth=0.5)
         else:
@@ -1751,62 +1756,62 @@ def rate_fit_model(num_rates,
                               obs=obs_dist_nonzero_flat)
 
 
-def rate_fit_model_norm_priors_with_backexchange_sampling(num_rates,
-                      sequence,
-                      timepoints,
-                      backexchange_array,
-                      d2o_fraction,
-                      d2o_purity,
-                      num_bins,
-                      obs_dist_nonzero_flat,
-                      nonzero_indices):
-    """
-    rate fit model for opt
-    :param num_rates: number of rates
-    :param sequence: protein sequence
-    :param timepoints: timepoints array
-    :param inv_backexchange_array:  1- backexchange array
-    :param d2o_fraction: d2o fraction
-    :param d2o_purity: d2o purity
-    :param num_bins: number of bins in integrated mz data
-    :param obs_dist_nonzero_flat: observed experimental distribution flattened and with non zero values
-    :param nonzero_indices: indices in exp distribution with non zero values
-    :return: numpyro sample object
-    """
-
-    rate_center = np.linspace(start=-15, stop=5, num=num_rates)
-    rate_sigma = 2.5
-    with numpyro.plate(name='rates', size=num_rates):
-        rates_ = numpyro.sample(name='rate',
-                                fn=numpyro.distributions.Normal(loc=rate_center, scale=rate_sigma))
-
-    # todo: need to re evaluate the prior distribution params
-    backexchange_sigma = 0.01
-
-    with numpyro.plate(name='backexchange_values', size=len(backexchange_array)):
-        backexchange = numpyro.sample(name='backexchange',
-                                      fn=numpyro.distributions.Normal(loc=backexchange_array,
-                                                                      scale=backexchange_sigma))
-
-    thr_dists = gen_theoretical_isotope_dist_for_all_timepoints(sequence=sequence,
-                                                                timepoints=timepoints,
-                                                                rates=jnp.exp(rates_),
-                                                                inv_backexchange_array=jnp.subtract(1,
-                                                                                                    backexchange),
-                                                                d2o_fraction=d2o_fraction,
-                                                                d2o_purity=d2o_purity,
-                                                                num_bins=num_bins)
-
-    flat_thr_dist = jnp.concatenate(thr_dists)
-    flat_thr_dist_non_zero = flat_thr_dist[nonzero_indices]
-
-    sigma = numpyro.sample(name='sigma',
-                           fn=numpyro.distributions.Normal(loc=0.5, scale=0.5))
-
-    with numpyro.plate(name='bins', size=len(flat_thr_dist_non_zero)):
-        return numpyro.sample(name='bin_preds',
-                              fn=numpyro.distributions.Normal(loc=flat_thr_dist_non_zero, scale=sigma),
-                              obs=obs_dist_nonzero_flat)
+# def rate_fit_model_norm_priors_with_backexchange_sampling(num_rates,
+#                       sequence,
+#                       timepoints,
+#                       backexchange_array,
+#                       d2o_fraction,
+#                       d2o_purity,
+#                       num_bins,
+#                       obs_dist_nonzero_flat,
+#                       nonzero_indices):
+#     """
+#     rate fit model for opt
+#     :param num_rates: number of rates
+#     :param sequence: protein sequence
+#     :param timepoints: timepoints array
+#     :param inv_backexchange_array:  1- backexchange array
+#     :param d2o_fraction: d2o fraction
+#     :param d2o_purity: d2o purity
+#     :param num_bins: number of bins in integrated mz data
+#     :param obs_dist_nonzero_flat: observed experimental distribution flattened and with non zero values
+#     :param nonzero_indices: indices in exp distribution with non zero values
+#     :return: numpyro sample object
+#     """
+#
+#     rate_center = np.linspace(start=-15, stop=5, num=num_rates)
+#     rate_sigma = 2.5
+#     with numpyro.plate(name='rates', size=num_rates):
+#         rates_ = numpyro.sample(name='rate',
+#                                 fn=numpyro.distributions.Normal(loc=rate_center, scale=rate_sigma))
+#
+#     # todo: need to re evaluate the prior distribution params
+#     backexchange_sigma = 0.01
+#
+#     with numpyro.plate(name='backexchange_values', size=len(backexchange_array)):
+#         backexchange = numpyro.sample(name='backexchange',
+#                                       fn=numpyro.distributions.Normal(loc=backexchange_array,
+#                                                                       scale=backexchange_sigma))
+#
+#     thr_dists = gen_theoretical_isotope_dist_for_all_timepoints(sequence=sequence,
+#                                                                 timepoints=timepoints,
+#                                                                 rates=jnp.exp(rates_),
+#                                                                 inv_backexchange_array=jnp.subtract(1,
+#                                                                                                     backexchange),
+#                                                                 d2o_fraction=d2o_fraction,
+#                                                                 d2o_purity=d2o_purity,
+#                                                                 num_bins=num_bins)
+#
+#     flat_thr_dist = jnp.concatenate(thr_dists)
+#     flat_thr_dist_non_zero = flat_thr_dist[nonzero_indices]
+#
+#     sigma = numpyro.sample(name='sigma',
+#                            fn=numpyro.distributions.Normal(loc=0.5, scale=0.5))
+#
+#     with numpyro.plate(name='bins', size=len(flat_thr_dist_non_zero)):
+#         return numpyro.sample(name='bin_preds',
+#                               fn=numpyro.distributions.Normal(loc=flat_thr_dist_non_zero, scale=sigma),
+#                               obs=obs_dist_nonzero_flat)
 
 
 def rate_fit_model_norm_priors(num_rates,
@@ -1934,61 +1939,60 @@ def rate_fit_model_norm_priors_with_merge(num_rates,
                               fn=numpyro.distributions.Normal(loc=flat_thr_dist_non_zero, scale=sigma),
                               obs=obs_dist_nonzero_flat)
 
-
-def rate_fit_model_v2(num_rates,
-                      sequence,
-                      timepoints,
-                      backexchange_array,
-                      d2o_fraction,
-                      d2o_purity,
-                      num_bins,
-                      obs_dist_nonzero_flat,
-                      nonzero_indices):
-    """
-    rate fit model for opt
-    :param num_rates: number of rates
-    :param sequence: protein sequence
-    :param timepoints: timepoints array
-    :param inv_backexchange_array:  1- backexchange array
-    :param d2o_fraction: d2o fraction
-    :param d2o_purity: d2o purity
-    :param num_bins: number of bins in integrated mz data
-    :param obs_dist_nonzero_flat: observed experimental distribution flattened and with non zero values
-    :param nonzero_indices: indices in exp distribution with non zero values
-    :return: numpyro sample object
-    """
-
-    with numpyro.plate(name='rates', size=num_rates):
-        rates_ = numpyro.sample(name='rate',
-                                fn=numpyro.distributions.Uniform(low=-15, high=5))
-
-    # todo: need to re evaluate the prior distribution params
-    backexchange_sigma = numpyro.sample(name='backexchange_sigma',
-                                        fn=numpyro.distributions.HalfNormal(scale=0.001))
-
-    with numpyro.plate(name='backexchange_values', size=len(backexchange_array)):
-        backexchange = numpyro.sample(name='backexchange',
-                                      fn=numpyro.distributions.Normal(loc=backexchange_array,
-                                                                      scale=backexchange_sigma))
-
-    thr_dists = gen_theoretical_isotope_dist_for_all_timepoints(sequence=sequence,
-                                                                timepoints=timepoints,
-                                                                rates=jnp.exp(rates_),
-                                                                inv_backexchange_array=jnp.subtract(1, backexchange),
-                                                                d2o_fraction=d2o_fraction,
-                                                                d2o_purity=d2o_purity,
-                                                                num_bins=num_bins)
-
-    flat_thr_dist = jnp.concatenate(thr_dists)
-    flat_thr_dist_non_zero = flat_thr_dist[nonzero_indices]
-
-    sigma = numpyro.sample(name='sigma',
-                           fn=numpyro.distributions.Normal(loc=0.5, scale=0.5))
-
-    with numpyro.plate(name='bins', size=len(flat_thr_dist_non_zero)):
-        return numpyro.sample(name='bin_preds',
-                              fn=numpyro.distributions.Normal(loc=flat_thr_dist_non_zero, scale=sigma),
-                              obs=obs_dist_nonzero_flat)
+# def rate_fit_model_v2(num_rates,
+#                       sequence,
+#                       timepoints,
+#                       backexchange_array,
+#                       d2o_fraction,
+#                       d2o_purity,
+#                       num_bins,
+#                       obs_dist_nonzero_flat,
+#                       nonzero_indices):
+#     """
+#     rate fit model for opt
+#     :param num_rates: number of rates
+#     :param sequence: protein sequence
+#     :param timepoints: timepoints array
+#     :param inv_backexchange_array:  1- backexchange array
+#     :param d2o_fraction: d2o fraction
+#     :param d2o_purity: d2o purity
+#     :param num_bins: number of bins in integrated mz data
+#     :param obs_dist_nonzero_flat: observed experimental distribution flattened and with non zero values
+#     :param nonzero_indices: indices in exp distribution with non zero values
+#     :return: numpyro sample object
+#     """
+#
+#     with numpyro.plate(name='rates', size=num_rates):
+#         rates_ = numpyro.sample(name='rate',
+#                                 fn=numpyro.distributions.Uniform(low=-15, high=5))
+#
+#     # todo: need to re evaluate the prior distribution params
+#     backexchange_sigma = numpyro.sample(name='backexchange_sigma',
+#                                         fn=numpyro.distributions.HalfNormal(scale=0.001))
+#
+#     with numpyro.plate(name='backexchange_values', size=len(backexchange_array)):
+#         backexchange = numpyro.sample(name='backexchange',
+#                                       fn=numpyro.distributions.Normal(loc=backexchange_array,
+#                                                                       scale=backexchange_sigma))
+#
+#     thr_dists = gen_theoretical_isotope_dist_for_all_timepoints(sequence=sequence,
+#                                                                 timepoints=timepoints,
+#                                                                 rates=jnp.exp(rates_),
+#                                                                 inv_backexchange_array=jnp.subtract(1, backexchange),
+#                                                                 d2o_fraction=d2o_fraction,
+#                                                                 d2o_purity=d2o_purity,
+#                                                                 num_bins=num_bins)
+#
+#     flat_thr_dist = jnp.concatenate(thr_dists)
+#     flat_thr_dist_non_zero = flat_thr_dist[nonzero_indices]
+#
+#     sigma = numpyro.sample(name='sigma',
+#                            fn=numpyro.distributions.Normal(loc=0.5, scale=0.5))
+#
+#     with numpyro.plate(name='bins', size=len(flat_thr_dist_non_zero)):
+#         return numpyro.sample(name='bin_preds',
+#                               fn=numpyro.distributions.Normal(loc=flat_thr_dist_non_zero, scale=sigma),
+#                               obs=obs_dist_nonzero_flat)
 
 
 def sort_posterior_rates_in_samples(posterior_samples_by_chain):
@@ -2018,66 +2022,12 @@ def sort_posterior_rates_in_samples(posterior_samples_by_chain):
 if __name__ == '__main__':
     pass
 
-    # tp = [[1, 2, 3, 4], [1, 2, 3, 6]]
-    # merge_exp = True
-    # tp_ind = [[0, 1, 2, 3], [1, 2, 7, 9]]
-    # exp_label = ['ph6', 'ph9']
-    #
-    # tp_label = gen_timepoint_label(timepoints=tp,
-    #                                merge_exp=merge_exp,
-    #                                tp_ind_label=tp_ind,
-    #                                exp_label=exp_label)
-
-    # print('heho')
-
     # import numpy as np
     # from methods import normalize_mass_distribution_array, gauss_fit_to_isotope_dist_array, plot_hx_rate_fitting_bayes
     # from hx_rate_fit import calc_back_exchange
     # from hxdata import load_tp_dependent_dict, load_data_from_hdx_ms_dist_
     #
-    # from hxdata import load_pickle_object
     #
-    # dpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/EEHEE_rd4_0871/'
-    #
-    # pkfpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/EEHEE_rd4_0871/EEHEE_rd4_0871.pdb_8.57176_winner_multibody.cpickle.zlib.csv_rateoutput_dict_7.pickle'
-    #
-    # pkobj_ = load_pickle_object(pkfpath)
-    #
-    # print('heho')
-    #
-    # # pkfiles = glob.glob(dpath + '/*.pickle')
-    #
-    # # for ind, pkfpath in enumerate(pkfiles):
-    # #
-    # #     pkobj = load_pickle_object(pkfpath)
-    # #
-    # #     mean_ = np.log10(pkobj['merge_fac']['mean'][0])
-    # #     std_ = np.log10(pkobj['merge_fac']['std'][0])
-    # #
-    # #     print(pkfpath)
-    # #     print('Mean = %s, Std = %s' % (mean_, std_))
-    # #
-    # #     merge_fac_posterior = pkobj['posterior_samples']['merge_fac']
-    # #
-    # #     label_ = 'mean = %s' % str(np.log10(pkobj['merge_fac']['mean'][0]))
-    # #
-    # # stop
-    #
-    # #
-    # #     for merge_post_chain in merge_fac_posterior:
-    # #         merge_post_chain_arr = np.log10(np.concatenate(merge_post_chain))
-    # #         plt.hist(merge_post_chain_arr, label=label_)
-    # #         label_ = None
-    # #     plt.legend()
-    # #     plt.xlabel('log10(merge_fac)')
-    # #     plt.ylabel('Count')
-    # #     plt.savefig(pkfpath + '_merge_posterior.pdf')
-    # #     plt.close()
-    # #
-    # # stop
-    #
-    # eehee_rd4_0642_sequence = 'HMKTVEVNGVKYDFDNPEQAREMAERIAKSLGLQVRLEGDTFKIE'
-    # eehee_rd4_08742_sequence = 'HMTQVHVDGVTYTFSNPEEAKKFADEMAKRKGGTWEIKDGHIHVE'
     #
     # temp = 295.0
     #
@@ -2087,58 +2037,60 @@ if __name__ == '__main__':
     # low_ph = 6.0
     # high_ph = 9.0
     #
-    # eehee_rd4_0642_low_ph_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/EEHEE_rd4_0642/EEHEE_rd4_0642.pdb_15.13925_winner_multibody.cpickle.zlib.csv'
-    # eehee_rd4_0642_high_ph_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/EEHEE_rd4_0642/EEHEE_rd4_0642.pdb_15.13928_winner_multibody.cpickle.zlib.csv'
+    # sequence = 'HMVAVPQLIGSTVKEARAKAEKAGLKIDAGDAKSNDRVLVQNPLPGFSAERDSVITVKTV'
     #
-    # eehee_rd4_0871_low_ph_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/EEHEE_rd4_0871/EEHEE_rd4_0871.pdb_8.57176_winner_multibody.cpickle.zlib.csv'
-    # eehee_rd4_0871_high_ph_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/EEHEE_rd4_0871/EEHEE_rd4_0871.pdb_8.57163_winner_multibody.cpickle.zlib.csv'
+    # low_ph_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/dG_May2023/debug_ratefits/Lib08/hdxlim/ph6/C4LI33.1_661-718_9.77_winner_multibody.cpickle.zlib.csv'
+    # high_ph_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/dG_May2023/debug_ratefits/Lib08/hdxlim/ph9/C4LI33.1_661-718_9.54_winner_multibody.cpickle.zlib.csv'
     #
-    # prot_name = 'eehee_rd4_0871'
-    # prot_rt_name_low_ph = 'EEHEE_rd4_0871.pdb_8.57176'
-    # prot_rt_name_high_ph = 'EEHEE_rd4_0871.pdb_8.57163'
+    # prot_name = 'C4LI33.1_661-718'
+    # prot_rt_name_ = 'C4LI33.1_661-718_9.77_C4LI33.1_661-718_9.54'
     #
-    # prot_seq = eehee_rd4_08742_sequence
-    #
-    # lowph_exp_fpath = eehee_rd4_0871_low_ph_fpath
-    # highph_exp_fpath = eehee_rd4_0871_high_ph_fpath
-    #
-    # low_ph_bkexch_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/backexchange/low_ph_bkexch_corr.csv'
-    # high_ph_bkexch_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/backexchange/high_ph_bkexch_corr.csv'
+    # low_ph_bkexch_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/dG_May2023/debug_ratefits/Lib08/backexchange/low_ph_bkexch_corr.csv'
+    # high_ph_bkexch_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/dG_May2023/debug_ratefits/Lib08/backexchange/high_ph_bkexch_corr.csv'
     #
     # low_ph_bkexch_corr_dict = load_tp_dependent_dict(filepath=low_ph_bkexch_corr_fpath)
     # high_ph_bkexch_corr_dict = load_tp_dependent_dict(filepath=high_ph_bkexch_corr_fpath)
     #
-    # low_ph_timepoints, low_ph_ms_dist = load_data_from_hdx_ms_dist_(fpath=lowph_exp_fpath)
-    # high_ph_timepoints, high_ph_ms_dist = load_data_from_hdx_ms_dist_(fpath=highph_exp_fpath)
+    # lowph_hxmsdata_dict = load_data_from_hdx_ms_dist_(fpath=low_ph_fpath)
+    # low_ph_timepoints = lowph_hxmsdata_dict['tp']
+    # low_ph_ms_dist = lowph_hxmsdata_dict['mass_dist']
+    #
+    # highph_hxmsdata_dict = load_data_from_hdx_ms_dist_(fpath=high_ph_fpath)
+    # high_ph_timepoints = highph_hxmsdata_dict['tp']
+    # high_ph_ms_dist = highph_hxmsdata_dict['mass_dist']
     #
     # low_ph_ms_norm_dist = normalize_mass_distribution_array(mass_dist_array=low_ph_ms_dist)
     # high_ph_ms_norm_dist = normalize_mass_distribution_array(mass_dist_array=high_ph_ms_dist)
     #
     # # try for single ph rate fitting
     #
-    # backexchange_obj_lowph = calc_back_exchange(sequence=eehee_rd4_08742_sequence,
+    # backexchange_obj_lowph = calc_back_exchange(sequence=sequence,
     #                                             experimental_isotope_dist=low_ph_ms_norm_dist[-1],
     #                                             timepoints_array=low_ph_timepoints,
     #                                             d2o_fraction=d2o_frac,
     #                                             d2o_purity=d2o_pur,
     #                                             backexchange_corr_dict=low_ph_bkexch_corr_dict)
     #
-    # backexchange_obj_highph = calc_back_exchange(sequence=eehee_rd4_08742_sequence,
+    # backexchange_obj_highph = calc_back_exchange(sequence=sequence,
     #                                              experimental_isotope_dist=high_ph_ms_norm_dist[-1],
     #                                              timepoints_array=high_ph_timepoints,
     #                                              d2o_fraction=d2o_frac,
     #                                              d2o_purity=d2o_pur,
     #                                              backexchange_corr_dict=high_ph_bkexch_corr_dict)
     #
-    # expdata_obj = ExpDataRateFit(sequence=eehee_rd4_08742_sequence,
+    # expdata_obj = ExpDataRateFit(sequence=sequence,
     #                              prot_name=prot_name,
-    #                              prot_rt_name=prot_rt_name_low_ph,
-    #                              timepoints=low_ph_timepoints,
-    #                              exp_distribution=low_ph_ms_norm_dist,
-    #                              backexchange=backexchange_obj_lowph.backexchange_array,
-    #                              merge_exp=False,
+    #                              prot_rt_name=prot_rt_name_,
+    #                              timepoints=[low_ph_timepoints, high_ph_timepoints],
+    #                              timepoint_index_list=None,
+    #                              exp_distribution=[low_ph_ms_norm_dist, high_ph_ms_norm_dist],
+    #                              exp_label=['ph6', 'ph9'],
+    #                              backexchange=[backexchange_obj_lowph.backexchange_array, backexchange_obj_highph.backexchange_array],
+    #                              merge_exp=True,
     #                              d2o_purity=d2o_pur,
     #                              d2o_fraction=d2o_frac)
+    #
+    # print('heho')
     #
     # bayesopt = BayesRateFit(num_chains=4,
     #                         num_warmups=5,
@@ -2146,61 +2098,3 @@ if __name__ == '__main__':
     #                         sample_backexchange=False)
     #
     # bayesopt.fit_rate(exp_data_object=expdata_obj)
-    #
-    # bayesopt.write_rates_to_csv(output_path=eehee_rd4_0871_low_ph_fpath + '_lowph_hxrate_out.csv')
-    #
-    # bayesopt.output_to_pickle(output_path=eehee_rd4_0871_low_ph_fpath + '_lowph_hxrate_out.pickle',
-    #                           save_posterior_samples=True)
-    #
-    # bayesopt.plot_hxrate_output(output_path=eehee_rd4_0871_low_ph_fpath + '_lowph_hxrate_out.pdf')
-    #
-    # bayesopt.plot_bayes_samples(output_path=eehee_rd4_0871_low_ph_fpath + '_lowph_bayes_sample.pdf')
-    #
-    # # print(bayesopt.output['bayes_sample']['merge_fac']['posterior_samples_by_chain'])
-
-    # pkfpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/EEHEE_rd4_0642/EEHEE_rd4_0642.pdb_15.13925_winner_multibody.cpickle.zlib_lowph_newformat.csv_merge_rate_output.pickle'
-    #
-    # from hxdata import load_pickle_object
-    #
-    # pkobj = load_pickle_object(pickle_fpath=pkfpath)
-    #
-    # print('heho')
-    #
-    # hxrate_error = np.zeros((2, len(pkobj['bayes_sample']['rate']['mean'])))
-    # hxrate_error[0] = np.subtract(pkobj['bayes_sample']['rate']['mean'], pkobj['bayes_sample']['rate']['ci_5'])
-    # hxrate_error[1] = np.subtract(pkobj['bayes_sample']['rate']['ci_95'], pkobj['bayes_sample']['rate']['mean'])
-    #
-    # # sort dist with timepoints
-    # sort_tp = pkobj['timepoints'][pkobj['timepoints_sort_indices']]
-    # sort_tp_label = pkobj['tp_ind_label'][pkobj['timepoints_sort_indices']]
-    # sort_exp_dist = pkobj['exp_distribution'][pkobj['timepoints_sort_indices']]
-    # sort_pred_dist = pkobj['pred_distribution'][pkobj['timepoints_sort_indices']]
-    #
-    # exp_centroid_arr_ = np.array([x['centroid'] for x in pkobj['exp_dist_gauss_fit']])[pkobj['timepoints_sort_indices']]
-    # pred_centroid_arr_ = np.array([x['centroid'] for x in pkobj['pred_dist_guass_fit']])[pkobj['timepoints_sort_indices']]
-    #
-    # exp_width_arr_ = np.array([x['width'] for x in pkobj['exp_dist_gauss_fit']])[pkobj['timepoints_sort_indices']]
-    # pred_width_arr_ = np.array([x['width'] for x in pkobj['pred_dist_guass_fit']])[pkobj['timepoints_sort_indices']]
-    #
-    # rmse_per_timepoint = pkobj['rmse']['per_timepoint'][pkobj['timepoints_sort_indices']]
-    #
-    # backexchange_array = pkobj['backexchange'][pkobj['timepoints_sort_indices']]
-    #
-    # plot_hx_rate_fitting_bayes(prot_name=pkobj['protein_name'],
-    #                            hx_rates=pkobj['bayes_sample']['rate']['mean'],
-    #                            hx_rates_error=hxrate_error,
-    #                            timepoints=sort_tp,
-    #                            timepoint_label=sort_tp_label,
-    #                            exp_isotope_dist=sort_exp_dist,
-    #                            thr_isotope_dist=sort_pred_dist,
-    #                            exp_isotope_centroid_array=exp_centroid_arr_,
-    #                            thr_isotope_centroid_array=pred_centroid_arr_,
-    #                            exp_isotope_width_array=exp_width_arr_,
-    #                            thr_isotope_width_array=pred_width_arr_,
-    #                            fit_rmse_timepoints=rmse_per_timepoint,
-    #                            fit_rmse_total=pkobj['rmse']['total'],
-    #                            backexchange=pkobj['backexchange'][-1],
-    #                            backexchange_array=backexchange_array,
-    #                            d2o_fraction=pkobj['d2o_fraction'],
-    #                            d2o_purity=pkobj['d2o_purity'],
-    #                            output_path=pkfpath+'.pdf')
