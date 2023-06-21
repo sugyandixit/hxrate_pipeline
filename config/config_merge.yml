@@ -83,6 +83,8 @@ num_chains: 4
 num_warmups: 100
 num_samples: 250
 
+num_cores: 12
+
 dg_calc: True
 # dg fitting parameters
 low_pH: 6.15
