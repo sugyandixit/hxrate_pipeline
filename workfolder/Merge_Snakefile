@@ -290,6 +290,7 @@ if config['low_ph_backexchange_correction_fpath'] is None:
             rate_tol = config['rate_tol'],
             min_num_points = config['min_num_points'],
             change_rate_threshold = config['change_rate_threshold']
+        resources: cpus=1
         output:
             corr_fpath = backexchange_output_path + '/low_ph_bkexch_corr.csv',
             corr_plot_path = backexchange_output_path + '/low_ph_bkexch_corr.pdf'
@@ -307,6 +308,7 @@ else:
             input_corr_fpath = config['low_ph_backexchange_correction_fpath']
         output:
             backexchange_output_path + '/low_ph_bkexch_corr.csv'
+        resources: cpus=1
         benchmark:
             benchmark_dpath + '/copy_bkexch_corr_low_ph_fpath.benchmark.txt'
         conda:
@@ -325,6 +327,7 @@ if config['high_ph_backexchange_correction_fpath'] is None:
             rate_tol = config['rate_tol'],
             min_num_points = config['min_num_points'],
             change_rate_threshold = config['change_rate_threshold']
+        resources: cpus=1
         output:
             corr_fpath = backexchange_output_path + '/high_ph_bkexch_corr.csv',
             corr_plot_path = backexchange_output_path + '/high_ph_bkexch_corr.pdf'
@@ -342,6 +345,7 @@ else:
             input_corr_fpath = config['high_ph_backexchange_correction_fpath']
         output:
             backexchange_output_path + '/high_ph_bkexch_corr.csv'
+        resources: cpus=1
         benchmark:
             benchmark_dpath + '/copy_bkexch_corr_high_ph_fpath.benchmark.txt'
         conda:
@@ -367,6 +371,7 @@ rule gen_backexchange_correlation_low_high:
         sautration_mass_rate_threshold = config['saturation_mass_rate'],
         bkexch_low_bound = config['backexhange_low_bound'],
         bkexch_up_bound = config['backexchange_up_bound']
+    resources: cpus=1
     output:
         bkexch_corr_path = backexchange_output_path + '/high_low_backexchange_corr.csv',
         bkexch_corr_plot = backexchange_output_path + '/high_low_backexchange_corr.pdf',
@@ -399,6 +404,7 @@ rule fit_hx_rates_merge_dist:
         num_samples = config['num_samples'],
         low_ph_exp_label = config['low_ph_exp_label'],
         high_ph_exp_label = config['high_ph_exp_label']
+    resources: cpus=config['num_cores']
     output:
         pk_file = hxrate_dpath + '/{low_high_name}/{low_high_name}_hx_rate_fit.pickle',
         rate_csv_file = hxrate_dpath + '/{low_high_name}/{low_high_name}_hx_rate.csv',
@@ -424,6 +430,7 @@ if config['dg_calc']:
             temp = config['temp'],
             minfe = config['min_fe'],
             net_charge_corr = netcharge_param,
+        resources: cpus=1
         output:
             dg_csv_output = dg_output_path + '/{low_high_name}/{low_high_name}_dg_data.csv',
             dg_data_output = dg_output_path + '/{low_high_name}/{low_high_name}_dg_data.pickle',
