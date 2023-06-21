@@ -4,6 +4,8 @@ from sklearn.metrics import mean_squared_error
 import numpyro
 from jax import random
 from numpyro.infer import NUTS, MCMC
+import numpyro.distributions as dist
+import jax
 import jax.numpy as jnp
 import molmass
 from scipy.ndimage import center_of_mass
@@ -18,6 +20,7 @@ import pickle
 # global variables
 r_constant = 0.0019872036
 
+# numpyro.set_host_device_count(4)
 
 @dataclass
 class GaussFit(object):
@@ -214,7 +217,6 @@ class ExpDataRateFit(object):
                     exp_dist_list.append(update_exp_dist_arr)
                     update_tp_list.append(update_tp_arr)
 
-
             # update backexchange and exp dist list
             self.backexchange = backexchange_list
             self.exp_distribution = exp_dist_list
@@ -236,6 +238,7 @@ class RateChainDiagnostics(object):
     discard_chain_indices: list = None
     rerun_opt: bool = False
     num_rerun_opt: int = None
+
 
 def gen_timepoint_label(timepoints, merge_exp=False, tp_ind_label=None, exp_label=None):
 
@@ -273,7 +276,7 @@ def gen_timepoint_label(timepoints, merge_exp=False, tp_ind_label=None, exp_labe
 
 
 def diagnose_posterior_sample_rate_among_chains(posterior_samples_by_chain_dict,
-                                                protein_sequence,
+                                                theoretical_isotope_distribution,
                                                 timepoints,
                                                 backexchange_array,
                                                 d2o_fraction,
@@ -292,9 +295,7 @@ def diagnose_posterior_sample_rate_among_chains(posterior_samples_by_chain_dict,
 
     summary = numpyro.diagnostics.summary(samples=posterior_samples_by_chain_dict)
 
-    mean_rates_ = np.exp(summary['rate']['mean'])
-
-    thr_iso_dist_all_chains_comb = np.array(gen_theoretical_isotope_dist_for_all_timepoints(sequence=protein_sequence,
+    thr_iso_dist_all_chains_comb = np.array(gen_theoretical_isotope_dist_for_all_timepoints(theoretical_isotope_distribution=theoretical_isotope_distribution,
                                                                                             timepoints=timepoints,
                                                                                             rates=np.exp(summary['rate']['mean']),
                                                                                             inv_backexchange_array=np.subtract(1, backexchange_array),
@@ -310,7 +311,7 @@ def diagnose_posterior_sample_rate_among_chains(posterior_samples_by_chain_dict,
 
         mean_rates = np.mean(posterior_rate_samples, axis=0)
 
-        thr_iso_dist = np.array(gen_theoretical_isotope_dist_for_all_timepoints(sequence=protein_sequence,
+        thr_iso_dist = np.array(gen_theoretical_isotope_dist_for_all_timepoints(theoretical_isotope_distribution=theoretical_isotope_distribution,
                                                                                 timepoints=timepoints,
                                                                                 rates=np.exp(mean_rates),
                                                                                 inv_backexchange_array=np.subtract(1, backexchange_array),
@@ -395,6 +396,10 @@ class BayesRateFit(object):
         # set the number of cores to be the number of chains
         numpyro.set_host_device_count(n=self.num_chains)
 
+        # calculate theoretical isotope distribution from protein sequence
+        theoretical_isotope_distribution = theoretical_isotope_dist(sequence=exp_data_object.sequence,
+                                                                    num_isotopes=exp_data_object.num_bins_ms)
+
         if exp_data_object.merge_exp:
             nuts_kernel = NUTS(model=rate_fit_model_norm_priors_with_merge)
         else:
@@ -417,7 +422,7 @@ class BayesRateFit(object):
             if exp_data_object.merge_exp:
                 mcmc.run(rng_key=rng_key,
                          num_rates=exp_data_object.num_rates,
-                         sequence=exp_data_object.sequence,
+                         theoretical_isotope_distribution=theoretical_isotope_distribution,
                          timepoints_array_list=exp_data_object.timepoints,
                          num_merge_facs=len(exp_data_object.timepoints)-1,
                          backexchange_array=jnp.asarray(exp_data_object.backexchange),
@@ -431,7 +436,7 @@ class BayesRateFit(object):
             else:
                 mcmc.run(rng_key=rng_key,
                          num_rates=exp_data_object.num_rates,
-                         sequence=exp_data_object.sequence,
+                         theoretical_isotope_distribution=theoretical_isotope_distribution,
                          timepoints=jnp.asarray(exp_data_object.timepoints),
                          backexchange_array=jnp.asarray(exp_data_object.backexchange),
                          d2o_fraction=exp_data_object.d2o_fraction,
@@ -466,7 +471,7 @@ class BayesRateFit(object):
                 exp_dist_stack = exp_data_object.exp_distribution
 
             chain_diagnostics = diagnose_posterior_sample_rate_among_chains(posterior_samples_by_chain_dict=posterior_samples_by_chain,
-                                                                            protein_sequence=exp_data_object.sequence,
+                                                                            theoretical_isotope_distribution=theoretical_isotope_distribution,
                                                                             timepoints=timepoints_for_diag,
                                                                             backexchange_array=exp_data_object.backexchange,
                                                                             d2o_purity=exp_data_object.d2o_purity,
@@ -480,10 +485,11 @@ class BayesRateFit(object):
             num_rerun_opt += 1
             chain_diagnostics.num_rerun_opt = num_rerun_opt
 
+
         if chain_diagnostics.discard_chain_indices is not None:
 
             posterior_samples_by_chain_with_discard = discard_chain_from_posterior_samples(posterior_samples_by_chain_dict=posterior_samples_by_chain,
-                                                                                           discard_chain_indices=chain_diagnostics.discard_chain_indices)
+                                                                              discard_chain_indices=chain_diagnostics.discard_chain_indices)
 
             # generate summary from the posterior samples
             summary_ = numpyro.diagnostics.summary(samples=posterior_samples_by_chain_with_discard)
@@ -553,7 +559,7 @@ class BayesRateFit(object):
 
         # calculate theoretical distribution and rmse
         self.output['pred_distribution'] = np.array(
-            gen_theoretical_isotope_dist_for_all_timepoints(sequence=exp_data_object.sequence,
+            gen_theoretical_isotope_dist_for_all_timepoints(theoretical_isotope_distribution=theoretical_isotope_distribution,
                                                             timepoints=jnp.asarray(self.output['timepoints']),
                                                             rates=jnp.exp(summary_['rate']['mean']),
                                                             inv_backexchange_array=jnp.subtract(1, exp_data_object.backexchange),
@@ -1510,6 +1516,26 @@ def compute_rmse_exp_thr_iso_dist(exp_isotope_dist: np.ndarray,
     return rmse
 
 
+def theoretical_isotope_dist(sequence, num_isotopes=None):
+    """
+    calculate theoretical isotope distribtuion from a given one letter sequence of protein chain
+    :param sequence: protein sequence in one letter code
+    :param num_isotopes: number of isotopes to include. If none, includes all
+    :return: isotope distribution
+    """
+    seq_formula = molmass.Formula(sequence)
+    isotope_dist = jnp.array([x[1] for x in seq_formula.spectrum().values()])
+    isotope_dist = isotope_dist / jnp.max(isotope_dist)
+    if num_isotopes:
+        if num_isotopes < len(isotope_dist):
+            isotope_dist = isotope_dist[:num_isotopes]
+        else:
+            fill_arr = jnp.zeros(num_isotopes - len(isotope_dist))
+            isotope_dist = jnp.append(isotope_dist, fill_arr)
+    return isotope_dist
+
+
+@jax.jit
 def PoiBin(success_probabilities):
     """
     poisson binomial probability distribution function
@@ -1551,25 +1577,7 @@ def PoiBin(success_probabilities):
     return xi.real
 
 
-def theoretical_isotope_dist(sequence, num_isotopes=None):
-    """
-    calculate theoretical isotope distribtuion from a given one letter sequence of protein chain
-    :param sequence: protein sequence in one letter code
-    :param num_isotopes: number of isotopes to include. If none, includes all
-    :return: isotope distribution
-    """
-    seq_formula = molmass.Formula(sequence)
-    isotope_dist = jnp.array([x[1] for x in seq_formula.spectrum().values()])
-    isotope_dist = isotope_dist / jnp.max(isotope_dist)
-    if num_isotopes:
-        if num_isotopes < len(isotope_dist):
-            isotope_dist = isotope_dist[:num_isotopes]
-        else:
-            fill_arr = jnp.zeros(num_isotopes - len(isotope_dist))
-            isotope_dist = jnp.append(isotope_dist, fill_arr)
-    return isotope_dist
-
-
+@jax.jit
 def calc_hx_prob(timepoint,
                  rate_constant,
                  inv_back_exchange,
@@ -1586,9 +1594,11 @@ def calc_hx_prob(timepoint,
     """
 
     prob = (1.0 - jnp.exp(-rate_constant * timepoint)) * (d2o_fraction * d2o_purity * inv_back_exchange)
+
     return prob
 
 
+@jax.jit
 def hx_rates_probability_distribution(timepoint,
                                       rates,
                                       inv_backexchange,
@@ -1614,7 +1624,7 @@ def hx_rates_probability_distribution(timepoint,
             raise ValueError('You need to specify temperature (K) in order to use free energy values')
         else:
             fractions = jnp.exp(-free_energy_values / (r_constant * temperature)) / (
-                        1.0 + jnp.exp(-free_energy_values / (r_constant * temperature)))
+                    1.0 + jnp.exp(-free_energy_values / (r_constant * temperature)))
 
     rate_constant_values = rates * fractions
 
@@ -1627,27 +1637,27 @@ def hx_rates_probability_distribution(timepoint,
     return hx_probabs
 
 
-def isotope_dist_from_PoiBin(sequence,
+def isotope_dist_from_PoiBin(theoretical_isotope_distribution,
                              timepoint,
                              inv_backexchange,
-                             rates: np.ndarray,
+                             rates,
                              d2o_fraction,
                              d2o_purity,
                              num_bins,
                              free_energy_values=None,
                              temperature=None):
     """
-    generate theoretical isotope distribution based on hdx rates, timepoint, and other conditions
-    :param sequence: protein sequence str
+    Generate theoretical isotope distribution based on HDX rates, timepoint, and other conditions.
+    :param theoretical_isotope_distribution: theoretical isotope distribution array
     :param timepoint: timepoint in seconds
     :param inv_backexchange: 1 - backexchange
-    :param rates: hdx rates
-    :param d2o_fraction: d2o fraction
-    :param d2o_purity: d2o purity
-    :param num_bins: number of bins to include for isotope distribution
-    :param free_energy_values: free energy values to be used for calculating isotope distribution
+    :param rates: HDX rates array
+    :param d2o_fraction: D2O fraction
+    :param d2o_purity: D2O purity
+    :param num_bins: number of bins to include for the isotope distribution
+    :param free_energy_values: free energy values to be used for calculating the isotope distribution
     :param temperature: temperature to be used when free energy is not None
-    :return: isotope distribution normalized
+    :return: normalized isotope distribution
     """
 
     hx_probs = hx_rates_probability_distribution(timepoint=timepoint,
@@ -1660,15 +1670,16 @@ def isotope_dist_from_PoiBin(sequence,
 
     pmf_hx_probs = PoiBin(hx_probs)
 
-    seq_isotope_dist = theoretical_isotope_dist(sequence=sequence, num_isotopes=num_bins)
-
-    isotope_dist_poibin = jnp.convolve(pmf_hx_probs, seq_isotope_dist)[:num_bins]
+    isotope_dist_poibin = jnp.convolve(pmf_hx_probs, theoretical_isotope_distribution)[:num_bins]
     isotope_dist_poibin_norm = isotope_dist_poibin / jnp.max(isotope_dist_poibin)
 
     return isotope_dist_poibin_norm
 
 
-def gen_theoretical_isotope_dist_for_all_timepoints(sequence,
+isotope_dist_from_PoiBin = jax.jit(isotope_dist_from_PoiBin, static_argnums=(6, ))
+
+
+def gen_theoretical_isotope_dist_for_all_timepoints(theoretical_isotope_distribution,
                                                     timepoints,
                                                     rates,
                                                     inv_backexchange_array,
@@ -1678,151 +1689,51 @@ def gen_theoretical_isotope_dist_for_all_timepoints(sequence,
                                                     free_energy_values=None,
                                                     temperature=None):
     """
-
-    :param sequence: protein sequence
-    :param timepoints: array of hdx timepoints
-    :param rates: rates
-    :param inv_backexchange_array: inv backexchange array with length equals to length of timepoints
-    :param d2o_fraction: d2o fraction
-    :param d2o_purity: d2o purity
-    :param num_bins: number of bins for isotope distribution
+    Generate the theoretical isotope distributions for all timepoints using JAX.
+    :param theoretical_isotope_distribution: theoretical isotope distribution array
+    :param timepoints: array of HDX timepoints
+    :param rates: rates array
+    :param inv_backexchange_array: inverse backexchange array with length equal to the length of timepoints
+    :param d2o_fraction: D2O fraction
+    :param d2o_purity: D2O purity
+    :param num_bins: number of bins for the isotope distribution
     :param free_energy_values: free energy values array (optional)
     :param temperature: temperature in Kelvin (optional)
     :return: array of theoretical isotope distributions for each timepoint
     """
 
-    out_array = jnp.zeros((len(timepoints), num_bins))
+    loop_body = lambda tp_inv_backexch: isotope_dist_from_PoiBin(theoretical_isotope_distribution=theoretical_isotope_distribution,
+                                                                 timepoint=tp_inv_backexch[0],
+                                                                 inv_backexchange=tp_inv_backexch[1],
+                                                                 rates=rates,
+                                                                 d2o_fraction=d2o_fraction,
+                                                                 d2o_purity=d2o_purity,
+                                                                 num_bins=num_bins,
+                                                                 free_energy_values=free_energy_values,
+                                                                 temperature=temperature)
 
-    for ind, (tp, inv_backexch) in enumerate(zip(timepoints, inv_backexchange_array)):
-        isotope_dist = isotope_dist_from_PoiBin(sequence=sequence,
-                                                timepoint=tp,
-                                                inv_backexchange=inv_backexch,
-                                                rates=rates,
-                                                d2o_fraction=d2o_fraction,
-                                                d2o_purity=d2o_purity,
-                                                num_bins=num_bins,
-                                                free_energy_values=free_energy_values,
-                                                temperature=temperature)
-        out_array = out_array.at[ind].set(isotope_dist)
+    # Combine timepoints and inv_backexchange_array into a single array
+    tp_inv_backexch = jnp.stack([timepoints, inv_backexchange_array], axis=-1)
+
+    # Parallelize the loop using jax.vmap
+    vectorized_loop_body = jax.vmap(loop_body, in_axes=(0,))
+    out_array = vectorized_loop_body(tp_inv_backexch)
 
     return out_array
 
 
-def rate_fit_model(num_rates,
-                   sequence,
-                   timepoints,
-                   backexchange_array,
-                   d2o_fraction,
-                   d2o_purity,
-                   num_bins,
-                   obs_dist_nonzero_flat,
-                   nonzero_indices):
-    """
-    rate fit model for opt
-    :param num_rates: number of rates
-    :param sequence: protein sequence
-    :param timepoints: timepoints array
-    :param inv_backexchange_array:  1- backexchange array
-    :param d2o_fraction: d2o fraction
-    :param d2o_purity: d2o purity
-    :param num_bins: number of bins in integrated mz data
-    :param obs_dist_nonzero_flat: observed experimental distribution flattened and with non zero values
-    :param nonzero_indices: indices in exp distribution with non zero values
-    :return: numpyro sample object
-    """
-
-    with numpyro.plate(name='rates', size=num_rates):
-        rates_ = numpyro.sample(name='rate',
-                                fn=numpyro.distributions.Uniform(low=-15, high=5))
-
-    thr_dists = gen_theoretical_isotope_dist_for_all_timepoints(sequence=sequence,
-                                                                timepoints=timepoints,
-                                                                rates=jnp.exp(rates_),
-                                                                inv_backexchange_array=jnp.subtract(1,
-                                                                                                    backexchange_array),
-                                                                d2o_fraction=d2o_fraction,
-                                                                d2o_purity=d2o_purity,
-                                                                num_bins=num_bins)
-
-    flat_thr_dist = jnp.concatenate(thr_dists)
-    flat_thr_dist_non_zero = flat_thr_dist[nonzero_indices]
-
-    sigma = numpyro.sample(name='sigma',
-                           fn=numpyro.distributions.Normal(loc=0.5, scale=0.5))
-
-    with numpyro.plate(name='bins', size=len(flat_thr_dist_non_zero)):
-        return numpyro.sample(name='bin_preds',
-                              fn=numpyro.distributions.Normal(loc=flat_thr_dist_non_zero, scale=sigma),
-                              obs=obs_dist_nonzero_flat)
-
-
-# def rate_fit_model_norm_priors_with_backexchange_sampling(num_rates,
-#                       sequence,
-#                       timepoints,
-#                       backexchange_array,
-#                       d2o_fraction,
-#                       d2o_purity,
-#                       num_bins,
-#                       obs_dist_nonzero_flat,
-#                       nonzero_indices):
-#     """
-#     rate fit model for opt
-#     :param num_rates: number of rates
-#     :param sequence: protein sequence
-#     :param timepoints: timepoints array
-#     :param inv_backexchange_array:  1- backexchange array
-#     :param d2o_fraction: d2o fraction
-#     :param d2o_purity: d2o purity
-#     :param num_bins: number of bins in integrated mz data
-#     :param obs_dist_nonzero_flat: observed experimental distribution flattened and with non zero values
-#     :param nonzero_indices: indices in exp distribution with non zero values
-#     :return: numpyro sample object
-#     """
-#
-#     rate_center = np.linspace(start=-15, stop=5, num=num_rates)
-#     rate_sigma = 2.5
-#     with numpyro.plate(name='rates', size=num_rates):
-#         rates_ = numpyro.sample(name='rate',
-#                                 fn=numpyro.distributions.Normal(loc=rate_center, scale=rate_sigma))
-#
-#     # todo: need to re evaluate the prior distribution params
-#     backexchange_sigma = 0.01
-#
-#     with numpyro.plate(name='backexchange_values', size=len(backexchange_array)):
-#         backexchange = numpyro.sample(name='backexchange',
-#                                       fn=numpyro.distributions.Normal(loc=backexchange_array,
-#                                                                       scale=backexchange_sigma))
-#
-#     thr_dists = gen_theoretical_isotope_dist_for_all_timepoints(sequence=sequence,
-#                                                                 timepoints=timepoints,
-#                                                                 rates=jnp.exp(rates_),
-#                                                                 inv_backexchange_array=jnp.subtract(1,
-#                                                                                                     backexchange),
-#                                                                 d2o_fraction=d2o_fraction,
-#                                                                 d2o_purity=d2o_purity,
-#                                                                 num_bins=num_bins)
-#
-#     flat_thr_dist = jnp.concatenate(thr_dists)
-#     flat_thr_dist_non_zero = flat_thr_dist[nonzero_indices]
-#
-#     sigma = numpyro.sample(name='sigma',
-#                            fn=numpyro.distributions.Normal(loc=0.5, scale=0.5))
-#
-#     with numpyro.plate(name='bins', size=len(flat_thr_dist_non_zero)):
-#         return numpyro.sample(name='bin_preds',
-#                               fn=numpyro.distributions.Normal(loc=flat_thr_dist_non_zero, scale=sigma),
-#                               obs=obs_dist_nonzero_flat)
+gen_theoretical_isotope_dist_for_all_timepoints = jax.jit(gen_theoretical_isotope_dist_for_all_timepoints, static_argnums=(6,))
 
 
 def rate_fit_model_norm_priors(num_rates,
-                      sequence,
-                      timepoints,
-                      backexchange_array,
-                      d2o_fraction,
-                      d2o_purity,
-                      num_bins,
-                      obs_dist_nonzero_flat,
-                      nonzero_indices):
+                               theoretical_isotope_distribution,
+                               timepoints,
+                               backexchange_array,
+                               d2o_fraction,
+                               d2o_purity,
+                               num_bins,
+                               obs_dist_nonzero_flat,
+                               nonzero_indices):
     """
     rate fit model for opt
     :param num_rates: number of rates
@@ -1843,7 +1754,7 @@ def rate_fit_model_norm_priors(num_rates,
         rates_ = numpyro.sample(name='rate',
                                 fn=numpyro.distributions.Normal(loc=rate_center, scale=rate_sigma))
 
-    thr_dists = gen_theoretical_isotope_dist_for_all_timepoints(sequence=sequence,
+    thr_dists = gen_theoretical_isotope_dist_for_all_timepoints(theoretical_isotope_distribution=theoretical_isotope_distribution,
                                                                 timepoints=timepoints,
                                                                 rates=jnp.exp(rates_),
                                                                 inv_backexchange_array=jnp.subtract(1,
@@ -1864,6 +1775,7 @@ def rate_fit_model_norm_priors(num_rates,
                               obs=obs_dist_nonzero_flat)
 
 
+@jax.jit
 def recalc_timepoints_with_merge(timepoints_array_list, merge_facs_):
 
     multiply_tps_list = [timepoints_array_list[0]]
@@ -1878,7 +1790,7 @@ def recalc_timepoints_with_merge(timepoints_array_list, merge_facs_):
 
 
 def rate_fit_model_norm_priors_with_merge(num_rates,
-                                          sequence,
+                                          theoretical_isotope_distribution,
                                           timepoints_array_list,
                                           num_merge_facs,
                                           backexchange_array,
@@ -1890,36 +1802,38 @@ def rate_fit_model_norm_priors_with_merge(num_rates,
     """
     rate fit model for opt
     :param num_rates: number of rates
-    :param sequence: protein sequence
-    :param timepoints: timepoints array
-    :param inv_backexchange_array:  1- backexchange array
+    :param theoretical_isotope_distribution: theoretical isotope distribution array
+    :param timepoints_array_list: array of timepoints arrays
+    :param num_merge_facs: number of merge factors
+    :param backexchange_array: backexchange array
     :param d2o_fraction: d2o fraction
     :param d2o_purity: d2o purity
     :param num_bins: number of bins in integrated mz data
-    :param obs_dist_nonzero_flat: observed experimental distribution flattened and with non zero values
-    :param nonzero_indices: indices in exp distribution with non zero values
+    :param obs_dist_nonzero_flat: observed experimental distribution flattened and with non-zero values
+    :param nonzero_indices: indices in exp distribution with non-zero values
     :return: numpyro sample object
     """
 
-    rate_center = np.linspace(start=-15, stop=5, num=num_rates)
+    rate_center = jnp.linspace(start=-15, stop=5, num=num_rates)
     rate_sigma = 2.5
     with numpyro.plate(name='rates', size=num_rates):
         rates_ = numpyro.sample(name='rate',
-                                fn=numpyro.distributions.Normal(loc=rate_center, scale=rate_sigma))
+                                fn=dist.Normal(loc=rate_center, scale=rate_sigma))
 
-    # gen merge priors
+    # Generate merge priors
     log_merge_prior_sigma = 1.0
     log_merge_prior_center = 3.0
 
     with numpyro.plate(name='merge_facs', size=num_merge_facs):
-        merge_facs_ = numpyro.sample(name='merge_fac', fn=numpyro.distributions.TruncatedNormal(loc=log_merge_prior_center,
-                                                                                                scale=log_merge_prior_sigma,
-                                                                                                low=0.0))
+        merge_facs_ = numpyro.sample(name='merge_fac',
+                                     fn=dist.TruncatedNormal(loc=log_merge_prior_center,
+                                                             scale=log_merge_prior_sigma,
+                                                             low=0.0))
 
     concat_tp_arr_ = recalc_timepoints_with_merge(timepoints_array_list=timepoints_array_list,
                                                   merge_facs_=merge_facs_)
 
-    thr_dists = gen_theoretical_isotope_dist_for_all_timepoints(sequence=sequence,
+    thr_dists = gen_theoretical_isotope_dist_for_all_timepoints(theoretical_isotope_distribution=theoretical_isotope_distribution,
                                                                 timepoints=concat_tp_arr_,
                                                                 rates=jnp.exp(rates_),
                                                                 inv_backexchange_array=jnp.subtract(1,
@@ -1932,67 +1846,12 @@ def rate_fit_model_norm_priors_with_merge(num_rates,
     flat_thr_dist_non_zero = flat_thr_dist[nonzero_indices]
 
     sigma = numpyro.sample(name='sigma',
-                           fn=numpyro.distributions.Normal(loc=0.5, scale=0.5))
+                           fn=dist.Normal(loc=0.5, scale=0.5))
 
     with numpyro.plate(name='bins', size=len(flat_thr_dist_non_zero)):
         return numpyro.sample(name='bin_preds',
-                              fn=numpyro.distributions.Normal(loc=flat_thr_dist_non_zero, scale=sigma),
+                              fn=dist.Normal(loc=flat_thr_dist_non_zero, scale=sigma),
                               obs=obs_dist_nonzero_flat)
-
-# def rate_fit_model_v2(num_rates,
-#                       sequence,
-#                       timepoints,
-#                       backexchange_array,
-#                       d2o_fraction,
-#                       d2o_purity,
-#                       num_bins,
-#                       obs_dist_nonzero_flat,
-#                       nonzero_indices):
-#     """
-#     rate fit model for opt
-#     :param num_rates: number of rates
-#     :param sequence: protein sequence
-#     :param timepoints: timepoints array
-#     :param inv_backexchange_array:  1- backexchange array
-#     :param d2o_fraction: d2o fraction
-#     :param d2o_purity: d2o purity
-#     :param num_bins: number of bins in integrated mz data
-#     :param obs_dist_nonzero_flat: observed experimental distribution flattened and with non zero values
-#     :param nonzero_indices: indices in exp distribution with non zero values
-#     :return: numpyro sample object
-#     """
-#
-#     with numpyro.plate(name='rates', size=num_rates):
-#         rates_ = numpyro.sample(name='rate',
-#                                 fn=numpyro.distributions.Uniform(low=-15, high=5))
-#
-#     # todo: need to re evaluate the prior distribution params
-#     backexchange_sigma = numpyro.sample(name='backexchange_sigma',
-#                                         fn=numpyro.distributions.HalfNormal(scale=0.001))
-#
-#     with numpyro.plate(name='backexchange_values', size=len(backexchange_array)):
-#         backexchange = numpyro.sample(name='backexchange',
-#                                       fn=numpyro.distributions.Normal(loc=backexchange_array,
-#                                                                       scale=backexchange_sigma))
-#
-#     thr_dists = gen_theoretical_isotope_dist_for_all_timepoints(sequence=sequence,
-#                                                                 timepoints=timepoints,
-#                                                                 rates=jnp.exp(rates_),
-#                                                                 inv_backexchange_array=jnp.subtract(1, backexchange),
-#                                                                 d2o_fraction=d2o_fraction,
-#                                                                 d2o_purity=d2o_purity,
-#                                                                 num_bins=num_bins)
-#
-#     flat_thr_dist = jnp.concatenate(thr_dists)
-#     flat_thr_dist_non_zero = flat_thr_dist[nonzero_indices]
-#
-#     sigma = numpyro.sample(name='sigma',
-#                            fn=numpyro.distributions.Normal(loc=0.5, scale=0.5))
-#
-#     with numpyro.plate(name='bins', size=len(flat_thr_dist_non_zero)):
-#         return numpyro.sample(name='bin_preds',
-#                               fn=numpyro.distributions.Normal(loc=flat_thr_dist_non_zero, scale=sigma),
-#                               obs=obs_dist_nonzero_flat)
 
 
 def sort_posterior_rates_in_samples(posterior_samples_by_chain):
