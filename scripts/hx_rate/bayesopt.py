@@ -696,7 +696,7 @@ class BayesRateFit(object):
         if self.output is not None:
 
             plot_posteriors(bayesfit_sample_dict=self.output['bayes_sample'],
-                            discard_chain_bool_list=self.output['chain_diagnostics']['chain_pass_list'],
+                            chain_pass_list=self.output['chain_diagnostics']['chain_pass_list'],
                             output_path=output_path)
 
         else:
@@ -765,7 +765,7 @@ def reshape_posterior_samples(posterior_samples):
     return reshape_array
 
 
-def plot_posteriors(bayesfit_sample_dict, discard_chain_bool_list=[False, False, False, False], output_path=None):
+def plot_posteriors(bayesfit_sample_dict, chain_pass_list=None, output_path=None):
 
     num_fig_grids = 0
 
@@ -814,7 +814,7 @@ def plot_posteriors(bayesfit_sample_dict, discard_chain_bool_list=[False, False,
                                  sample_label=keys_,
                                  gridspec_obj=gs0,
                                  gridspec_index=counter,
-                                 discard_chain_bool_list=discard_chain_bool_list)
+                                 chain_pass_list=chain_pass_list)
 
             counter += 1
 
@@ -836,7 +836,7 @@ def plot_posteriors(bayesfit_sample_dict, discard_chain_bool_list=[False, False,
                                      sample_label='%s_%s' % (keys_, num),
                                      gridspec_obj=gs0,
                                      gridspec_index=counter,
-                                     discard_chain_bool_list=discard_chain_bool_list)
+                                     chain_pass_list=chain_pass_list)
 
                 counter += 1
 
@@ -856,7 +856,7 @@ def plot_posteriors_grid(fig_obj,
                          sample_label,
                          gridspec_obj,
                          gridspec_index,
-                         discard_chain_bool_list=[False,False,False,False]):
+                         chain_pass_list=None):
     """
 
     :param fig_obj:
@@ -881,9 +881,11 @@ def plot_posteriors_grid(fig_obj,
     discard_chain_color = 'gray'
 
     ind_arr = np.arange(0, len(sample[0]))
-    for ind, (sample_per_chain, discard_chain, color_) in enumerate(zip(sample, discard_chain_bool_list, chain_colors)):
-        if discard_chain:
-            color_ = discard_chain_color
+    for ind, (sample_per_chain, color_) in enumerate(zip(sample, chain_colors)):
+        if chain_pass_list is not None:
+            chain_pass = chain_pass_list[ind]
+            if not chain_pass:
+                color_ = discard_chain_color
         if ind == 0:
             ax00.plot(ind_arr, sample_per_chain, color=color_, linewidth=0.5)
         else:
@@ -1957,3 +1959,15 @@ if __name__ == '__main__':
     #                         sample_backexchange=False)
     #
     # bayesopt.fit_rate(exp_data_object=expdata_obj)
+
+    # pkfpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/dG_May2023/L07/rates_v2/EEHEE_rd4_0642.pdb_13.64_EEHEE_rd4_0642.pdb_13.64/EEHEE_rd4_0642.pdb_13.64_EEHEE_rd4_0642.pdb_13.64_hx_rate_fit.pickle'
+    #
+    # from hxdata import load_pickle_object
+    #
+    # pkobj = load_pickle_object(pkfpath)
+    #
+    # plot_posteriors(bayesfit_sample_dict=pkobj['bayes_sample'],
+    #                 chain_pass_list=pkobj['chain_diagnostics']['chain_pass_list'],
+    #                 output_path=pkfpath+'_posteriors_test.pdf')
+    #
+    # print('heho')
