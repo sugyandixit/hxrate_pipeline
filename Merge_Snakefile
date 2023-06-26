@@ -7,7 +7,7 @@ import pandas as pd
 import numpy as np
 
 # set the config file path
-configfile: 'config_merge.yml'
+configfile: 'config.yml'
 
 # set benchmark dirpath
 config_dirpath = config['path_to_repo'] + '/config'

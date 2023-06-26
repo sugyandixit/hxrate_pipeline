@@ -1,29 +1,67 @@
 # config file
 
-# do not put a backslash after the directory
-
 # path to the repo
 path_to_repo: "/projects/p31346/suggie/hxrate"
 
-# params to find the hx ms distribution fpaths
-hx_ms_dist_fpaths_top_dir: "/projects/b1107/allan/HDX_analysis/Lib15/20211225_pH6/hdx_limit-pipeline/resources/10_ic_time_series"
-levels_to_fpaths: 1
-hx_ms_fpath_delim_string: "_winner_multibody.cpickle.zlib.csv"
+###############################################
 
-hdxlim_dirstruct: True
-hdxlim_pathtype_str: "multibody"
+# low ph info
+low_ph_library_info: "/projects/b1107/allan/HDX_analysis/Lib15/20211225_pH6/hdx_limit-pipeline/resources/7_idotp_filter/checked_library_info.json"
+lowph_protein_rt_column_name: "name_recentered"
 
-exp_label: "ph6"
+low_ph_hxms_fpath_delim_str: "_winner_multibody.cpickle.zlib.csv"
+low_ph_hxms_fpath_dir: "/projects/b1107/allan/HDX_analysis/Lib15/20211225_pH6/hdx_limit-pipeline/resources/10_ic_time_series"
+level_to_fpaths_low_ph: 1
+lowph_hdxlim_dirstruct: True
+low_hdxlim_pathtype_str: "multibody"
+
+low_ph_exp_label: "ph6"
+
+low_ph_d2o_frac: 0.95
+low_ph_d2o_pur: 0.95
+
+low_ph_backexchange_correction_fpath:
+
+
+# high ph info
+high_ph_library_info: "/projects/b1107/allan/HDX_analysis/Lib15/20211223_pH9/hdx_limit-pipeline/resources/7_idotp_filter/checked_library_info.json"
+highph_protein_rt_column_name: "name_recentered"
+
+high_ph_hxms_fpath_delim_str: "_winner_multibody.cpickle.zlib.csv"
+high_ph_hxms_fpath_dir: "/projects/b1107/allan/HDX_analysis/Lib15/20211223_pH9/hdx_limit-pipeline/resources/10_ic_time_series"
+level_to_fpaths_high_ph: 1
+highph_hdxlim_dirstruct: True
+high_hdxlim_pathtype_str: "multibody"
+
+high_ph_exp_label: "ph9"
+
+high_ph_d2o_frac: 0.95
+high_ph_d2o_pur: 0.95
+
+high_ph_backexchange_correction_fpath:
+
 
 # pdb fpaths
 pdb_fpaths_dir: "/projejcts/p31346/suggie/pdbs"
 
-# library info filepath
-library_info_json_fpath: "/projects/b1107/allan/HDX_analysis/Lib15/20211225_pH6/hdx_limit-pipeline/resources/7_idotp_filter/checked_library_info.json"
-protein_rt_column_name: "name_recentered"
 
-# output directory where all the outputs will be placed
-output_dirpath: "/projects/p31346/suggie/hx_rates_workfolder/output"
+# merge rt window search
+merge_rt_window: 1.0
+
+# saturate mass rate threshold to check if the path has reached maximum deuteration
+saturation_mass_rate: 0.03
+
+
+# backexchange bounds for correlation
+backexhange_low_bound: 0.15
+backexchange_up_bound: 0.45
+
+
+
+# output directory path
+output_dirpath: "/projects/p31346/suggie/hx_rates_workfolder/merge_output"
+
+
 
 ##########################################
 ##########################################
@@ -35,18 +73,8 @@ rate_tol: 0.15
 min_num_points: 5
 change_rate_threshold: 0.02
 
-# give the backexchange correction filepath if it already exists.
-# If not provided, the workflow will create it automatically if backexchange correction is turned on
-backexchange_correction_fpath:
-
 ##########################################
 ##########################################
-
-
-# exp params
-d2o_fraction: 0.95
-d2o_purity: 0.95
-
 
 # rate fitting parameters
 adjust_backexchange: True
@@ -55,14 +83,20 @@ num_chains: 4
 num_warmups: 100
 num_samples: 250
 
+num_cores: 12
 
-dg_calc: False
+dg_calc: True
 # dg fitting parameters
-pH: 6.15
+low_pH: 6.15
+high_pH: 9.0
+min_fe: -2.0
 temp: 295
-nterm:
-cterm:
 net_charge_corr: True
-anneal_time: 2.0
-anneal_update_interval: 100
+
+# old params for dg opt routine #
+#nterm:
+#cterm:
+
+#anneal_time: 2.0
+#anneal_update_interval: 100
 

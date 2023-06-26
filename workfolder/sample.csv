@@ -1,2 +1,0 @@
-name,sequence,hx_dist_fpath,params_fpath,output_dpath
-HEEH_rd4_0097,HMDVEEQIRRLEEVLKKNQPVTWNGTTYTDPNEIKKVIEELRKSM,../../workfolder/input_hx_dist/HEEH_rd4_0097_hx_mass_dist.csv,../../params/params.yml,../../workfolder/output_hxrate

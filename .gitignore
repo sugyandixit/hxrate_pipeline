@@ -11,10 +11,12 @@ __pycache__/
 !*.gitignore
 *.DS_Store
 *
+!Merge_Snakefile
+!Snakefile_nomatches
 !config
 !config/config.yml
-!config/config_old.yml
-!config/config_merge_old.yml
+!scripts/old_scripts/config_old.yml
+!scripts/old_scripts/config_merge_old.yml
 !params
 !params/*
 !scripts

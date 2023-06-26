@@ -1,1 +1,0 @@
-folder containing pdb files
