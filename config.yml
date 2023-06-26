@@ -20,6 +20,7 @@ low_ph_exp_label: "ph6"
 low_ph_d2o_frac: 0.95
 low_ph_d2o_pur: 0.95
 
+# optional
 low_ph_backexchange_correction_fpath:
 
 
@@ -38,11 +39,8 @@ high_ph_exp_label: "ph9"
 high_ph_d2o_frac: 0.95
 high_ph_d2o_pur: 0.95
 
+#optional
 high_ph_backexchange_correction_fpath:
-
-
-# pdb fpaths
-pdb_fpaths_dir: "/projejcts/p31346/suggie/pdbs"
 
 
 # merge rt window search
