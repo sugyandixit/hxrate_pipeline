@@ -102,11 +102,8 @@ $ python scripts/hx_rate/hx_rate_fit.py - [Options]
 ## **Generte backexchange correlation between low and high ph data**
 $ python scripts/hx_rate/gen_backexchange_corr_low_high_ph.py - [Options]
 
-## **Merging files**
-$ python scripts/hx_rate/merge_high_low_ph_data.py - [Options]
-
 ## **dG calculation**
-$ python scripts/hx_rate/dG_opt.py - [Options]
+$ python scripts/hx_rate/dG_calc.py - [Options]
 
 
 
@@ -174,12 +171,6 @@ net_charge_corr: Bool. Whether to use net charge correction while calculating fr
 anneal_time: float. Time to run the anneal in minutes.
 
 anneal_update_interval: int. Number of steps to save the trajectory information.
-
-
-
-## **config_merge.yml**
-
-**most of the params are similar as config.yml except you have to provide the parameters for high and low ph**
 
 ## merge parameters
 merge_rt_window: window to consider proteins for merging if protein name matches.
