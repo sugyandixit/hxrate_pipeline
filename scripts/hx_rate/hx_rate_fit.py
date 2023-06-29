@@ -3,190 +3,10 @@
 
 import argparse
 import pandas as pd
-import time
 import numpy as np
-from bayesopt import BayesRateFit, ExpDataRateFit
-from methods import normalize_mass_distribution_array, gen_backexchange_correction_from_backexchange_array, gen_corr_backexchange
-from backexchange import calc_back_exchange
+from bayesopt import fit_rate
+from methods import normalize_mass_distribution_array
 from hxdata import load_data_from_hdx_ms_dist_, load_tp_dependent_dict
-
-
-def fit_rate_bayes_(prot_name: str,
-                    sequence: str,
-                    time_points: np.ndarray or list,
-                    norm_mass_distribution_array: np.ndarray or list,
-                    d2o_fraction: float,
-                    d2o_purity: float,
-                    num_chains: int,
-                    num_warmups: int,
-                    num_samples: int,
-                    prot_rt_name: str = 'PROTEIN_RT',
-                    timepoint_label: list = None,
-                    exp_label: str or list = None,
-                    merge_exp: bool = False,
-                    sample_backexchange: bool = False,
-                    adj_backexchange: bool = True,
-                    backexchange_value: float or list = None,
-                    backexchange_correction_dict: dict or list = None,
-                    backexchange_array: np.ndarray or list = None,
-                    max_res_subtract_for_backexchange: int = 3,
-                    slow_rates_max_diff: float = 1.6) -> object:
-
-    # todo: add param descritpions
-
-    # calc backexchange
-    if merge_exp:
-
-        list_backexch_obj = []
-
-        if backexchange_value is None:
-            backexchange_value = [None for _ in range(len(time_points))]
-        if backexchange_array is None:
-            backexchange_array = [None for _ in range(len(time_points))]
-        if backexchange_correction_dict is None:
-            backexchange_correction_dict = [None for _ in range(len(time_points))]
-        if timepoint_label is None:
-            timepoint_label = [None for _ in range(len(time_points))]
-
-        for ind, (norm_mass_dist_arr, tp_arr, bkexch_val, bkexcharr, bkexch_corr) in enumerate(zip(norm_mass_distribution_array,
-                                                                                                   time_points,
-                                                                                                   backexchange_value,
-                                                                                                   backexchange_array,
-                                                                                                   backexchange_correction_dict)):
-
-            bkexch_obj = calc_back_exchange(sequence=sequence,
-                                            experimental_isotope_dist=norm_mass_dist_arr[-1],
-                                            timepoints_array=tp_arr,
-                                            d2o_purity=d2o_purity,
-                                            d2o_fraction=d2o_fraction,
-                                            usr_backexchange=bkexch_val,
-                                            backexchange_array=bkexcharr,
-                                            backexchange_corr_dict=bkexch_corr)
-
-            list_backexch_obj.append(bkexch_obj)
-
-        backexchange_list = [x.backexchange_array for x in list_backexch_obj]
-
-        expdata_obj = ExpDataRateFit(sequence=sequence,
-                                     prot_name=prot_name,
-                                     prot_rt_name=prot_rt_name,
-                                     timepoints=time_points,
-                                     timepoint_index_list=timepoint_label,
-                                     exp_label=exp_label,
-                                     exp_distribution=norm_mass_distribution_array,
-                                     backexchange=backexchange_list,
-                                     merge_exp=merge_exp,
-                                     d2o_purity=d2o_purity,
-                                     d2o_fraction=d2o_fraction)
-
-        bkexch_corr_arr = gen_backexchange_correction_from_backexchange_array(backexchange_array=expdata_obj.backexchange)
-
-    else:
-        backexchange_obj = calc_back_exchange(sequence=sequence,
-                                              experimental_isotope_dist=norm_mass_distribution_array[-1],
-                                              timepoints_array=time_points,
-                                              d2o_purity=d2o_purity,
-                                              d2o_fraction=d2o_fraction,
-                                              usr_backexchange=backexchange_value,
-                                              backexchange_array=backexchange_array,
-                                              backexchange_corr_dict=backexchange_correction_dict)
-        expdata_obj = ExpDataRateFit(sequence=sequence,
-                                     prot_name=prot_name,
-                                     prot_rt_name=prot_rt_name,
-                                     timepoints=time_points,
-                                     timepoint_index_list=timepoint_label,
-                                     exp_label=exp_label,
-                                     exp_distribution=norm_mass_distribution_array,
-                                     backexchange=backexchange_obj.backexchange_array,
-                                     merge_exp=merge_exp,
-                                     d2o_purity=d2o_purity,
-                                     d2o_fraction=d2o_fraction)
-
-        bkexch_corr_arr = gen_backexchange_correction_from_backexchange_array(backexchange_array=expdata_obj.backexchange)
-
-    # initialize hxrate data object
-    elapsed_time = []
-    cpu_time = []
-
-    if adj_backexchange:
-        # set a flag for backexchange adjusting
-        backexchange_adjust = False
-        back_exchange_res_subtract = 0
-
-        # set the original backexchange for reference
-        init_backexchange = expdata_obj.backexchange[-1]
-        backexchange_val_list = [init_backexchange]
-
-        ratefit = BayesRateFit(num_chains=num_chains,
-                               num_warmups=num_warmups,
-                               num_samples=num_samples,
-                               sample_backexchange=sample_backexchange)
-
-        while backexchange_adjust is False:
-
-            print('\nHX RATE FITTING ... ')
-
-            # start timer here
-            init_time = time.time()
-            init_cpu_time = time.process_time()
-
-            ratefit.fit_rate(exp_data_object=expdata_obj)
-
-            elapsed_time.append(time.time() - init_time)
-            cpu_time.append(time.process_time() - init_cpu_time)
-
-            # get the difference of the slowest rate and 3rd slowest.
-            rate_diff = ratefit.output['bayes_sample']['rate']['mean'][2] - ratefit.output['bayes_sample']['rate']['mean'][0]
-
-            # if the rate difference is smaller than 1.6, hxrate optimization ends
-            if rate_diff < slow_rates_max_diff:
-                backexchange_adjust = True
-
-            # else, backexchange is adjusted by reducing its value in proportion to having less residues.
-            # then redo the hx rate fitting
-            else:
-                back_exchange_res_subtract += 1
-                # if the backexchange res subtract exceeds the max res subtract, terminate the fitting routine
-                if back_exchange_res_subtract > max_res_subtract_for_backexchange:
-                    backexchange_adjust = True
-                else:
-                    print('adjusting backexchange value ... \n')
-                    backexchange_value_adj = init_backexchange * ((len(ratefit.output['bayes_sample']['rate']['mean']) + back_exchange_res_subtract)/len(ratefit.output['bayes_sample']['rate']['mean']))
-
-                    backexchange_adj_arr = gen_corr_backexchange(mass_rate_array=bkexch_corr_arr,
-                                                                 fix_backexchange_value=backexchange_value_adj)
-
-                    # adjust backexchange value on the expdata ratefit
-                    expdata_obj.backexchange = backexchange_adj_arr
-                    backexchange_val_list.append(backexchange_value_adj)
-
-        ratefit.output['elapsed_time'] = elapsed_time
-        ratefit.output['cpu_time'] = cpu_time
-        ratefit.output['back_exchange_res_subtract'] = back_exchange_res_subtract
-        ratefit.output['backexchange_val_list'] = backexchange_val_list
-
-    else:
-
-        print('\nHX RATE FITTING ... ')
-
-        ratefit = BayesRateFit(num_chains=num_chains,
-                               num_warmups=num_warmups,
-                               num_samples=num_samples,
-                               sample_backexchange=sample_backexchange)
-
-        # start timer here
-        init_time = time.time()
-        init_cpu_time = time.process_time()
-
-        ratefit.fit_rate(exp_data_object=expdata_obj)
-
-        elapsed_time.append(time.time() - init_time)
-        cpu_time.append(time.process_time() - init_cpu_time)
-
-        ratefit.output['elapsed_time'] = elapsed_time
-        ratefit.output['cpu_time'] = cpu_time
-
-    return ratefit
 
 
 def fit_rate_from_to_file(prot_name: str,
@@ -329,24 +149,24 @@ def fit_rate_from_to_file(prot_name: str,
             exp_label = exp_label[0]
 
     # fit rate
-    hxrate_out = fit_rate_bayes_(prot_name=prot_name,
-                                 sequence=sequence,
-                                 time_points=timepoints,
-                                 timepoint_label=timepoint_label,
-                                 exp_label=exp_label,
-                                 norm_mass_distribution_array=norm_dist,
-                                 d2o_fraction=d2o_fraction,
-                                 d2o_purity=d2o_purity,
-                                 num_chains=num_chains,
-                                 num_warmups=num_warmups,
-                                 num_samples=num_samples,
-                                 prot_rt_name=prot_rt_name,
-                                 merge_exp=merge_exp,
-                                 sample_backexchange=sample_backexchange,
-                                 adj_backexchange=adjust_backexchange,
-                                 backexchange_value=backexchange_value,
-                                 backexchange_correction_dict=bkexch_corr_dict,
-                                 backexchange_array=backexchange_array)
+    hxrate_out = fit_rate(prot_name=prot_name,
+                          sequence=sequence,
+                          time_points=timepoints,
+                          timepoint_label=timepoint_label,
+                          exp_label=exp_label,
+                          norm_mass_distribution_array=norm_dist,
+                          d2o_fraction=d2o_fraction,
+                          d2o_purity=d2o_purity,
+                          num_chains=num_chains,
+                          num_warmups=num_warmups,
+                          num_samples=num_samples,
+                          prot_rt_name=prot_rt_name,
+                          merge_exp=merge_exp,
+                          sample_backexchange=sample_backexchange,
+                          adj_backexchange=adjust_backexchange,
+                          backexchange_value=backexchange_value,
+                          backexchange_correction_dict=bkexch_corr_dict,
+                          backexchange_array=backexchange_array)
 
     # write hxrate as csv file
     if hx_rate_csv_output_path is not None:
@@ -454,81 +274,3 @@ if __name__ == '__main__':
 
     parser_ = gen_parser_arguments()
     hx_rate_fitting_from_parser(parser_)
-
-    # from hxdata import load_pickle_object
-
-    # pkobj_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/bug_nans_isotopdedist/PDB5X1G_8.57_PDB5X1G_7.69_hx_rate_fit.pickle'
-    # hxobj = load_pickle_object(pkobj_fpath)
-    #
-    # low_ph_ms_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/bug_nans_isotopdedist/PDB5X1G_17.16_ph6_winner_multibody.cpickle.zlib.csv'
-    # high_ph_ms_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/bug_nans_isotopdedist/PDB5X1G_17.16_ph9_winner_multibody.cpickle.zlib.csv'
-    #
-    # low_ph_bkexch_corr = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/bug_nans_isotopdedist/backexchange/low_ph_bkexch_corr.csv'
-    # high_ph_bkexch_corr = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/bug_nans_isotopdedist/backexchange/high_ph_bkexch_corr.csv'
-    #
-    # high_low_bkexch_list = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/bug_nans_isotopdedist/backexchange/high_low_backexchange_list.csv'
-    #
-    # fit_rate_from_to_file(prot_name=hxobj['protein_name'],
-    #                       prot_rt_name=hxobj['protein_rt_name'],
-    #                       sequence=hxobj['sequence'],
-    #                       hx_ms_dist_fpath=[low_ph_ms_fpath, high_ph_ms_fpath],
-    #                       d2o_purity=0.95,
-    #                       d2o_fraction=0.90,
-    #                       merge_exp=True,
-    #                       backexchange_corr_fpath=[low_ph_bkexch_corr, high_ph_bkexch_corr],
-    #                       low_high_backexchange_list_fpath=high_low_bkexch_list,
-    #                       num_chains=4,
-    #                       num_warmups=150,
-    #                       num_samples=250,
-    #                       save_posterior_samples=True,
-    #                       merge_hx_ms_dist_output_path=low_ph_ms_fpath+'_merge_dist.csv',
-    #                       hx_rate_output_path=low_ph_ms_fpath+"_hx_rate.pickle",
-    #                       hx_rate_csv_output_path=low_ph_ms_fpath+'_hx_rate.csv',
-    #                       hx_isotope_dist_output_path=low_ph_ms_fpath+'_pred_dist.csv',
-    #                       hx_rate_plot_path=low_ph_ms_fpath+"_hx_rate.pdf",
-    #                       posterior_plot_path=low_ph_ms_fpath+'_posterior.pdf')
-
-    # print('heho')
-    #
-    # eehee_rd4_0642_sequence = 'HMKTVEVNGVKYDFDNPEQAREMAERIAKSLGLQVRLEGDTFKIE'
-    # eehee_rd4_0642_lowph_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/EEHEE_rd4_0642/EEHEE_rd4_0642.pdb_15.13925_winner_multibody.cpickle.zlib_lowph_newformat.csv'
-    # eehee_rd4_0642_highph_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/EEHEE_rd4_0642/EEHEE_rd4_0642.pdb_15.13928_winner_multibody.cpickle.zlib_highph_newformat.csv'
-    # prot_name = 'EEHEE_rd4_0642'
-    # low_ph_prot_rt_name = 'EEHEE_rd4_0642.pdb_15.13925'
-    # high_ph_prot_rt_name = 'EEHEE_rd4_0642.pdb_15.13928'
-    # prot_rt_name = low_ph_prot_rt_name + '_' + high_ph_prot_rt_name
-    #
-    # eehee_rd4_08742_sequence = 'HMTQVHVDGVTYTFSNPEEAKKFADEMAKRKGGTWEIKDGHIHVE'
-    # eehee_rd4_0871_low_ph_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/EEHEE_rd4_0871/EEHEE_rd4_0871.pdb_8.57176_winner_multibody.cpickle.zlib.csv'
-    # eehee_rd4_0871_high_ph_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/EEHEE_rd4_0871/EEHEE_rd4_0871.pdb_8.57163_winner_multibody.cpickle.zlib.csv'
-    #
-    #
-    # prot_name = 'eehee_rd4_0871'
-    # prot_rt_name_low_ph = 'EEHEE_rd4_0871.pdb_8.57176_EEHEE_rd4_0871.pdb_8.57163'
-    #
-    # low_ph_bkexch_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/backexchange/low_ph_bkexch_corr.csv'
-    # high_ph_bkexch_corr_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/backexchange/high_ph_bkexch_corr.csv'
-    # #
-    # bkexch_list_high_low_fpath = '/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/test/merge_dist_rate_fit_bayes/Lib15/backexchange/high_low_backexchange_list.csv'
-    #
-    # fit_rate_from_to_file(prot_name=prot_name,
-    #                       sequence=eehee_rd4_0642_sequence,
-    #                       hx_ms_dist_fpath=[eehee_rd4_0642_lowph_fpath, eehee_rd4_0642_highph_fpath],
-    #                       d2o_purity=0.95,
-    #                       d2o_fraction=0.95,
-    #                       prot_rt_name=prot_rt_name,
-    #                       merge_exp=True,
-    #                       exp_label=['ph6', 'ph9'],
-    #                       backexchange_corr_fpath=[low_ph_bkexch_corr_fpath, high_ph_bkexch_corr_fpath],
-    #                       low_high_backexchange_list_fpath=bkexch_list_high_low_fpath,
-    #                       num_chains=4,
-    #                       num_warmups=100,
-    #                       num_samples=250,
-    #                       adjust_backexchange=False,
-    #                       save_posterior_samples=True,
-    #                       merge_hx_ms_dist_output_path=None,
-    #                       hx_rate_output_path=eehee_rd4_0642_lowph_fpath + '_merge_rate_output.pickle',
-    #                       hx_rate_csv_output_path=eehee_rd4_0642_lowph_fpath + '_merge_rate.csv',
-    #                       hx_isotope_dist_output_path=eehee_rd4_0642_lowph_fpath + '_merge_pred_dist.csv',
-    #                       hx_rate_plot_path=eehee_rd4_0642_lowph_fpath + '_merge_rates.pdf',
-    #                       posterior_plot_path=eehee_rd4_0642_lowph_fpath + '_merge_posteriors.pdf')
