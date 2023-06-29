@@ -30,7 +30,7 @@ class GaussFit(object):
     rmse: float
 
 
-def calculate_intrinsic_exchange_rates_suggie(sequence_str, Temperature, pH, nterm_mode='NT', cterm_mode='CT'):
+def calculate_intrinsic_exchange_rates(sequence_str, Temperature, pH, nterm_mode='NT', cterm_mode='CT'):
     """
     calculates the intrinsic h exchange rates based on the amino acid sequence for a polypeptide chain
     # calculate the instrinsic exchange rate
