@@ -642,7 +642,7 @@ class BayesRateFit(object):
 
             # do some operations for correct input
 
-            # calculate hxrate error based on CI
+            # calculate hxrate_pipeline error based on CI
             hxrate_error = np.zeros((2, len(self.output['bayes_sample']['rate']['mean'])))
             hxrate_error[0] = np.subtract(self.output['bayes_sample']['rate']['mean'], self.output['bayes_sample']['rate']['ci_5'])
             hxrate_error[1] = np.subtract(self.output['bayes_sample']['rate']['ci_95'], self.output['bayes_sample']['rate']['mean'])
@@ -1976,7 +1976,7 @@ def fit_rate(prot_name: str,
 
         bkexch_corr_arr = gen_backexchange_correction_from_backexchange_array(backexchange_array=expdata_obj.backexchange)
 
-    # initialize hxrate data object
+    # initialize hxrate_pipeline data object
     elapsed_time = []
     cpu_time = []
 
@@ -2010,7 +2010,7 @@ def fit_rate(prot_name: str,
             # get the difference of the slowest rate and 3rd slowest.
             rate_diff = ratefit.output['bayes_sample']['rate']['mean'][2] - ratefit.output['bayes_sample']['rate']['mean'][0]
 
-            # if the rate difference is smaller than 1.6, hxrate optimization ends
+            # if the rate difference is smaller than 1.6, hxrate_pipeline optimization ends
             if rate_diff < slow_rates_max_diff:
                 backexchange_adjust = True
 

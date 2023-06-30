@@ -491,7 +491,7 @@ def convert_hxrate_object_to_dict(hxrate_object):
     # convert merge object to dict
     hxrate_object.merge_data = vars(hxrate_object.merge_data)
 
-    # convert hxrate object to dict
+    # convert hxrate_pipeline object to dict
     hxrate_dict = vars(hxrate_object)
 
     return hxrate_dict

@@ -63,7 +63,7 @@ def fit_rate_without_backexchange_adjust(prot_name: str,
 
     # todo: add param descritpions
 
-    # initialize hxrate data object
+    # initialize hxrate_pipeline data object
     hxrate = HXRate()
 
     # store exp data in the object
@@ -75,7 +75,7 @@ def fit_rate_without_backexchange_adjust(prot_name: str,
     # fit gaussian to exp data
     expdata.gauss_fit = gauss_fit_to_isotope_dist_array(norm_mass_distribution_array)
 
-    # store expdata object in hxrate data object
+    # store expdata object in hxrate_pipeline data object
     hxrate.exp_data = expdata
 
     back_exchange = calc_back_exchange(sequence=sequence,
@@ -87,7 +87,7 @@ def fit_rate_without_backexchange_adjust(prot_name: str,
                                        backexchange_array=backexchange_array,
                                        backexchange_corr_dict=backexchange_correction_dict)
 
-    # store backexchange object in hxrate object
+    # store backexchange object in hxrate_pipeline object
     hxrate.back_exchange = back_exchange
 
     inv_back_exchange_array = np.subtract(1, back_exchange.backexchange_array)
@@ -251,7 +251,7 @@ def fit_rate_with_backexchange_adjust(prot_name: str,
 
     # todo: add param descritpions
 
-    # initialize hxrate data object
+    # initialize hxrate_pipeline data object
     hxrate = HXRate()
 
     # store exp data in the object
@@ -263,7 +263,7 @@ def fit_rate_with_backexchange_adjust(prot_name: str,
     # fit gaussian to exp data
     expdata.gauss_fit = gauss_fit_to_isotope_dist_array(norm_mass_distribution_array)
 
-    # store expdata object in hxrate data object
+    # store expdata object in hxrate_pipeline data object
     hxrate.exp_data = expdata
 
     # set a flag for backexchange adjusting
@@ -284,7 +284,7 @@ def fit_rate_with_backexchange_adjust(prot_name: str,
 
     while backexchange_adjust is False:
 
-        # store backexchange object in hxrate object
+        # store backexchange object in hxrate_pipeline object
         hxrate.back_exchange = back_exchange
 
         inv_back_exchange_array = np.subtract(1, back_exchange.backexchange_array)
@@ -400,7 +400,7 @@ def fit_rate_with_backexchange_adjust(prot_name: str,
         rate_diff = sort_rates[2] - sort_rates[0]
         # rate_diff = 2.0  # for debugging purpose
 
-        # if the rate difference is smaller than 1.6, hxrate optimization ends
+        # if the rate difference is smaller than 1.6, hxrate_pipeline optimization ends
         if rate_diff < slow_rates_max_diff:
             backexchange_adjust = True
 
@@ -536,19 +536,19 @@ def fit_rate_from_to_file(prot_name: str,
                                                              backexchange_correction_dict=bkexch_corr_dict,
                                                              backexchange_array=backexchange_array)
 
-    # convert hxrate object to dict and save as a pickle file
+    # convert hxrate_pipeline object to dict and save as a pickle file
 
-    # write hxrate as a csv file
+    # write hxrate_pipeline as a csv file
     if hx_rate_csv_output_path is not None:
         write_hx_rate_output(hx_rates=hxrate_object.hx_rates, output_path=hx_rate_csv_output_path)
 
-    # write hxrate distributions as a csv file
+    # write hxrate_pipeline distributions as a csv file
     if hx_isotope_dist_output_path is not None:
         write_isotope_dist_timepoints(timepoints=timepoints,
                                       isotope_dist_array=hxrate_object.thr_isotope_dist_array,
                                       output_path=hx_isotope_dist_output_path)
 
-    # plot hxrate output as .pdf file
+    # plot hxrate_pipeline output as .pdf file
     if hx_rate_plot_path is not None:
 
         exp_centroid_arr = np.array([x.centroid for x in hxrate_object.exp_data.gauss_fit])
@@ -574,7 +574,7 @@ def fit_rate_from_to_file(prot_name: str,
                               d2o_purity=d2o_purity,
                               output_path=hx_rate_plot_path)
 
-    # save hxrate object into a pickle object
+    # save hxrate_pipeline object into a pickle object
     if hx_rate_output_path is not None:
         hxrate_dict = convert_hxrate_object_to_dict(hxrate_object=hxrate_object)
         write_pickle_object(hxrate_dict, hx_rate_output_path)

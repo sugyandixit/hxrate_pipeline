@@ -1194,7 +1194,7 @@ def dg_mapping(hx_rate_fpath,
 def gen_parser_args():
 
     parser_ = argparse.ArgumentParser(prog='DGOptimize', description='DGOptimize')
-    parser_.add_argument('-hx', '--hxrate', default='/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/merge_lib15_ph6_ph7/output/EEHEE_rd4_0642.pdb_9.047_EEHEE_rd4_0642.pdb_9.11541/EEHEE_rd4_0642.pdb_9.047_EEHEE_rd4_0642.pdb_9.11541_hx_rate.csv', help='hx_rate filepath .csv')
+    parser_.add_argument('-hx', '--hxrate_pipeline', default='/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/hxratefit_new/bayes_opt/merge_lib15_ph6_ph7/output/EEHEE_rd4_0642.pdb_9.047_EEHEE_rd4_0642.pdb_9.11541/EEHEE_rd4_0642.pdb_9.047_EEHEE_rd4_0642.pdb_9.11541_hx_rate.csv', help='hx_rate filepath .csv')
     parser_.add_argument('-pdb', '--pdbfpath', default="/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/EEHEE_rd4_0642.pdb", help='pdb filepath .pdb')
     parser_.add_argument('-dip', '--dgintpath', default="/Users/smd4193/OneDrive - Northwestern University/hx_ratefit_gabe/refit_new_SA_weights/newrect.pickle", help='dg interpolation filepath .pickle')
     parser_.add_argument('-cf', '--compdgfpath', default=None, help='comp dg file path .csv')

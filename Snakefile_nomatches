@@ -29,7 +29,7 @@ dg_calc_python_path = scripts_dirpath + '/dG_calc.py'
 summary_python_path = scripts_dirpath + '/gen_summary.py'
 
 # set the environment file
-env_fpath = config['path_to_repo'] + '/envs/hxrate.yml'
+env_fpath = config['path_to_repo'] + '/envs/hxrate_pipeline.yml'
 
 
 def check_hxdist_fpath(hxms_dir,

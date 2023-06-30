@@ -168,11 +168,11 @@ def fit_rate_from_to_file(prot_name: str,
                           backexchange_correction_dict=bkexch_corr_dict,
                           backexchange_array=backexchange_array)
 
-    # write hxrate as csv file
+    # write hxrate_pipeline as csv file
     if hx_rate_csv_output_path is not None:
         hxrate_out.write_rates_to_csv(hx_rate_csv_output_path)
 
-    # write hxrate pred distributions as a csv file
+    # write hxrate_pipeline pred distributions as a csv file
     if hx_isotope_dist_output_path is not None:
         hxrate_out.pred_dist_to_csv(hx_isotope_dist_output_path)
 

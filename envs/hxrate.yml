@@ -1,4 +1,4 @@
-name: hxrate
+name: hxrate_pipeline
 channels:
   - https://repo.continuum.io/pkgs/free
   - salilab

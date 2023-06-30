@@ -633,7 +633,7 @@ class BayesRateFit(object):
 
             # do some operations for correct input
 
-            # calculate hxrate error based on CI
+            # calculate hxrate_pipeline error based on CI
             hxrate_error = np.zeros((2, len(self.output['bayes_sample']['rate']['mean'])))
             hxrate_error[0] = np.subtract(self.output['bayes_sample']['rate']['mean'], self.output['bayes_sample']['rate']['ci_5'])
             hxrate_error[1] = np.subtract(self.output['bayes_sample']['rate']['ci_95'], self.output['bayes_sample']['rate']['mean'])
