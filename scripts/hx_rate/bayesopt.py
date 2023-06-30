@@ -15,10 +15,10 @@ from dataclasses import dataclass
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 from itertools import cycle
-import pickle
 import time
 from backexchange import calc_back_exchange
 from methods import gen_backexchange_correction_from_backexchange_array, gen_corr_backexchange
+from hxdata import write_pickle_object
 
 # global variables
 r_constant = 0.0019872036
@@ -241,130 +241,6 @@ class RateChainDiagnostics(object):
     discard_chain_indices: list = None
     rerun_opt: bool = False
     num_rerun_opt: int = None
-
-
-def gen_timepoint_label(timepoints, merge_exp=False, tp_ind_label=None, exp_label=None):
-
-    tp_unk_label_list = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']
-
-    if merge_exp:
-        tp_label = [[] for _ in range(len(timepoints))]
-        if tp_ind_label is None:
-            if exp_label is None:
-                for ind, tp_arr in enumerate(timepoints):
-                    tp_label[ind] = [str(tp_unk_label_list[ind]) + '_' + str(x) for x in range(len(tp_arr))]
-            else:
-                for ind, tp_arr in enumerate(timepoints):
-                    tp_label[ind] = [str(exp_label[ind]) + '_' + str(x) for x in range(len(tp_arr))]
-        else:
-            if exp_label is None:
-                for ind, tp_ind_l in enumerate(tp_ind_label):
-                    tp_label[ind] = [str(tp_unk_label_list[ind]) + '_' + str(x) for x in tp_ind_l]
-            else:
-                for ind, tp_ind_l in enumerate(tp_ind_label):
-                    tp_label[ind] = [str(exp_label[ind]) + '_' + str(x) for x in tp_ind_l]
-    else:
-        tp_label = []
-        if tp_ind_label is None:
-            if exp_label is None:
-                tp_label = [str(tp_unk_label_list[0]) + '_' + str(x) for x in range(len(timepoints))]
-            else:
-                tp_label = [str(exp_label) + '_' + str(x) for x in range(len(timepoints))]
-        else:
-            if exp_label is None:
-                tp_label = [str(tp_unk_label_list[0]) + '_' + str(x) for x in tp_ind_label]
-            else:
-                tp_label = [str(exp_label) + '_' + str(x) for x in tp_ind_label]
-    return tp_label
-
-
-def diagnose_posterior_sample_rate_among_chains(posterior_samples_by_chain_dict,
-                                                theoretical_isotope_distribution,
-                                                timepoints,
-                                                backexchange_array,
-                                                d2o_fraction,
-                                                d2o_purity,
-                                                num_bins,
-                                                exp_distribution,
-                                                init_num_chains=4,
-                                                rmse_tol=1e-2):
-
-    chain_diag = RateChainDiagnostics(init_num_chains=init_num_chains,
-                                      rmse_tol=rmse_tol)
-
-    chain_diag.chain_pass_list = []
-    chain_diag.chain_rmse_list = []
-    chain_diag.discard_chain_indices = []
-
-    summary = numpyro.diagnostics.summary(samples=posterior_samples_by_chain_dict)
-
-    thr_iso_dist_all_chains_comb = np.array(gen_theoretical_isotope_dist_for_all_timepoints(theoretical_isotope_distribution=theoretical_isotope_distribution,
-                                                                                            timepoints=timepoints,
-                                                                                            rates=np.exp(summary['rate']['mean']),
-                                                                                            inv_backexchange_array=np.subtract(1, backexchange_array),
-                                                                                            d2o_purity=d2o_purity,
-                                                                                            d2o_fraction=d2o_fraction,
-                                                                                            num_bins=num_bins))
-
-    chain_diag.overall_rmse = compute_rmse_exp_thr_iso_dist(exp_isotope_dist=np.concatenate(exp_distribution),
-                                                            thr_isotope_dist=np.concatenate(thr_iso_dist_all_chains_comb),
-                                                            squared=False)
-
-    for ind, posterior_rate_samples in enumerate(posterior_samples_by_chain_dict['rate']):
-
-        mean_rates = np.mean(posterior_rate_samples, axis=0)
-
-        thr_iso_dist = np.array(gen_theoretical_isotope_dist_for_all_timepoints(theoretical_isotope_distribution=theoretical_isotope_distribution,
-                                                                                timepoints=timepoints,
-                                                                                rates=np.exp(mean_rates),
-                                                                                inv_backexchange_array=np.subtract(1, backexchange_array),
-                                                                                d2o_purity=d2o_purity,
-                                                                                d2o_fraction=d2o_fraction,
-                                                                                num_bins=num_bins))
-
-        chain_rmse = compute_rmse_exp_thr_iso_dist(exp_isotope_dist=np.concatenate(exp_distribution),
-                                                   thr_isotope_dist=np.concatenate(thr_iso_dist),
-                                                   squared=False)
-
-        chain_diag.chain_rmse_list.append(chain_rmse)
-
-    chain_diag.min_chain_rmse = min(chain_diag.chain_rmse_list)
-
-    for ind, chain_rmse_ in enumerate(chain_diag.chain_rmse_list):
-
-        if abs(chain_rmse_ - chain_diag.min_chain_rmse) > rmse_tol:
-            chain_diag.chain_pass_list.append(False)
-            chain_diag.discard_chain_indices.append(ind)
-        else:
-            chain_diag.chain_pass_list.append(True)
-
-    if len(chain_diag.discard_chain_indices) == init_num_chains:
-        chain_diag.rerun_opt = True
-
-    if len(chain_diag.discard_chain_indices) == 0:
-        chain_diag.discard_chain_indices = None
-
-    return chain_diag
-
-
-def discard_chain_from_posterior_samples(posterior_samples_by_chain_dict,
-                                         discard_chain_indices):
-
-    new_dict = dict()
-
-    for key_, posterior_samples_by_chain in posterior_samples_by_chain_dict.items():
-
-        store_list = []
-
-        for ind, posterior_samples_chain in enumerate(posterior_samples_by_chain):
-
-            if ind not in discard_chain_indices:
-                posterior_samples = np.array(posterior_samples_chain)
-                store_list.append(posterior_samples)
-
-        new_dict[key_] = np.array(store_list)
-
-    return new_dict
 
 
 class BayesRateFit(object):
@@ -718,6 +594,129 @@ class BayesRateFit(object):
                             filepath=output_path)
 
 
+def gen_timepoint_label(timepoints, merge_exp=False, tp_ind_label=None, exp_label=None):
+
+    tp_unk_label_list = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']
+
+    if merge_exp:
+        tp_label = [[] for _ in range(len(timepoints))]
+        if tp_ind_label is None:
+            if exp_label is None:
+                for ind, tp_arr in enumerate(timepoints):
+                    tp_label[ind] = [str(tp_unk_label_list[ind]) + '_' + str(x) for x in range(len(tp_arr))]
+            else:
+                for ind, tp_arr in enumerate(timepoints):
+                    tp_label[ind] = [str(exp_label[ind]) + '_' + str(x) for x in range(len(tp_arr))]
+        else:
+            if exp_label is None:
+                for ind, tp_ind_l in enumerate(tp_ind_label):
+                    tp_label[ind] = [str(tp_unk_label_list[ind]) + '_' + str(x) for x in tp_ind_l]
+            else:
+                for ind, tp_ind_l in enumerate(tp_ind_label):
+                    tp_label[ind] = [str(exp_label[ind]) + '_' + str(x) for x in tp_ind_l]
+    else:
+        tp_label = []
+        if tp_ind_label is None:
+            if exp_label is None:
+                tp_label = [str(tp_unk_label_list[0]) + '_' + str(x) for x in range(len(timepoints))]
+            else:
+                tp_label = [str(exp_label) + '_' + str(x) for x in range(len(timepoints))]
+        else:
+            if exp_label is None:
+                tp_label = [str(tp_unk_label_list[0]) + '_' + str(x) for x in tp_ind_label]
+            else:
+                tp_label = [str(exp_label) + '_' + str(x) for x in tp_ind_label]
+    return tp_label
+
+
+def diagnose_posterior_sample_rate_among_chains(posterior_samples_by_chain_dict,
+                                                theoretical_isotope_distribution,
+                                                timepoints,
+                                                backexchange_array,
+                                                d2o_fraction,
+                                                d2o_purity,
+                                                num_bins,
+                                                exp_distribution,
+                                                init_num_chains=4,
+                                                rmse_tol=1e-2):
+
+    chain_diag = RateChainDiagnostics(init_num_chains=init_num_chains,
+                                      rmse_tol=rmse_tol)
+
+    chain_diag.chain_pass_list = []
+    chain_diag.chain_rmse_list = []
+    chain_diag.discard_chain_indices = []
+
+    summary = numpyro.diagnostics.summary(samples=posterior_samples_by_chain_dict)
+
+    thr_iso_dist_all_chains_comb = np.array(gen_theoretical_isotope_dist_for_all_timepoints(theoretical_isotope_distribution=theoretical_isotope_distribution,
+                                                                                            timepoints=timepoints,
+                                                                                            rates=np.exp(summary['rate']['mean']),
+                                                                                            inv_backexchange_array=np.subtract(1, backexchange_array),
+                                                                                            d2o_purity=d2o_purity,
+                                                                                            d2o_fraction=d2o_fraction,
+                                                                                            num_bins=num_bins))
+
+    chain_diag.overall_rmse = compute_rmse_exp_thr_iso_dist(exp_isotope_dist=np.concatenate(exp_distribution),
+                                                            thr_isotope_dist=np.concatenate(thr_iso_dist_all_chains_comb),
+                                                            squared=False)
+
+    for ind, posterior_rate_samples in enumerate(posterior_samples_by_chain_dict['rate']):
+
+        mean_rates = np.mean(posterior_rate_samples, axis=0)
+
+        thr_iso_dist = np.array(gen_theoretical_isotope_dist_for_all_timepoints(theoretical_isotope_distribution=theoretical_isotope_distribution,
+                                                                                timepoints=timepoints,
+                                                                                rates=np.exp(mean_rates),
+                                                                                inv_backexchange_array=np.subtract(1, backexchange_array),
+                                                                                d2o_purity=d2o_purity,
+                                                                                d2o_fraction=d2o_fraction,
+                                                                                num_bins=num_bins))
+
+        chain_rmse = compute_rmse_exp_thr_iso_dist(exp_isotope_dist=np.concatenate(exp_distribution),
+                                                   thr_isotope_dist=np.concatenate(thr_iso_dist),
+                                                   squared=False)
+
+        chain_diag.chain_rmse_list.append(chain_rmse)
+
+    chain_diag.min_chain_rmse = min(chain_diag.chain_rmse_list)
+
+    for ind, chain_rmse_ in enumerate(chain_diag.chain_rmse_list):
+
+        if abs(chain_rmse_ - chain_diag.min_chain_rmse) > rmse_tol:
+            chain_diag.chain_pass_list.append(False)
+            chain_diag.discard_chain_indices.append(ind)
+        else:
+            chain_diag.chain_pass_list.append(True)
+
+    if len(chain_diag.discard_chain_indices) == init_num_chains:
+        chain_diag.rerun_opt = True
+
+    if len(chain_diag.discard_chain_indices) == 0:
+        chain_diag.discard_chain_indices = None
+
+    return chain_diag
+
+
+def discard_chain_from_posterior_samples(posterior_samples_by_chain_dict,
+                                         discard_chain_indices):
+
+    new_dict = dict()
+
+    for key_, posterior_samples_by_chain in posterior_samples_by_chain_dict.items():
+
+        store_list = []
+
+        for ind, posterior_samples_chain in enumerate(posterior_samples_by_chain):
+
+            if ind not in discard_chain_indices:
+                posterior_samples = np.array(posterior_samples_chain)
+                store_list.append(posterior_samples)
+
+        new_dict[key_] = np.array(store_list)
+
+    return new_dict
+
 def gen_temp_rates(sequence):
 
     # set high rate value as 1e2
@@ -735,17 +734,6 @@ def gen_temp_rates(sequence):
                 rates[ind] = 0
 
     return rates
-
-
-def write_pickle_object(obj, filepath):
-    """
-    write an object to a pickle file
-    :param obj: object
-    :param filepath: pickle file path
-    :return: None
-    """
-    with open(filepath, 'wb') as outfile:
-        pickle.dump(obj, outfile)
 
 
 def reshape_posterior_samples(posterior_samples):
