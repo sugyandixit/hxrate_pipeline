@@ -1,7 +1,7 @@
 import os.path
 from collections import OrderedDict
-from hxdata import load_data_from_hdx_ms_dist_, write_backexchange_correction_array
-from methods import gauss_fit_to_isotope_dist_array, normalize_mass_distribution_array
+from hxrate.hxdata import load_data_from_hdx_ms_dist, write_backexchange_correction_array
+from hxrate.methods import gauss_fit_to_isotope_dist_array, normalize_mass_distribution_array
 import numpy as np
 import argparse
 from dataclasses import dataclass
@@ -136,7 +136,7 @@ def gen_list_of_mass_rate_proteins(list_of_hx_ms_files,
         prot_name = hxms_dist_fname.split(hxms_dist_fpath_delim_str)[0]
 
         # tp, iso_dist_array = load_data_from_hdx_ms_dist_(hx_ms_fpath)
-        data_dict = load_data_from_hdx_ms_dist_(fpath=hx_ms_fpath)
+        data_dict = load_data_from_hdx_ms_dist(fpath=hx_ms_fpath)
         tp = data_dict['tp']
         iso_dist_array = data_dict['mass_dist']
         norm_dist = normalize_mass_distribution_array(mass_dist_array=iso_dist_array)

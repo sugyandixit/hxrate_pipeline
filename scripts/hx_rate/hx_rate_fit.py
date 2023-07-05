@@ -4,9 +4,9 @@
 import argparse
 import pandas as pd
 import numpy as np
-from bayesopt import fit_rate
-from methods import normalize_mass_distribution_array
-from hxdata import load_data_from_hdx_ms_dist_, load_tp_dependent_dict
+from hxrate.ratefit import fit_rate
+from hxrate.methods import normalize_mass_distribution_array
+from hxrate.hxdata import load_data_from_hdx_ms_dist, load_tp_dependent_dict
 
 
 def fit_rate_from_to_file(prot_name: str,
@@ -41,7 +41,7 @@ def fit_rate_from_to_file(prot_name: str,
     if merge_exp:
         timepoints, mass_dist_list, timepoint_label = [], [], []
         for hxmsdist_fp in hx_ms_dist_fpath:
-            data_dict = load_data_from_hdx_ms_dist_(fpath=hxmsdist_fp)
+            data_dict = load_data_from_hdx_ms_dist(fpath=hxmsdist_fp)
             timepoints.append(data_dict['tp'])
             mass_dist_list.append(data_dict['mass_dist'])
             if 'tp_ind' in list(data_dict.keys()):
@@ -106,7 +106,7 @@ def fit_rate_from_to_file(prot_name: str,
             hx_ms_dist_fpath = hx_ms_dist_fpath[0]
 
         # timepoints, mass_dist = load_data_from_hdx_ms_dist_(fpath=hx_ms_dist_fpath)
-        data_dict = load_data_from_hdx_ms_dist_(fpath=hx_ms_dist_fpath)
+        data_dict = load_data_from_hdx_ms_dist(fpath=hx_ms_dist_fpath)
         timepoints = data_dict['tp']
         mass_dist = data_dict['mass_dist']
         if 'tp_ind' in list(data_dict.keys()):

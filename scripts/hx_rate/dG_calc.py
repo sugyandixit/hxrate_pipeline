@@ -1,5 +1,5 @@
-from hxdata import load_pickle_object
-from openfe import dg_calc
+from hxrate.hxdata import load_pickle_object
+from hxrate.openfe import dg_calc
 
 
 def dg_calc_from_file(hxrate_pickle_fpath: str,

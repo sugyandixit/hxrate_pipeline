@@ -1,11 +1,12 @@
 import pandas as pd
 import numpy as np
-import hxdata
 import matplotlib.pyplot as plt
-from backexchange import calc_back_exchange
+from hxrate.backexchange import calc_back_exchange
 from scipy import odr
-import methods
 import argparse
+from hxrate.methods import normalize_mass_distribution_array, gauss_fit_to_isotope_dist_array, \
+    correct_centroids_using_backexchange
+from hxrate.hxdata import load_data_from_hdx_ms_dist, load_tp_dependent_dict
 
 
 def gen_list_of_backexchange(list_of_dist_files,
@@ -25,10 +26,10 @@ def gen_list_of_backexchange(list_of_dist_files,
 
     for ind, (fpath, seq) in enumerate(zip(list_of_dist_files, list_of_seq)):
 
-        data_dict = hxdata.load_data_from_hdx_ms_dist_(fpath=fpath)
+        data_dict = load_data_from_hdx_ms_dist(fpath=fpath)
         tp = data_dict['tp']
         dist = data_dict['mass_dist']
-        norm_dist = methods.normalize_mass_distribution_array(mass_dist_array=dist)
+        norm_dist = normalize_mass_distribution_array(mass_dist_array=dist)
 
         bkexch_obj = calc_back_exchange(sequence=seq,
                                         experimental_isotope_dist=norm_dist[-1],
@@ -109,14 +110,14 @@ def check_saturation_from_file(fpath,
     :return:
     """
 
-    data_dict = hxdata.load_data_from_hdx_ms_dist_(fpath=fpath)
+    data_dict = load_data_from_hdx_ms_dist(fpath=fpath)
     tp = data_dict['tp']
     dist_list = data_dict['mass_dist']
-    norm_dist_list = methods.normalize_mass_distribution_array(mass_dist_array=dist_list)
+    norm_dist_list = normalize_mass_distribution_array(mass_dist_array=dist_list)
 
     # use backexchange correction to correct the centroids and then check for saturation if bkexch corr filepath given
     if bkexch_corr_fpath is not None:
-        bkexch_corr_dict = hxdata.load_tp_dependent_dict(bkexch_corr_fpath)
+        bkexch_corr_dict = load_tp_dependent_dict(bkexch_corr_fpath)
         bkexchange_object = calc_back_exchange(sequence=sequence,
                                                experimental_isotope_dist=norm_dist_list[-1],
                                                timepoints_array=tp,
@@ -131,10 +132,10 @@ def check_saturation_from_file(fpath,
                                                d2o_purity=d2o_pur)
     if len(norm_dist_list) > 2:
         dist_to_check = norm_dist_list[dist_indices]
-        gauss_fit_list = methods.gauss_fit_to_isotope_dist_array(isotope_dist=dist_to_check)
+        gauss_fit_list = gauss_fit_to_isotope_dist_array(isotope_dist=dist_to_check)
         centroid_list = [x.centroid for x in gauss_fit_list]
         backexchange_for_check = bkexchange_object.backexchange_array[dist_indices]
-        corr_centroid_list = methods.correct_centroids_using_backexchange(centroids=np.array(centroid_list),
+        corr_centroid_list = correct_centroids_using_backexchange(centroids=np.array(centroid_list),
                                                                           backexchange_array=backexchange_for_check)
 
         satur_bool = check_for_exchange_saturation(centroid_list=corr_centroid_list,
