@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import hxdata
 import matplotlib.pyplot as plt
-from hx_rate_fit import calc_back_exchange
+from backexchange import calc_back_exchange
 from scipy import odr
 import methods
 import argparse
