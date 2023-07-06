@@ -413,6 +413,42 @@ rule fit_hx_rates_merge_dist:
     conda:
         env_fpath
     shell:
+        'python ' + hx_rate_fit_python_path + ' -p {params.prot_name} -pr {params.prot_rt_name} -s {params.prot_seq} -i {input.low_ph_fpath_} {input.high_ph_fpath_} -df {params.d2o_frac} -dp {params.d2o_pur} -expl {params.low_ph_exp_label} {params.high_ph_exp_label} -bcf {input.low_ph_backexch_corr_fpath} {input.high_ph_backexch_corr_fpath} -bcl {input.low_high_backexchange_list_fpath} --merge {params.adjust_backexchange} --no-lohibkexchcorr -nc {params.num_chains} -nw {params.num_warmups} -ns {params.num_samples} {params.sample_backexchange} -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -opp {output.posterior_plot_file} -od {output.iso_dist_file} -md {output.merge_iso_dist_file}'
+
+
+rule fit_hx_rates_merge_dist_lohibkexchcorr:
+    input:
+        low_ph_fpath_ = lambda wildcards: low_high_name_low_ph_fpath_[wildcards.low_high_name],
+        high_ph_fpath_ = lambda wildcards: lowh_high_name_high_ph_fpath_[wildcards.low_high_name],
+        low_ph_backexch_corr_fpath = backexchange_output_path + '/low_ph_bkexch_corr.csv',
+        high_ph_backexch_corr_fpath = backexchange_output_path + '/high_ph_bkexch_corr.csv',
+        low_high_backexchange_list_fpath = backexchange_output_path + '/high_low_backexchange_list.csv'
+    params:
+        prot_seq = lambda wildcards: low_high_name_seq_dict[wildcards.low_high_name],
+        prot_name = lambda wildcards: low_high_name_prot_name_dict_[wildcards.low_high_name],
+        prot_rt_name = '{low_high_name}',
+        d2o_frac = config['low_ph_d2o_frac'],
+        d2o_pur = config['low_ph_d2o_pur'],
+        adjust_backexchange = adjust_backexchange_param,
+        sample_backexchange = sample_backexchange_param,
+        num_chains = config['num_chains'],
+        num_warmups = config['num_warmups'],
+        num_samples = config['num_samples'],
+        low_ph_exp_label = config['low_ph_exp_label'],
+        high_ph_exp_label = config['high_ph_exp_label']
+    resources: cpus=config['num_cores']
+    output:
+        pk_file = hxrate_dpath + '/lowhibkexchcorr/{low_high_name}/{low_high_name}_hx_rate_fit.pickle',
+        rate_csv_file = hxrate_dpath + '/lowhibkexchcorr/{low_high_name}/{low_high_name}_hx_rate.csv',
+        merge_iso_dist_file = hxrate_dpath + '/lowhibkexchcorr/{low_high_name}/{low_high_name}_merge_iso_dist.csv',
+        iso_dist_file = hxrate_dpath + '/lowhibkexchcorr/{low_high_name}/{low_high_name}_hx_rate_theo_dist.csv',
+        plot_file = hxrate_dpath + '/lowhibkexchcorr/{low_high_name}/{low_high_name}_hx_rate.pdf',
+        posterior_plot_file = hxrate_dpath + '/lowhibkexchcorr/{low_high_name}/{low_high_name}_posteriors.pdf'
+    benchmark:
+        benchmark_dpath + '/{low_high_name}_fit_hx_rate_lowhibkexchcorr.benchmark.txt'
+    conda:
+        env_fpath
+    shell:
         'python ' + hx_rate_fit_python_path + ' -p {params.prot_name} -pr {params.prot_rt_name} -s {params.prot_seq} -i {input.low_ph_fpath_} {input.high_ph_fpath_} -df {params.d2o_frac} -dp {params.d2o_pur} -expl {params.low_ph_exp_label} {params.high_ph_exp_label} -bcf {input.low_ph_backexch_corr_fpath} {input.high_ph_backexch_corr_fpath} -bcl {input.low_high_backexchange_list_fpath} --merge {params.adjust_backexchange} -nc {params.num_chains} -nw {params.num_warmups} -ns {params.num_samples} {params.sample_backexchange} -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -opp {output.posterior_plot_file} -od {output.iso_dist_file} -md {output.merge_iso_dist_file}'
 
 
@@ -433,6 +469,27 @@ if config['dg_calc']:
             dg_plot_path = dg_output_path + '/{low_high_name}/{low_high_name}_dg_data.pdf',
         benchmark:
             benchmark_dpath + '/{low_high_name}_dg_calc.benchmark.txt'
+        conda:
+            env_fpath
+        shell:
+            "python " + dg_calc_python_path + " -i {input.hx_rate_pickle_fpath} -p {params.pH} -t {params.temp} {params.net_charge_corr} -m {params.minfe} -opk {output.dg_data_output} -oc {output.dg_csv_output} -opd {output.dg_plot_path}"
+
+
+    rule dg_calc_merge_dist_lowhibkexchcorr:
+        input:
+            hx_rate_pickle_fpath = hxrate_dpath + '/lowhibkexchcorr/{low_high_name}/{low_high_name}_hx_rate_fit.pickle',
+        params:
+            pH = config['low_pH'],
+            temp = config['temp'],
+            minfe = config['min_fe'],
+            net_charge_corr = netcharge_param,
+        resources: cpus=1
+        output:
+            dg_csv_output = dg_output_path + '/lowhibkexchcorr/{low_high_name}/{low_high_name}_dg_data.csv',
+            dg_data_output = dg_output_path + '/lowhibkexchcorr/{low_high_name}/{low_high_name}_dg_data.pickle',
+            dg_plot_path = dg_output_path + '/lowhibkexchcorr/{low_high_name}/{low_high_name}_dg_data.pdf',
+        benchmark:
+            benchmark_dpath + '/{low_high_name}_dg_calc_lowhibkexchcorr.benchmark.txt'
         conda:
             env_fpath
         shell:
