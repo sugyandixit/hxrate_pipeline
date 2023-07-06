@@ -19,6 +19,7 @@ def fit_rate_from_to_file(prot_name: str,
                           exp_label: str or list = None,
                           usr_backexchange: float or list = None,
                           low_high_backexchange_list_fpath: str = None,
+                          low_high_bkexch_corr: bool = True,
                           backexchange_corr_fpath: str or list = None,
                           backexchange_array_fpath: str or list = None,
                           adjust_backexchange: bool = True,
@@ -78,7 +79,10 @@ def fit_rate_from_to_file(prot_name: str,
             #  the csv file
             low_high_bkexch_df['low_high_name'] = np.array([x+'_'+y for x, y in zip(low_high_bkexch_df['low_ph_protein_name'].values, low_high_bkexch_df['high_ph_protein_name'].values)])
             low_high_bkexch_prot_df = low_high_bkexch_df[low_high_bkexch_df['low_high_name'] == prot_rt_name]
-            low_user_backexchange = low_high_bkexch_prot_df['low_ph_backexchange_new'].values
+            if low_high_bkexch_corr:
+                low_user_backexchange = low_high_bkexch_prot_df['low_ph_backexchange_all_corr'].values
+            else:
+                low_user_backexchange = low_high_bkexch_prot_df['low_ph_backexchange'].values
             high_user_backexchange = low_high_bkexch_prot_df['high_ph_backexchange'].values
 
             # low_high_name should be unique so we expect a single value on the backexchange array
@@ -216,6 +220,8 @@ def gen_parser_arguments():
     parser.add_argument('-bcf', '--bkexchange_corr_fpath', nargs='+', help='backexchange correction filepath .csv')
     parser.add_argument('-baf', '--bkexchange_array_fpath', nargs='+', help='backexchange array filepath .csv')
     parser.add_argument('--adjust_backexchange', help='adjust backexchange boolean', default=True,
+                        action=argparse.BooleanOptionalAction)
+    parser.add_argument('--lohibkexchcorr', help='correct backexchange for low ph data using high ph data', default=True,
                         action=argparse.BooleanOptionalAction)
     parser.add_argument('-nc', '--num_chains', help='number of independent markov chains for MCMC', type=int, default=4)
     parser.add_argument('-nw', '--num_warmups', help='number of warmups for MCMC', type=int, default=100)
