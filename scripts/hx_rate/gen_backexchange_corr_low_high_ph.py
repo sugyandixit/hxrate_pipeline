@@ -100,7 +100,7 @@ def check_saturation_from_file(fpath,
                                d2o_frac,
                                d2o_pur,
                                mass_rate_threshold=0.03,
-                               dist_indices=[-1, -2],
+                               dist_indices=[-1, -5],
                                bkexch_corr_fpath=None):
     """
 
