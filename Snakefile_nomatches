@@ -25,9 +25,6 @@ gen_time_specific_bkexch_path = scripts_dirpath + '/gen_time_specific_bkexch_cor
 gen_backexch_corr_low_high_python_path = scripts_dirpath + '/gen_backexchange_corr_low_high_ph.py'
 dg_calc_python_path = scripts_dirpath + '/dG_calc.py'
 
-# set the environment file
-env_fpath = config['path_to_repo'] + '/envs/hxrate_pipeline.yml'
-
 
 def check_hxdist_fpath(hxms_dir,
                        hdxlim_dir_struct,
@@ -315,9 +312,6 @@ rule fit_hx_rates_:
         posterior_plot_file = hxrate_dpath + '/{prot_rt_name}/{prot_rt_name}_posteriors.pdf'
     benchmark:
         benchmark_dpath + '/{prot_rt_name}_fit_hx_rate.benchmark.txt'
-    conda:
-        env_fpath
-    # threads: config['num_chains']
     shell:
         'python ' + hx_rate_fit_python_path + ' -p {params.prot_name} -pr {params.prot_rt_name} -s {params.prot_seq} -i {input.hx_dist_fpath} -df {params.d2o_frac} -expl {params.exp_label} -dp {params.d2o_pur} -bcf {input.bkexch_corr_fpath} --no-merge {params.adjust_backexchange} -nc {params.num_chains} -nw {params.num_warmups} -ns {params.num_samples} {params.sample_backexchange} -o {output.pk_file} -or {output.rate_csv_file} -op {output.plot_file} -opp {output.posterior_plot_file} -od {output.iso_dist_file}'
 
@@ -339,7 +333,5 @@ if config['dg_calc']:
             dg_plot_path = dg_output_path + '/{prot_rt_name}/{prot_rt_name}_dg_data.pdf',
         benchmark:
             benchmark_dpath + '/{prot_rt_name}_dg_calc.benchmark.txt'
-        conda:
-            env_fpath
         shell:
             'python ' + dg_calc_python_path + ' -i {input.hx_rate_pickle_fpath} -p {params.pH} -t {params.temp} {params.net_charge_corr} -m {params.minfe} -opk {output.dg_data_output} -oc {output.dg_csv_output} -opd {output.dg_plot_path}'
