@@ -270,10 +270,12 @@ else:
 
 if config['dg_calc']:
     rule all:
-        input:  expand(dg_output_path + '/{low_high_name}/{low_high_name}_dg_data.pickle', low_high_name=low_high_name_)
+        input:  expand(dg_output_path + '/{low_high_name}/{low_high_name}_dg_data.pickle', low_high_name=low_high_name_),
+                expand(dg_output_path + '/lowhibkexchcorr/{low_high_name}/{low_high_name}_dg_data.pickle', low_high_name=low_high_name_)
 else:
     rule all:
-        input:  expand(hxrate_dpath + '/{low_high_name}/{low_high_name}_hx_rate_fit.pickle', low_high_name=low_high_name_)
+        input:  expand(hxrate_dpath + '/{low_high_name}/{low_high_name}_hx_rate_fit.pickle', low_high_name=low_high_name_),
+                expand(hxrate_dpath + '/lowhibkexchcorr/{low_high_name}/{low_high_name}_hx_rate_fit.pickle', low_high_name=low_high_name_)
 
 
 if config['low_ph_backexchange_correction_fpath'] is None:
