@@ -2,47 +2,26 @@
 
 Set of scripts to obtain set of rates from HX MS data
 
-You can download the repo and use the modules
 
-
-## **Input files**
-hx_ms_files: hx_ms_files in csv format. Each column consists of intensity distribution over a range of mass.
-Example of hx_ms_file can be found at: workfoler/input_hx_dist/HEEH_rd4_0097_hx_mass_dist.csv
-
-pdb_files: pdb file .pdb
-
-library_info file (for snakemake pipeline): library_info.json file from HDX LIMIT Pipeline
-
-## **How to**
-
-### **Tips**
-If you're using config files to run the program, you can run the program from any location as long as you specify the
-path to repo in the config file.
-
-You only need to download one copy of the repository. You can then make copies of the config files and Snakemake files
-to run multiple instances of pipeline
-
+## **RUN DISTRIBUTED JOBS IN HPC CLUSTERS**
 
 ## **RUN VIA SNAKEMAKE**
 
-Install Snakemake first!
+Create a virtual environment
 
-`conda install -n base -c conda-forge mamba`
+`conda create -n hdxrate python=3.9`
 
-`conda activate base`
+Activate the environment
 
-`mamba create -c conda-forge -c bioconda -n snakemake snakemake`
+`conda activate hdxrate`
 
-Activate snakemake environment
+Install hxrate package
 
-`conda activate snakemake`
+'python -m pip install hxrate'
 
- or
+Install snakemake
 
- `source activate snakemake`
-
-
-Snakemake installation instructions can be found here: https://snakemake.readthedocs.io/en/stable/getting_started/installation.html
+`python -m pip install snakemake`
 
 
 ### **Tips**
@@ -86,26 +65,6 @@ Merge_Snakefile will create backexchange correction files which will be necessar
 `nohup snakemake -s Snakefile_nomatches -j 1000 --use-conda --keep-going --cluster "sbatch -A p30802 -p short -N 1 -n {resources.cpus} --mem=4GB -t 04:00:00" --max-jobs-per-second 3 > nohup_snakefile_nomatches.out &`
 
 
-## **RUN VIA SCRIPTS**
-
-you can find all the scripts in scripts/hx_rate/
-
-you can run the scripts on your own. Or you could import methods from these scripts in your own script to run functions
-
-
-**more description will be added soon**
-
-
-## **Rate fitting**
-$ python scripts/hx_rate/hx_rate_fit.py - [Options]
-
-## **Generte backexchange correlation between low and high ph data**
-$ python scripts/hx_rate/gen_backexchange_corr_low_high_ph.py - [Options]
-
-## **dG calculation**
-$ python scripts/hx_rate/dG_calc.py - [Options]
-
-
 
 # **Config Files**
 
@@ -121,8 +80,6 @@ levels_to_fpaths: where the files are present under the directory. if its direct
 library_info_json_fpath: library_info_json_fpath .json from HDX LIMIT Pipeline
 
 protein_rt_column_name: name of column from which protein_rt to be extracted
-
-pdb_fpaths_dir: directory where you can find pdb files.
 
 output_dirpath: output directory path to specify. It doesn't need to actually exist but you need to specify where you would like the output files to go.
 
