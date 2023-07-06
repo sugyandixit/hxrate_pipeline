@@ -192,6 +192,7 @@ def write_low_high_backexchange_array(low_ph_protein_name,
                                       high_ph_saturation,
                                       corr_include_indices,
                                       low_ph_backexchange_new,
+                                      low_ph_backexchange_all_corr,
                                       output_path):
     """
 
@@ -207,21 +208,23 @@ def write_low_high_backexchange_array(low_ph_protein_name,
     corr_include_arr = np.zeros(len(low_ph_backexchange_array))
     corr_include_arr[corr_include_indices] = 1
 
-    header = 'low_ph_protein_name,high_ph_protein_name,low_high_name,sequence,low_ph_backexchange,high_ph_backexchange,low_ph_saturation,high_ph_saturation,corr_include,low_ph_backexchange_new\n'
+    header = 'low_ph_protein_name,high_ph_protein_name,low_high_name,sequence,low_ph_backexchange,high_ph_backexchange,low_ph_saturation,high_ph_saturation,corr_include,low_ph_backexchange_new,low_ph_backexchange_all_corr\n'
     data_string = ''
 
     for num in range(len(corr_include_arr)):
 
-        data_string += '{},{},{},{},{},{},{},{},{},{}\n'.format(low_ph_protein_name[num],
-                                                                high_ph_protein_name[num],
-                                                                low_ph_protein_name[num] + '_' + high_ph_protein_name[num],
-                                                                sequence_array[num],
-                                                                low_ph_backexchange_array[num],
-                                                                high_ph_backexchange_array[num],
-                                                                low_ph_saturation[num],
-                                                                high_ph_saturation[num],
-                                                                corr_include_arr[num],
-                                                                low_ph_backexchange_new[num])
+        data_string += '{},{},{},{},{},{},{},{},{},{},{}\n'.format(low_ph_protein_name[num],
+                                                                   high_ph_protein_name[num],
+                                                                   low_ph_protein_name[num] + '_' + high_ph_protein_name[num],
+                                                                   sequence_array[num],
+                                                                   low_ph_backexchange_array[num],
+                                                                   high_ph_backexchange_array[num],
+                                                                   low_ph_saturation[num],
+                                                                   high_ph_saturation[num],
+                                                                   corr_include_arr[num],
+                                                                   low_ph_backexchange_new[num],
+                                                                   low_ph_backexchange_all_corr[num]
+                                                                   )
 
     with open(output_path, 'w') as outfile:
         outfile.write(header + data_string)
@@ -344,14 +347,18 @@ def gen_low_high_ph_bkexchange_(merge_sample_list_fpath: str,
 
     # generate low ph backexchange if saturation not achieved
     low_ph_bkexch_new_arr = np.zeros(len(low_ph_bkexch_satur['backexchange_array']))
+    low_ph_bkexch_all_corr_arr = np.zeros(len(low_ph_bkexch_satur['backexchange_array']))
+
     for ind, (low_ph_bkexch, high_ph_bkexch, low_ph_satur) in enumerate(zip(low_ph_bkexch_satur['backexchange_array'],
                                                                             high_ph_bkexch_satur['backexchange_array'],
                                                                             low_ph_bkexch_satur['saturation_bool_list'])):
+
+        corr_low_ph_bkexch = (high_ph_bkexch - odr_output.beta[1])/odr_output.beta[0]
+        low_ph_bkexch_all_corr_arr[ind] = corr_low_ph_bkexch
         if low_ph_satur:
             low_ph_bkexch_new_arr[ind] = low_ph_bkexch
         else:
-            new_low_ph_bkexch = (high_ph_bkexch - odr_output.beta[1])/odr_output.beta[0]
-            low_ph_bkexch_new_arr[ind] = new_low_ph_bkexch
+            low_ph_bkexch_new_arr[ind] = corr_low_ph_bkexch
 
     plot_backexchange_correlation(low_ph_bkexch_corr,
                                   high_ph_bkexch_corr,
@@ -378,6 +385,7 @@ def gen_low_high_ph_bkexchange_(merge_sample_list_fpath: str,
                                       high_ph_saturation=high_ph_bkexch_satur['saturation_bool_list'],
                                       corr_include_indices=corr_include_indices,
                                       low_ph_backexchange_new=low_ph_bkexch_new_arr,
+                                      low_ph_backexchange_all_corr=low_ph_bkexch_all_corr_arr,
                                       output_path=bkexchange_output_path)
 
     if return_flag:
