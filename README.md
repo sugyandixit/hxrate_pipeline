@@ -17,7 +17,7 @@ Activate the environment
 
 Install hxrate package
 
-'python -m pip install hxrate'
+`python -m pip install hxrate`
 
 Install snakemake
 
