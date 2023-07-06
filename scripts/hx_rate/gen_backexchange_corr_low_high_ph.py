@@ -491,14 +491,17 @@ def gen_low_high_ph_bkexchange_from_file_list(list_of_low_ph_hxms_files: list,
 
     # generate low ph backexchange if saturation not achieved
     low_ph_bkexch_new_arr = np.zeros(len(low_ph_bkexch_satur['backexchange_array']))
+    low_ph_bkexch_corr_arr = np.zeros(len(low_ph_bkexch_satur['backexchange_array']))
     for ind, (low_ph_bkexch, high_ph_bkexch, low_ph_satur) in enumerate(zip(low_ph_bkexch_satur['backexchange_array'],
                                                                             high_ph_bkexch_satur['backexchange_array'],
                                                                             low_ph_bkexch_satur['saturation_bool_list'])):
+
+        low_ph_corr_bkexch = (high_ph_bkexch - odr_output.beta[1])/odr_output.beta[0]
+        low_ph_bkexch_corr_arr[ind] = low_ph_corr_bkexch
         if low_ph_satur:
             low_ph_bkexch_new_arr[ind] = low_ph_bkexch
         else:
-            new_low_ph_bkexch = (high_ph_bkexch - odr_output.beta[1])/odr_output.beta[0]
-            low_ph_bkexch_new_arr[ind] = new_low_ph_bkexch
+            low_ph_bkexch_new_arr[ind] = low_ph_corr_bkexch
 
     plot_backexchange_correlation(low_ph_bkexch_corr,
                                   high_ph_bkexch_corr,
@@ -525,6 +528,7 @@ def gen_low_high_ph_bkexchange_from_file_list(list_of_low_ph_hxms_files: list,
                                       high_ph_saturation=high_ph_bkexch_satur['saturation_bool_list'],
                                       corr_include_indices=corr_include_indices,
                                       low_ph_backexchange_new=low_ph_bkexch_new_arr,
+                                      low_ph_backexchange_all_corr=low_ph_bkexch_corr_arr,
                                       output_path=bkexchange_output_path)
 
     if return_flag:
