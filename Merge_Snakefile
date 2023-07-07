@@ -426,12 +426,12 @@ rule fit_hx_rates_merge_dist_lohibkexchcorr:
         high_ph_exp_label = config['high_ph_exp_label']
     resources: cpus=config['num_cores']
     output:
-        pk_file = hxrate_dpath + '/lowhibkexchcorr/{low_high_name}/{low_high_name}_hx_rate_fit.pickle',
-        rate_csv_file = hxrate_dpath + '/lowhibkexchcorr/{low_high_name}/{low_high_name}_hx_rate.csv',
-        merge_iso_dist_file = hxrate_dpath + '/lowhibkexchcorr/{low_high_name}/{low_high_name}_merge_iso_dist.csv',
-        iso_dist_file = hxrate_dpath + '/lowhibkexchcorr/{low_high_name}/{low_high_name}_hx_rate_theo_dist.csv',
-        plot_file = hxrate_dpath + '/lowhibkexchcorr/{low_high_name}/{low_high_name}_hx_rate.pdf',
-        posterior_plot_file = hxrate_dpath + '/lowhibkexchcorr/{low_high_name}/{low_high_name}_posteriors.pdf'
+        pk_file = hxrate_dpath + '_lowhibkexchcorr/{low_high_name}/{low_high_name}_hx_rate_fit.pickle',
+        rate_csv_file = hxrate_dpath + '_lowhibkexchcorr/{low_high_name}/{low_high_name}_hx_rate.csv',
+        merge_iso_dist_file = hxrate_dpath + '_lowhibkexchcorr/{low_high_name}/{low_high_name}_merge_iso_dist.csv',
+        iso_dist_file = hxrate_dpath + '_lowhibkexchcorr/{low_high_name}/{low_high_name}_hx_rate_theo_dist.csv',
+        plot_file = hxrate_dpath + '_lowhibkexchcorr/{low_high_name}/{low_high_name}_hx_rate.pdf',
+        posterior_plot_file = hxrate_dpath + '_lowhibkexchcorr/{low_high_name}/{low_high_name}_posteriors.pdf'
     benchmark:
         benchmark_dpath + '/{low_high_name}_fit_hx_rate_lowhibkexchcorr.benchmark.txt'
     shell:
@@ -461,7 +461,7 @@ if config['dg_calc']:
 
     rule dg_calc_merge_dist_lowhibkexchcorr:
         input:
-            hx_rate_pickle_fpath = hxrate_dpath + '/lowhibkexchcorr/{low_high_name}/{low_high_name}_hx_rate_fit.pickle',
+            hx_rate_pickle_fpath = hxrate_dpath + '_lowhibkexchcorr/{low_high_name}/{low_high_name}_hx_rate_fit.pickle',
         params:
             pH = config['low_pH'],
             temp = config['temp'],
@@ -469,9 +469,9 @@ if config['dg_calc']:
             net_charge_corr = netcharge_param,
         resources: cpus=1
         output:
-            dg_csv_output = dg_output_path + '/lowhibkexchcorr/{low_high_name}/{low_high_name}_dg_data.csv',
-            dg_data_output = dg_output_path + '/lowhibkexchcorr/{low_high_name}/{low_high_name}_dg_data.pickle',
-            dg_plot_path = dg_output_path + '/lowhibkexchcorr/{low_high_name}/{low_high_name}_dg_data.pdf',
+            dg_csv_output = dg_output_path + '_lowhibkexchcorr/{low_high_name}/{low_high_name}_dg_data.csv',
+            dg_data_output = dg_output_path + '_lowhibkexchcorr/{low_high_name}/{low_high_name}_dg_data.pickle',
+            dg_plot_path = dg_output_path + '_lowhibkexchcorr/{low_high_name}/{low_high_name}_dg_data.pdf',
         benchmark:
             benchmark_dpath + '/{low_high_name}_dg_calc_lowhibkexchcorr.benchmark.txt'
         shell:
