@@ -130,7 +130,7 @@ def check_saturation_from_file(fpath,
                                                timepoints_array=tp,
                                                d2o_fraction=d2o_frac,
                                                d2o_purity=d2o_pur)
-    if len(norm_dist_list) > 2:
+    if len(norm_dist_list) > 5:
         dist_to_check = norm_dist_list[dist_indices]
         gauss_fit_list = gauss_fit_to_isotope_dist_array(isotope_dist=dist_to_check)
         centroid_list = [x.centroid for x in gauss_fit_list]
