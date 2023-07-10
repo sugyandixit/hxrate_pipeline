@@ -79,7 +79,7 @@ adjust_backexchange: True
 sample_backexchange: False
 num_chains: 4
 num_warmups: 1000
-num_samples: 1000
+num_samples: 2000
 
 num_cores: 12
 
