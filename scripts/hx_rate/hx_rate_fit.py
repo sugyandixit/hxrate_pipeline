@@ -263,6 +263,7 @@ def hx_rate_fitting_from_parser(parser):
                           backexchange_array_fpath=options.bkexchange_array_fpath,
                           low_high_backexchange_list_fpath=options.backexchange_low_high_list_fpath,
                           adjust_backexchange=options.adjust_backexchange,
+                          low_high_bkexch_corr=options.lohibkexchcorr,
                           num_chains=options.num_chains,
                           num_warmups=options.num_warmups,
                           num_samples=options.num_samples,
